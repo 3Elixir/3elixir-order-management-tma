@@ -1,0 +1,60 @@
+import { z } from "zod";
+import { publicProcedure } from "../../trpc";
+import { env } from "~/env";
+import { TRPCError } from "@trpc/server";
+
+const outputSchema = z.object({
+  data: z.array(
+    z.object({
+      id: z.number(),
+      attributes: z.object({
+        salesChannel: z.string(),
+        createdAt: z.string(),
+        updatedAt: z.string(),
+        publishedAt: z.string(),
+      }),
+    }),
+  ),
+  meta: z.object({
+    pagination: z.object({
+      page: z.number(),
+      pageSize: z.number(),
+      pageCount: z.number(),
+      total: z.number(),
+    }),
+  }),
+});
+
+export const getSalesChannels = publicProcedure
+  .output(outputSchema)
+  .query(async () => {
+    // Fetch products from Strapi API
+    try {
+      const response = await fetch(`${env.STRAPI_API_URL}/api/sales-channels`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + env.STRAPI_API_TOKEN,
+        },
+      });
+      const data = await response.json();
+      if (response.ok) return data;
+      if (response.status === 404)
+        throw new TRPCError({ code: "NOT_FOUND", message: data.error.message });
+      if (response.status === 401)
+        throw new TRPCError({ code: "FORBIDDEN", message: data.error.message });
+      if (response.status === 401)
+        throw new TRPCError({ code: "FORBIDDEN", message: data.error.message });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          " An error occurred while fetching sales channels from the Strapi API. Please try again later.",
+      });
+    } catch (error) {
+      if (error instanceof TRPCError) throw error;
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          " An error occurred while fetching sales channels from the Strapi API. Please try again later.",
+      });
+    }
+  });

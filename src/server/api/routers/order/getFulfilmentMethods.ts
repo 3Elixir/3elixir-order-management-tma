@@ -1,0 +1,64 @@
+import { z } from "zod";
+import { publicProcedure } from "../../trpc";
+import { TRPCError } from "@trpc/server";
+import { env } from "~/env";
+
+const outputSchema = z.object({
+  data: z.array(
+    z.object({
+      id: z.number(),
+      attributes: z.object({
+        fulfilmentMethod: z.string(), // TODO: Change to fulfilmentMethod when the API is updated
+        createdAt: z.string(),
+        updatedAt: z.string(),
+        publishedAt: z.string(),
+      }),
+    }),
+  ),
+  meta: z.object({
+    pagination: z.object({
+      page: z.number(),
+      pageSize: z.number(),
+      pageCount: z.number(),
+      total: z.number(),
+    }),
+  }),
+});
+
+export const getFulfilmentMethods = publicProcedure
+  .output(outputSchema)
+  .query(async () => {
+    // Fetch products from Strapi API
+    try {
+      const response = await fetch(
+        `${env.STRAPI_API_URL}/api/delivery-methods`, // TODO: Change to fulfilment-methods when the API is updated
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + env.STRAPI_API_TOKEN,
+          },
+        },
+      );
+      const data = await response.json();
+      console.log(data);
+      if (response.ok) return data;
+      if (response.status === 404)
+        throw new TRPCError({ code: "NOT_FOUND", message: data.error.message });
+      if (response.status === 401)
+        throw new TRPCError({ code: "FORBIDDEN", message: data.error.message });
+      if (response.status === 401)
+        throw new TRPCError({ code: "FORBIDDEN", message: data.error.message });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          " An error occurred while fetching payment methods from the Strapi API. Please try again later.",
+      });
+    } catch (error) {
+      if (error instanceof TRPCError) throw error;
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          " An error occurred while fetching payment methods from the Strapi API. Please try again later.",
+      });
+    }
+  });
