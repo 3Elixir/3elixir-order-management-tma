@@ -69,7 +69,6 @@ ${orderProducts
   .map(
     (product) => `
 \\- Name: ${escapeSpecialChars(product.name)}
-\\- SKU: ${escapeSpecialChars(product.sku)}
 \\- Quantity: x${product.quantity}
 \\- Price/Btl: $${product.price}`,
   )
