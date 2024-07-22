@@ -142,7 +142,7 @@ const OrderDetailsMain = ({
   const tmaInitData = useInitData();
   const router = useRouter();
 
-  const [statusId, setStatusId] = useState(orderStatus.data.id);
+  const [statusId, setStatusId] = useState(orderStatus.data?.id ?? 0);
 
   const orderStatusQuery = api.orderStatus.getOrderStatuses.useQuery();
   const sendOrderDeletionMessageMutation =
@@ -155,7 +155,8 @@ const OrderDetailsMain = ({
       // Send a telegram update message to the channel
       sendStatusUpdateMutation.mutate({
         ...data,
-        prevStatusName: orderStatus.data.attributes.orderStatus,
+        prevStatusName:
+          orderStatus.data?.attributes.orderStatus ?? "no order status",
       });
     },
     onSettled: () => {
@@ -360,7 +361,8 @@ const OrderDetailsMain = ({
               <strong className="font-medium">💼 Fulfilment Method</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">
-                {fulfilmentMethod.data.attributes.fulfilmentMethod}
+                {fulfilmentMethod.data?.attributes.fulfilmentMethod ??
+                  "no fulfilment method"}
               </strong>
             </p>
 
@@ -385,21 +387,24 @@ const OrderDetailsMain = ({
               <strong className="font-medium">💸 Payment Method</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">
-                {paymentMethod.data.attributes.paymentMethod}
+                {paymentMethod.data?.attributes.paymentMethod ??
+                  "no payment method"}
               </strong>
             </p>
             <p className="flex flex-wrap items-center text-sm">
               <strong className="font-medium">ℹ️ Payment Status</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">
-                {paymentStatus.data.attributes.paymentStatus}
+                {paymentStatus.data?.attributes.paymentStatus ??
+                  "no payment status"}
               </strong>
             </p>
             <p className="flex flex-wrap items-center text-sm">
               <strong className="font-medium">🛒 Sales Channel</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">
-                {salesChannel.data.attributes.salesChannel}
+                {salesChannel.data?.attributes.salesChannel ??
+                  "no sales channel"}
               </strong>
             </p>
             {salesAgents.data.length > 0 && (
@@ -709,14 +714,14 @@ Last updated: ${format(new Date(updatedAt), "dd/MM/yyyy - h:mm a")}
 - Name: ${customerName}
 - Contact: ${customerContact}
 - Address: ${customerAddress}
-- Payment: ${paymentMethod.data.attributes.paymentMethod}
-- Payment status: ${paymentStatus.data.attributes.paymentStatus}
+- Payment: ${paymentMethod.data?.attributes.paymentMethod ?? "no payment method"}
+- Payment status: ${paymentStatus.data?.attributes.paymentStatus ?? "no payment status"}
 
 2. Order details
-- Status: ${orderStatus.data.attributes.orderStatus}
-- Sales channel: ${salesChannel.data.attributes.salesChannel}
+- Status: ${orderStatus.data?.attributes.orderStatus ?? "no order status"}
+- Sales channel: ${salesChannel.data?.attributes.salesChannel ?? "no sales channel"}
 - Sales agents: ${salesAgents.data.length > 0 ? salesAgents.data.map((agent) => agent.attributes.name).join(", ") : "N/A"}
-- Fulfilment method: ${fulfilmentMethod.data.attributes.fulfilmentMethod}
+- Fulfilment method: ${fulfilmentMethod.data?.attributes.fulfilmentMethod ?? "no fulfilment method"}
 - Fulfilment datetime: 
 ${fulfilmentDatetimeString}
 - Delivery fee: $${deliveryFee?.toFixed(2) ?? 0}
@@ -754,25 +759,34 @@ ${orderProducts
       customerAddress: details.attributes.customerAddress,
       customerContact: details.attributes.customerContact,
       paymentMethod: {
-        id: details.attributes.payment_method.data.id.toString(),
-        name: details.attributes.payment_method.data.attributes.paymentMethod,
+        id: details.attributes.payment_method.data?.id.toString() ?? "0",
+        name:
+          details.attributes.payment_method.data?.attributes.paymentMethod ??
+          "no payment method",
       },
       paymentStatus: {
-        id: details.attributes.payment_status.data.id.toString(),
-        name: details.attributes.payment_status.data.attributes.paymentStatus,
+        id: details.attributes.payment_status.data?.id.toString() ?? "0",
+        name:
+          details.attributes.payment_status.data?.attributes.paymentStatus ??
+          "no payment status",
       },
       fulfilmentMethod: {
-        id: details.attributes.fulfilment_method.data.id.toString(),
-        name: details.attributes.fulfilment_method.data.attributes
-          .fulfilmentMethod,
+        id: details.attributes.fulfilment_method.data?.id.toString() ?? "0",
+        name:
+          details.attributes.fulfilment_method.data?.attributes
+            .fulfilmentMethod ?? "no fulfilment method",
       },
       orderStatus: {
-        id: details.attributes.order_status.data.id.toString(),
-        name: details.attributes.order_status.data.attributes.orderStatus,
+        id: details.attributes.order_status.data?.id.toString() ?? "0",
+        name:
+          details.attributes.order_status.data?.attributes.orderStatus ??
+          "no order status",
       },
       salesChannel: {
-        id: details.attributes.sales_channel.data.id.toString(),
-        name: details.attributes.sales_channel.data.attributes.salesChannel,
+        id: details.attributes.sales_channel.data?.id.toString() ?? "0",
+        name:
+          details.attributes.sales_channel.data?.attributes.salesChannel ??
+          "no sales channel",
       },
       salesAgents: details.attributes.sales_agents.data.map((agent) => ({
         value: {

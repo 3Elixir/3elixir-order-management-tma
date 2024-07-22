@@ -48,34 +48,44 @@ const outputSchema = z.object({
         ),
       }),
       payment_method: z.object({
-        data: z.object({
-          id: z.number(),
-          attributes: z.object({ paymentMethod: z.string() }),
-        }),
+        data: z
+          .object({
+            id: z.number(),
+            attributes: z.object({ paymentMethod: z.string() }),
+          })
+          .nullable(),
       }),
       payment_status: z.object({
-        data: z.object({
-          id: z.number(),
-          attributes: z.object({ paymentStatus: z.string() }),
-        }),
+        data: z
+          .object({
+            id: z.number(),
+            attributes: z.object({ paymentStatus: z.string() }),
+          })
+          .nullable(),
       }),
       sales_channel: z.object({
-        data: z.object({
-          id: z.number(),
-          attributes: z.object({ salesChannel: z.string() }),
-        }),
+        data: z
+          .object({
+            id: z.number(),
+            attributes: z.object({ salesChannel: z.string() }),
+          })
+          .nullable(),
       }),
       order_status: z.object({
-        data: z.object({
-          id: z.number(),
-          attributes: z.object({ orderStatus: z.string() }),
-        }),
+        data: z
+          .object({
+            id: z.number(),
+            attributes: z.object({ orderStatus: z.string() }),
+          })
+          .nullable(),
       }),
       fulfilment_method: z.object({
-        data: z.object({
-          id: z.number(),
-          attributes: z.object({ fulfilmentMethod: z.string() }),
-        }),
+        data: z
+          .object({
+            id: z.number(),
+            attributes: z.object({ fulfilmentMethod: z.string() }),
+          })
+          .nullable(),
       }),
     }),
   }),
