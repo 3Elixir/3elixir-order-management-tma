@@ -42,6 +42,17 @@ export const sendOrderDetailsUpdateMessage = publicProcedure
       ? `${formatInTimeZone(fulfilmentStart, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}${fulfilmentEnd ? `\nto ${formatInTimeZone(fulfilmentEnd, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}` : ""}`
       : "N/A";
 
+    const calculateOrderPrice = (
+      products: typeof orderProducts,
+      deliveryFee: number,
+    ) => {
+      const productCost = products.reduce(
+        (accum, curr) => accum + curr.price * curr.quantity,
+        0,
+      );
+      return productCost + deliveryFee;
+    };
+
     // Construct the order details message
     const orderDetailsMessage = `
 *📦Order \\#${orderId} \\(updated\\)\\!📦*
@@ -75,12 +86,18 @@ ${orderProducts
   .map(
     (product) => `
 \\- Name: ${escapeSpecialChars(product.name)}
-\\- SKU: ${escapeSpecialChars(product.sku)}
 \\- Quantity: x${product.quantity}
 \\- Price: $${product.price}`,
   )
   .join("\n")
   .trim()}
+
+*Total price*: __${escapeSpecialChars(
+      calculateOrderPrice(orderProducts, deliveryFee ?? 0).toFixed(2),
+    )}__
+
+__*Payment details*__
+${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}
 `;
 
     // Construct the bump message
