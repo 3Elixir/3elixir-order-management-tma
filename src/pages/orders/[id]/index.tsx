@@ -701,6 +701,17 @@ const OrderFooter = ({
   const tmaPopup = usePopup();
   const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
 
+  const calculateOrderPrice = (
+    products: typeof orderProducts,
+    deliveryFee: number,
+  ) => {
+    const productCost = products.reduce(
+      (accum, curr) => accum + curr.price * curr.quantity,
+      0,
+    );
+    return productCost + deliveryFee;
+  };
+
   const onCopyOrder = () => {
     const fulfilmentDatetimeString = fulfilmentStart
       ? `${format(fulfilmentStart, "dd/MM/yyyy - h:mm a")}${fulfilmentEnd ? `\nto ${format(fulfilmentEnd, "dd/MM/yyyy h:mm a")}` : ""}`
@@ -732,12 +743,18 @@ ${orderProducts
   .map(
     (product) => `
 - Name: ${product.name}
-- SKU: ${product.sku}
 - Quantity: x${product.quantity}
 - Price: $${product.price}`,
   )
   .join("\n")
   .trim()}
+
+*Total price*: __${calculateOrderPrice(orderProducts, deliveryFee ?? 0).toFixed(
+      2,
+    )}__
+
+__*Payment details*__
+"🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")
 `;
     navigator.clipboard.writeText(copiedOrderText);
 
