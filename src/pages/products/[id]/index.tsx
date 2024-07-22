@@ -198,14 +198,14 @@ const ProductDetailsMain = ({
               <strong className="font-medium">🥃 Brand</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">
-                {productBrand.data.attributes.brand}
+                {productBrand.data?.attributes.brand ?? "no brand"}
               </strong>
             </p>
             <p className="flex flex-wrap items-center text-sm">
               <strong className="font-medium">🗃️ Category</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">
-                {productCategory.data.attributes.category}
+                {productCategory.data?.attributes.category ?? "no category"}
               </strong>
             </p>
           </div>
@@ -294,12 +294,14 @@ const ProductDetailsFooter = ({
       sku: details.attributes.sku,
       name: details.attributes.name,
       brand: {
-        id: details.attributes.brand.data.id.toString(),
-        name: details.attributes.brand.data.attributes.brand,
+        id: details.attributes.brand.data?.id.toString() ?? "0",
+        name: details.attributes.brand.data?.attributes.brand ?? "no brand",
       },
       category: {
-        id: details.attributes.category.data.id.toString(),
-        name: details.attributes.category.data.attributes.category,
+        id: details.attributes.category.data?.id.toString() ?? "0",
+        name:
+          details.attributes.category.data?.attributes.category ??
+          "no category",
       },
     });
 

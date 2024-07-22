@@ -14,16 +14,20 @@ const outputSchema = z.object({
       sku: z.string(),
       name: z.string(),
       brand: z.object({
-        data: z.object({
-          id: z.number(),
-          attributes: z.object({ brand: z.string() }),
-        }),
+        data: z
+          .object({
+            id: z.number(),
+            attributes: z.object({ brand: z.string() }),
+          })
+          .nullable(),
       }),
       category: z.object({
-        data: z.object({
-          id: z.number(),
-          attributes: z.object({ category: z.string() }),
-        }),
+        data: z
+          .object({
+            id: z.number(),
+            attributes: z.object({ category: z.string() }),
+          })
+          .nullable(),
       }),
       createdAt: z.string(),
       updatedAt: z.string(),
