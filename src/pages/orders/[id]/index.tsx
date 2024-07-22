@@ -749,12 +749,10 @@ ${orderProducts
   .join("\n")
   .trim()}
 
-*Total price*: __${calculateOrderPrice(orderProducts, deliveryFee ?? 0).toFixed(
-      2,
-    )}__
+Total price*: ${calculateOrderPrice(orderProducts, deliveryFee ?? 0).toFixed(2)}
 
-__*Payment details*__
-"🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")
+Payment details
+🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!
 `;
     navigator.clipboard.writeText(copiedOrderText);
 
