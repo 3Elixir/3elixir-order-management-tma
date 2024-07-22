@@ -265,7 +265,7 @@ const OrderCard = ({
   const router = useRouter();
   const queryContext = api.useUtils();
 
-  const [statusId, setStatusId] = useState(orderStatus.data.id);
+  const [statusId, setStatusId] = useState(orderStatus.data?.id ?? 0);
 
   const orderStatusQuery = api.orderStatus.getOrderStatuses.useQuery();
   const sendStatusUpdateMutation =
@@ -275,7 +275,8 @@ const OrderCard = ({
       // Send a telegram update message to the channel
       sendStatusUpdateMutation.mutate({
         ...data,
-        prevStatusName: orderStatus.data.attributes.orderStatus,
+        prevStatusName:
+          orderStatus.data?.attributes.orderStatus ?? "no order status",
       });
     },
     onSettled: () => {
@@ -327,7 +328,7 @@ const OrderCard = ({
             >
               {orderStatusLoading
                 ? "Updating..."
-                : orderStatus.data.attributes.orderStatus}
+                : orderStatus.data?.attributes.orderStatus ?? "no order status"}
             </Badge>
           </PopoverTrigger>
           <PopoverContent className="flex w-36 flex-col" side="bottom">
@@ -358,12 +359,14 @@ const OrderCard = ({
                   updateOrderStatusMutation.mutate({
                     orderId,
                     statusId,
-                    prevStatusName: orderStatus.data?.attributes.orderStatus,
+                    prevStatusName:
+                      orderStatus.data?.attributes.orderStatus ??
+                      "no order status",
                   });
                 }}
                 disabled={
                   updateOrderStatusMutation.isPending ||
-                  orderStatus.data.id === statusId
+                  (orderStatus.data?.id ?? 0) === statusId
                 }
               >
                 Update status
@@ -379,7 +382,8 @@ const OrderCard = ({
             <span className="font-medium">💼 Fulfil through</span>
             <Dot className="h-3.5 w-3.5" />
             <span className="font-light">
-              {fulfilmentMethod.data?.attributes.fulfilmentMethod}
+              {fulfilmentMethod.data?.attributes.fulfilmentMethod ??
+                "no fulfilment method"}
             </span>
           </p>
           <p className="flex flex-wrap items-center text-sm">
@@ -413,14 +417,15 @@ const OrderCard = ({
             <span className="font-medium">ℹ️ Payment status</span>
             <Dot className="h-3.5 w-3.5" />
             <span className="font-light capitalize">
-              {paymentStatus.data?.attributes.paymentStatus}
+              {paymentStatus.data?.attributes.paymentStatus ??
+                "no payment status"}
             </span>
           </p>
           <p className="flex items-center text-sm">
             <span className="font-medium">🛒 Sold through</span>
             <Dot className="h-3.5 w-3.5" />
             <span className="font-light capitalize">
-              {salesChannel.data?.attributes.salesChannel}
+              {salesChannel.data?.attributes.salesChannel ?? "no sales channel"}
             </span>
           </p>
           {salesAgents.data?.length > 0 && (
