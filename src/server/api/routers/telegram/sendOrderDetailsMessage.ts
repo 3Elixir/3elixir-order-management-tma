@@ -31,6 +31,17 @@ export const sendOrderDetailsMessage = publicProcedure
       remarks,
     } = input;
 
+    const calculateOrderPrice = (
+      products: typeof orderProducts,
+      deliveryFee: number,
+    ) => {
+      const productCost = products.reduce(
+        (accum, curr) => accum + curr.price * curr.quantity,
+        0,
+      );
+      return productCost + deliveryFee;
+    };
+
     const markdownMessage = `
 *📦Order \\#${orderId} \\(created\\)\\!📦*
 
@@ -50,7 +61,7 @@ __*2\\. Order details*__
 ${escapeSpecialChars(
   formatInTimeZone(fulfilmentStart, "Asia/Singapore", "dd/MM/yyyy - h:mm a"),
 )}${hasEnd ? `\nto ${formatInTimeZone(fulfilmentEnd, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}` : ""}
-\\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2).toString())}
+\\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2))}
 \\- Remarks: ${escapeSpecialChars(remarks)}
 
 __*3\\. Products included*__
@@ -60,10 +71,17 @@ ${orderProducts
 \\- Name: ${escapeSpecialChars(product.name)}
 \\- SKU: ${escapeSpecialChars(product.sku)}
 \\- Quantity: x${product.quantity}
-\\- Price: $${product.price}`,
+\\- Price/Btl: $${product.price}`,
   )
   .join("\n")
   .trim()}
+
+__*Total price: ${escapeSpecialChars(
+      calculateOrderPrice(orderProducts, deliveryFee).toFixed(2),
+    )}*__
+
+__*Payment details*__
+${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}
 `;
 
     // Send a message to the order channel
