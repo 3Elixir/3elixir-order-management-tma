@@ -63,12 +63,14 @@ const outputSchema = z.object({
             }),
           ),
         }),
-        payment_method: z.object({
-          data: z.object({
-            id: z.number(),
-            attributes: z.object({ paymentMethod: z.string() }),
-          }),
-        }),
+        payment_method: z
+          .object({
+            data: z.object({
+              id: z.number(),
+              attributes: z.object({ paymentMethod: z.string() }),
+            }),
+          })
+          .nullable(),
         payment_status: z.object({
           data: z.object({
             id: z.number(),

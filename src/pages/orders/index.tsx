@@ -405,7 +405,8 @@ const OrderCard = ({
             <span className="font-medium">💸 Paying with</span>
             <Dot className="h-3.5 w-3.5" />
             <span className="font-light capitalize">
-              {paymentMethod.data?.attributes.paymentMethod}
+              {paymentMethod?.data?.attributes.paymentMethod ??
+                "no payment method"}
             </span>
           </p>
           <p className="text-mute flex items-center text-sm">
