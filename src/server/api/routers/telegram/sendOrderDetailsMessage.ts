@@ -50,8 +50,8 @@ ${orderProducts
   .map(
     (product) => `
 \\- Name: ${escapeSpecialChars(product.name)}
-\\- Quantity: x${product.quantity}
-\\- Price/Btl: $${product.price}`,
+\\- Quantity: x${escapeSpecialChars(product.quantity.toString())}
+\\- Price/Btl: $${escapeSpecialChars(product.price.toFixed(2))}`,
   )
   .join("\n")
   .trim()}

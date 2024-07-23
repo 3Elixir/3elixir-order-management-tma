@@ -1,6 +1,7 @@
 import { Telegram, TelegramError } from "telegraf";
 import { z } from "zod";
 import { env } from "~/env";
+import { escapeSpecialChars } from "~/lib/utils";
 import { publicProcedure } from "~/server/api/trpc";
 
 const inputSchema = z.object({
@@ -17,7 +18,7 @@ export const sendProductCreationMessage = publicProcedure
       const telegram = new Telegram(env.TELEGRAM_BOT_TOKEN);
       const message = await telegram.sendMessage(
         chatId,
-        `*🎉Product \\#${sku} created successfully\\!*`,
+        `*🎉Product \\#${escapeSpecialChars(sku)} created successfully\\!*`,
         {
           parse_mode: "MarkdownV2",
         },
