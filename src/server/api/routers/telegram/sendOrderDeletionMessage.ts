@@ -70,10 +70,10 @@ ${orderProducts
     (product) => `
 ~\\- Name: ${escapeSpecialChars(product.name)}~
 ~\\- Quantity: x${product.quantity}~
-~\\- Price/Btl: $${product.price}`,
+~\\- Price/Btl: $${product.price}~`,
   )
   .join("\n")
-  .trim()}~
+  .trim()}
 
 ~\\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2))}~
 
@@ -84,9 +84,9 @@ ${orderProducts
 ~__*2\\. Order details*__~
 ~\\- Customer name: ${escapeSpecialChars(customerName)}~
 ~\\- Customer contact: ${escapeSpecialChars(customerContact)}~
-\\- Customer Address: ${escapeSpecialChars(customerAddress)}
+~\\- Customer Address: ${escapeSpecialChars(customerAddress)}~
 ~\\- Payment method: ${escapeSpecialChars(paymentMethod.data.attributes.paymentMethod)}~
-\\- Payment status: ${escapeSpecialChars(paymentStatus.data.attributes.paymentStatus)}
+~\\- Payment status: ${escapeSpecialChars(paymentStatus.data.attributes.paymentStatus)}~
 ~\\- Fulfilment method: ${escapeSpecialChars(fulfilmentMethod.data.attributes.fulfilmentMethod)}~
 ~\\- Fulfilment datetime: ~
 ~${escapeSpecialChars(fulfilmentDatetimeString)}~
