@@ -45,26 +45,7 @@ export const sendOrderDetailsMessage = publicProcedure
     const markdownMessage = `
 *📦Order \\#${orderId} \\(created\\)\\!📦*
 
-__*1\\. Customer Information*__
-\\- Name: ${escapeSpecialChars(customerName)}
-\\- Contact: ${escapeSpecialChars(customerContact)}
-\\- Address: ${escapeSpecialChars(customerAddress)}
-\\- Payment method: ${escapeSpecialChars(paymentMethod.name)}
-\\- Payment status: ${escapeSpecialChars(paymentStatus.name)}
-
-__*2\\. Order details*__
-\\- Status: ${escapeSpecialChars(orderStatus.name)}
-\\- Sales channel: ${escapeSpecialChars(salesChannel.name)}
-\\- Sales agents: ${salesAgents.length > 0 ? escapeSpecialChars(salesAgents.map((agent) => agent.value.name).join(", ")) : "N/A"}
-\\- Fulfilment method: ${escapeSpecialChars(fulfilmentMethod.name)}
-\\- Fulfilment datetime: 
-${escapeSpecialChars(
-  formatInTimeZone(fulfilmentStart, "Asia/Singapore", "dd/MM/yyyy - h:mm a"),
-)}${hasEnd ? `\nto ${formatInTimeZone(fulfilmentEnd, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}` : ""}
-\\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2))}
-\\- Remarks: ${escapeSpecialChars(remarks)}
-
-__*3\\. Products included*__
+__*1\\. Products included*__
 ${orderProducts
   .map(
     (product) => `
@@ -75,9 +56,23 @@ ${orderProducts
   .join("\n")
   .trim()}
 
+\\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2))}
+
 *Total price*: __${escapeSpecialChars(
       calculateOrderPrice(orderProducts, deliveryFee).toFixed(2),
     )}__
+
+__*2\\. Order details*__
+\\- Customer name: ${escapeSpecialChars(customerName)}
+\\- Customer contact: ${escapeSpecialChars(customerContact)}
+\\- Customer Address: ${escapeSpecialChars(customerAddress)}
+\\- Payment method: ${escapeSpecialChars(paymentMethod.name)}
+\\- Payment status: ${escapeSpecialChars(paymentStatus.name)}
+\\- Fulfilment method: ${escapeSpecialChars(fulfilmentMethod.name)}
+\\- Fulfilment datetime: 
+${escapeSpecialChars(
+  formatInTimeZone(fulfilmentStart, "Asia/Singapore", "dd/MM/yyyy - h:mm a"),
+)}${hasEnd ? `\nto ${formatInTimeZone(fulfilmentEnd, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}` : ""}
 
 __*Payment details*__
 ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}
