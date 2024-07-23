@@ -67,37 +67,32 @@ _Last updated: ${escapeSpecialChars(
       ),
     )}_
 
-__*1\\. Customer Information*__
-\\- Name: ${escapeSpecialChars(customerName)}
-\\- Contact: ${escapeSpecialChars(customerContact)}
-\\- Address: ${escapeSpecialChars(customerAddress)}
-\\- Payment: ${escapeSpecialChars(paymentMethod.data.attributes.paymentMethod)}
-\\- Payment status: ${escapeSpecialChars(paymentStatus.data.attributes.paymentStatus)}
-
-__*2\\. Order details*__
-\\- Status: ${escapeSpecialChars(orderStatus.data.attributes.orderStatus)}
-\\- Sales channel: ${escapeSpecialChars(salesChannel.data.attributes.salesChannel)}
-\\- Sales agents: ${salesAgents.data.length > 0 ? escapeSpecialChars(salesAgents.data.map((agent) => agent.attributes.name).join(", ")) : "N/A"}
-\\- Fulfilment method: ${escapeSpecialChars(fulfilmentMethod.data.attributes.fulfilmentMethod)}
-\\- Fulfilment datetime:
-${escapeSpecialChars(fulfilmentDatetimeString)}
-\\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2).toString())}
-\\- Remarks: ${escapeSpecialChars(remarks)}
-
-__*3\\. Products included*__
+__*1\\. Products included*__
 ${orderProducts
   .map(
     (product) => `
 \\- Name: ${escapeSpecialChars(product.name)}
 \\- Quantity: x${product.quantity}
-\\- Price: $${product.price}`,
+\\- Price/Btl: $${product.price}`,
   )
   .join("\n")
   .trim()}
 
-*Total price*: __${escapeSpecialChars(
+\\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2))}
+
+*Total price*: __$${escapeSpecialChars(
       calculateOrderPrice(orderProducts, deliveryFee ?? 0).toFixed(2),
     )}__
+
+__*2\\. Order details*__
+\\- Customer name: ${escapeSpecialChars(customerName)}
+\\- Customer contact: ${escapeSpecialChars(customerContact)}
+\\- Customer Address: ${escapeSpecialChars(customerAddress)}
+\\- Payment method: ${escapeSpecialChars(paymentMethod.data.attributes.paymentMethod)}
+\\- Payment status: ${escapeSpecialChars(paymentStatus.data.attributes.paymentStatus)}
+\\- Fulfilment method: ${escapeSpecialChars(fulfilmentMethod.data.attributes.fulfilmentMethod)}
+\\- Fulfilment datetime: 
+${escapeSpecialChars(fulfilmentDatetimeString)}
 
 __*Payment details*__
 ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}
