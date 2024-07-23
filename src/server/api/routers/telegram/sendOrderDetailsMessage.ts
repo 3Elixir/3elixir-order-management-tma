@@ -58,7 +58,7 @@ ${orderProducts
 
 \\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2))}
 
-*Total price*: __${escapeSpecialChars(
+*Total price*: __$${escapeSpecialChars(
       calculateOrderPrice(orderProducts, deliveryFee).toFixed(2),
     )}__
 
