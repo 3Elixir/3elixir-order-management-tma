@@ -73,6 +73,8 @@ __*2\\. Order details*__
 ${escapeSpecialChars(
   formatInTimeZone(fulfilmentStart, "Asia/Singapore", "dd/MM/yyyy - h:mm a"),
 )}${hasEnd ? `\nto ${escapeSpecialChars(formatInTimeZone(fulfilmentEnd, "Asia/Singapore", "dd/MM/yyyy - h:mm a"))}` : ""}
+\\- Sales channel: ${escapeSpecialChars(salesChannel.name)}
+\\- Remarks: ${escapeSpecialChars(remarks)}
 
 __*Payment details*__
 ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}
