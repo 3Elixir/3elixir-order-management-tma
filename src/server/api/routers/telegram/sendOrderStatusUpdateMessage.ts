@@ -63,7 +63,7 @@ _Last updated: ${escapeSpecialChars(
       formatInTimeZone(
         new Date(updatedAt),
         "Asia/Singapore",
-        "dd/MM/yyyy - h:mm a",
+        "dd/MM/yyyy - h:mm:ss a",
       ),
     )}_
 

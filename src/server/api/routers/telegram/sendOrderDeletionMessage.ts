@@ -59,7 +59,7 @@ export const sendOrderDeletionMessage = publicProcedure
     const orderDetailsMessage = `
 *📦Order \\#${orderId} \\(deleted\\)\\!📦*
 _Deleted on: ${escapeSpecialChars(
-      formatInTimeZone(new Date(), "Asia/Singapore", "dd/MM/yyyy - h:mm a"),
+      formatInTimeZone(new Date(), "Asia/Singapore", "dd/MM/yyyy - h:mm:ss a"),
     )}_
 
 🗑️🗑️🗑️🗑️🗑️🗑️🗑️🗑️🗑️
