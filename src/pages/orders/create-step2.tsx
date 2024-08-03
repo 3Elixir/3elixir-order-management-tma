@@ -85,9 +85,9 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   });
 
   // state to determine if sales agents input should be shown
-  const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.includes(
-    form.watch("salesChannel").name,
-  );
+  const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map((channel) =>
+    channel.toLowerCase(),
+  ).includes(form.watch("salesChannel").name.toLowerCase());
 
   const {
     fields: salesAgentArray,
