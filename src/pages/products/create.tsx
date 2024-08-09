@@ -311,7 +311,7 @@ const ProductForm = () => {
                       .with(
                         { status: "success" },
                         ({ data: { data: brands } }) => (
-                          <SelectItem value="">No brand</SelectItem>
+                          <SelectItem value="No Brand">No Brand</SelectItem>
                         ),
                         // brands.map((brand) => (
                         //   <SelectItem
