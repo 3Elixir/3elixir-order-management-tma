@@ -27,7 +27,7 @@ export const createProduct = publicProcedure
         sku,
         name,
         brand: {
-          connect: [parseInt(brand.id)],
+          connect: isNaN(parseInt(brand.id)) ? [] : [parseInt(brand.id)],
         },
         category: {
           connect: [parseInt(category.id)],

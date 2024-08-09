@@ -289,7 +289,6 @@ const ProductForm = () => {
                 <FormLabel className="flex items-center justify-between">
                   <div>
                     <span>Brand</span>
-                    <span className="ml-1 text-red-500">*</span>
                   </div>
                   <FormMessage>
                     {formState.errors.brand?.id?.message}
@@ -319,6 +318,7 @@ const ProductForm = () => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="">No Brand</SelectItem>
                     {match(productBrandsQuery)
                       .with(
                         { status: "success" },

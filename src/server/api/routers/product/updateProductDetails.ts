@@ -17,7 +17,7 @@ export const updateProductDetails = publicProcedure
         name,
         sku,
         brand: {
-          set: [parseInt(brand.id)],
+          set: isNaN(parseInt(brand.id)) ? [] : [parseInt(brand.id)],
         },
         category: {
           set: [parseInt(category.id)],
