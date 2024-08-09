@@ -46,7 +46,6 @@ export const orderFormStep2Schema = z.object({
     id: z.string().min(1, "Order Status is required"),
     name: z.string(),
   }),
-
   salesChannel: z.object({
     id: z.string().min(1, "Sales Channel is required"),
     name: z.string(),
