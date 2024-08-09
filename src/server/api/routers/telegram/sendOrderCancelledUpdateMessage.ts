@@ -58,7 +58,7 @@ export const sendOrderCancelledUpdateMessage = publicProcedure
 
     // Construct the order details message
     const orderDetailsMessage = `
-*📦Order \\#${orderId} \\(updated\\)\\ \\- Cancelled!📦*
+*📦Order \\#${orderId} \\(updated\\)\\ \\- Cancelled\\!📦*
 _Last updated: ${escapeSpecialChars(
       formatInTimeZone(
         new Date(updatedAt),
