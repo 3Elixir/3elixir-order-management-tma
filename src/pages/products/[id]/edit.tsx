@@ -73,7 +73,7 @@ const EditProductPage: NextPageWithLayout = () => {
     <div className="flex h-full flex-col pt-4">
       <Card className="mx-4">
         <CardHeader>
-          <CardTitle>Editing product #{params.id}</CardTitle>
+          <CardTitle>Editing Product #{params.id}</CardTitle>
           <CardDescription>
             Change the details of the product below
           </CardDescription>

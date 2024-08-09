@@ -459,7 +459,7 @@ const ProductsQueryFilterSheet = ({
       </SheetTrigger>
       <SheetContent className="flex w-[325px] flex-col overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Product filters</SheetTitle>
+          <SheetTitle>Product Filters</SheetTitle>
           <SheetDescription>
             Filter products by category and brand
           </SheetDescription>
@@ -570,7 +570,7 @@ const ProductsQueryFilterSheet = ({
                 JSON.stringify(filters) === JSON.stringify(appliedFilters)
               }
             >
-              Apply filters
+              Apply Filters
             </Button>
           </SheetClose>
 

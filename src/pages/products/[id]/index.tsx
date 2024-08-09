@@ -169,7 +169,7 @@ const ProductDetailsMain = ({
                 </span>
               </p>
               <p className="flex items-center">
-                <strong className="font-semibold">✍️ Last updated</strong>
+                <strong className="font-semibold">✍️ Last Updated</strong>
                 <Dot className="h-3.5 w-3.5" />
                 <span className="font-light">
                   {format(new Date(updatedAt), "dd MMM yyyy - h:mm a")}
