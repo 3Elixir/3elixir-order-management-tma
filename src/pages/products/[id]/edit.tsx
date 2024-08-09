@@ -322,7 +322,6 @@ const ProductForm = () => {
                       .with(
                         { status: "success" },
                         ({ data: { data: brands } }) => [
-                          <SelectItem value="">No Brand</SelectItem>,
                           ...brands.map((brand) => (
                             <SelectItem
                               key={brand.id}
