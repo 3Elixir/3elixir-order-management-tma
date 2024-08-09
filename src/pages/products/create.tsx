@@ -307,20 +307,19 @@ const ProductForm = () => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="No Brand">No Brand</SelectItem>
                     {match(productBrandsQuery)
                       .with(
                         { status: "success" },
-                        ({ data: { data: brands } }) => (
-                          <SelectItem value="No Brand">No Brand</SelectItem>
-                        ),
-                        // brands.map((brand) => (
-                        //   <SelectItem
-                        //     key={brand.id}
-                        //     value={brand.id.toString()}
-                        //   >
-                        //     {brand.attributes.brand}
-                        //   </SelectItem>
-                        // )),
+                        ({ data: { data: brands } }) =>
+                          brands.map((brand) => (
+                            <SelectItem
+                              key={brand.id}
+                              value={brand.id.toString()}
+                            >
+                              {brand.attributes.brand}
+                            </SelectItem>
+                          )),
                       )
                       .with(
                         {

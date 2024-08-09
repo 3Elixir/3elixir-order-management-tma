@@ -318,6 +318,7 @@ const ProductForm = () => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="No Brand">No Brand</SelectItem>
                     {match(productBrandsQuery)
                       .with(
                         { status: "success" },
