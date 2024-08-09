@@ -126,7 +126,7 @@ const EditOrderPage: NextPageWithLayout = () => {
             <div className="flex h-full flex-col">
               <Card>
                 <CardHeader>
-                  <CardTitle>Editing order #{orderDetails.id}</CardTitle>
+                  <CardTitle>Editing Order #{orderDetails.id}</CardTitle>
                   <CardDescription>
                     Change the details of the order below
                   </CardDescription>
@@ -843,7 +843,7 @@ const OrderFormDetailFields = ({
             name="fulfilmentDates.hasEnd"
             render={({ field }) => (
               <div className="flex items-center space-x-2 rounded-md border p-1 ps-2.5 shadow">
-                <FormLabel className="text-xs">End datetime</FormLabel>
+                <FormLabel className="text-xs">End Datetime</FormLabel>
                 <Switch
                   checked={field.value}
                   onCheckedChange={(checked) => {
@@ -856,7 +856,7 @@ const OrderFormDetailFields = ({
                     }
                     field.onChange(checked);
                   }}
-                  aria-label="End datetime"
+                  aria-label="End Datetime"
                 />
               </div>
             )}
