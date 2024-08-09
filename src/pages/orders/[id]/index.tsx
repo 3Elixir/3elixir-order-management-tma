@@ -150,6 +150,8 @@ const OrderDetailsMain = ({
 
   const sendStatusCancelledMutation =
     api.telegram.sendOrderCancelledUpdateMessage.useMutation();
+  const sendStatusUpdateMessageMutation =
+    api.telegram.sendOrderStatusUpdateMessage.useMutation();
   const updateOrderStatusMutation = api.order.updateOrderStatus.useMutation({
     onSuccess: ({ data }) => {
       // Send a telegram update message to the channel only for cancelled orders (id: 4)
@@ -159,6 +161,8 @@ const OrderDetailsMain = ({
           prevStatusName:
             orderStatus.data?.attributes.orderStatus ?? "no order status",
         });
+      } else {
+        sendStatusUpdateMessageMutation.mutate(data);
       }
     },
     onSettled: () => {

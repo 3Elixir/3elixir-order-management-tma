@@ -175,6 +175,9 @@ const OrderEditForm = ({
     api.telegram.sendOrderDetailsUpdateMessage.useMutation();
   const sendOrderCancelledUpdateMessageMutation =
     api.telegram.sendOrderCancelledUpdateMessage.useMutation();
+  const sendStatusUpdateMessageMutation =
+    api.telegram.sendOrderStatusUpdateMessage.useMutation();
+
   const orderUpdateMutation = api.order.updateOrderDetails.useMutation({
     onSuccess: ({ data }) => {
       if (data.data.attributes.order_status.data.id === 4) {

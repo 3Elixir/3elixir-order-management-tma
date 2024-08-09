@@ -6,15 +6,12 @@ import { publicProcedure } from "~/server/api/trpc";
 import { outputSchema } from "~/server/api/routers/order/updateOrderStatus";
 import { formatInTimeZone } from "date-fns-tz";
 
-const inputSchema = outputSchema.extend({
-  prevStatusName: z.string(),
-});
+const inputSchema = outputSchema;
 
 export const sendOrderStatusUpdateMessage = publicProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
     const {
-      prevStatusName,
       data: {
         id: orderId,
         attributes: {
@@ -100,12 +97,6 @@ __*Payment details*__
 ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}
 `;
 
-    const bumpMessage = `
-*🚨Order \\#${orderId} has been updated*🚨
-
-Status: _${escapeSpecialChars(prevStatusName)}_ → _${escapeSpecialChars(orderStatus.data.attributes.orderStatus)}_
-`;
-
     // Try to update the main order details message in the channel
     let editMessageSuccess = false;
     try {
@@ -125,40 +116,5 @@ Status: _${escapeSpecialChars(prevStatusName)}_ → _${escapeSpecialChars(orderS
       editMessageSuccess = true;
     } catch (error) {
       console.error("Error updating order details message", error);
-    }
-
-    // Send a message bumping the order to notify the channel that the order has been updated
-    try {
-      const reply_parameters = telegramMessage
-        ? {
-            message_id: telegramMessage.message_id,
-          }
-        : undefined;
-      const message = await telegram.sendMessage(
-        env.TELEGRAM_CHANNEL_ID,
-        editMessageSuccess ? bumpMessage : orderDetailsMessage, // Send full order details if edit message failed
-        {
-          reply_parameters: editMessageSuccess ? reply_parameters : undefined, // Only reply if edit successful
-          parse_mode: "MarkdownV2",
-        },
-      );
-
-      return {
-        success: true,
-        message: "Update message sent",
-        message_id: message.message_id,
-      };
-    } catch (error) {
-      console.error("Error sending update message", error);
-      if (error instanceof TelegramError) {
-        return {
-          success: false,
-          message: error.description,
-        };
-      }
-      return {
-        success: false,
-        message: "Error sending update message",
-      };
     }
   });
