@@ -116,16 +116,16 @@ const OrdersPage: NextPageWithLayout = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="createdAt:desc">
-              ⏰ Created at (newest)
+              ⏰ Created At (Newest)
             </SelectItem>
             <SelectItem value="createdAt:asc">
-              ⏰ Created at (oldest)
+              ⏰ Created At (Oldest)
             </SelectItem>
             <SelectItem value="fulfilmentStart:asc">
-              📆 fulfilment start (earliest)
+              📆 Fulfilment Start (Earliest)
             </SelectItem>
             <SelectItem value="fulfilmentStart:desc">
-              📆 fulfilment start (latest)
+              📆 Fulfilment Start (Latest)
             </SelectItem>
           </SelectContent>
         </Select>
@@ -386,7 +386,7 @@ const OrderCard = ({
       <div className="mt-1 flex w-full px-3 pb-2 pt-1 text-sm">
         <div className="flex flex-grow flex-col">
           <p className="flex items-center text-sm">
-            <span className="font-medium">💼 Fulfil through</span>
+            <span className="font-medium">💼 Fulfil Through</span>
             <Dot className="h-3.5 w-3.5" />
             <span className="font-light">
               {fulfilmentMethod.data?.attributes.fulfilmentMethod ??
@@ -394,7 +394,7 @@ const OrderCard = ({
             </span>
           </p>
           <p className="flex flex-wrap items-center text-sm">
-            <span className="font-medium">📆 Fulfil by</span>
+            <span className="font-medium">📆 Fulfil By</span>
             <Dot className="h-3.5 w-3.5" />
             <div className="flex flex-col font-light">
               <span>
@@ -413,7 +413,7 @@ const OrderCard = ({
             </div>
           </p>
           <p className="text-mute flex items-center text-sm">
-            <span className="font-medium">💸 Paying with</span>
+            <span className="font-medium">💸 Paying With</span>
             <Dot className="h-3.5 w-3.5" />
             <span className="font-light capitalize">
               {paymentMethod.data?.attributes.paymentMethod ??
@@ -421,7 +421,7 @@ const OrderCard = ({
             </span>
           </p>
           <p className="text-mute flex items-center text-sm">
-            <span className="font-medium">ℹ️ Payment status</span>
+            <span className="font-medium">ℹ️ Payment Status</span>
             <Dot className="h-3.5 w-3.5" />
             <span className="font-light capitalize">
               {paymentStatus.data?.attributes.paymentStatus ??
@@ -429,7 +429,7 @@ const OrderCard = ({
             </span>
           </p>
           <p className="flex items-center text-sm">
-            <span className="font-medium">🛒 Sold through</span>
+            <span className="font-medium">🛒 Sold Through</span>
             <Dot className="h-3.5 w-3.5" />
             <span className="font-light capitalize">
               {salesChannel.data?.attributes.salesChannel ?? "no sales channel"}
@@ -437,7 +437,7 @@ const OrderCard = ({
           </p>
           {salesAgents.data?.length > 0 && (
             <p className="flex items-center text-sm">
-              <span className="font-medium">🤝 Sold by</span>
+              <span className="font-medium">🤝 Sold By</span>
               <Dot className="h-3.5 w-3.5" />
               <span className="font-light capitalize">
                 {salesAgents.data
@@ -549,7 +549,7 @@ const OrderQueryFilters = ({
       </SheetTrigger>
       <SheetContent className="flex w-[325px] flex-col overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Order filters</SheetTitle>
+          <SheetTitle>Order Filters</SheetTitle>
           <SheetDescription>
             Filter orders by the following options
           </SheetDescription>
@@ -819,7 +819,7 @@ const OrderQueryFilters = ({
               onApplyFilters();
             }}
           >
-            Apply filters
+            Apply Filters
           </Button>
           {hasFiltersApplied && (
             <Button
