@@ -318,12 +318,12 @@ const ProductForm = () => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">No Brand</SelectItem>
                     {match(productBrandsQuery)
                       .with(
                         { status: "success" },
-                        ({ data: { data: brands } }) =>
-                          brands.map((brand) => (
+                        ({ data: { data: brands } }) => [
+                          <SelectItem value="">No Brand</SelectItem>,
+                          ...brands.map((brand) => (
                             <SelectItem
                               key={brand.id}
                               value={brand.id.toString()}
@@ -331,6 +331,7 @@ const ProductForm = () => {
                               {brand.attributes.brand}
                             </SelectItem>
                           )),
+                        ],
                       )
                       .with(
                         {
