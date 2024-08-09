@@ -173,9 +173,20 @@ const OrderEditForm = ({
   const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
   const sendOrderDetailsUpdateMessageMutation =
     api.telegram.sendOrderDetailsUpdateMessage.useMutation();
+  const sendOrderCancelledUpdateMessageMutation =
+    api.telegram.sendOrderCancelledUpdateMessage.useMutation();
   const orderUpdateMutation = api.order.updateOrderDetails.useMutation({
     onSuccess: ({ data }) => {
-      sendOrderDetailsUpdateMessageMutation.mutate(data);
+      if (data.data.attributes.order_status.data.id === 4) {
+        sendOrderCancelledUpdateMessageMutation.mutate({
+          ...data,
+          prevStatusName:
+            orderDetails.attributes.order_status.data?.attributes.orderStatus ??
+            "no order status",
+        });
+      } else {
+        sendOrderDetailsUpdateMessageMutation.mutate(data);
+      }
     },
     onSettled: () => {
       queryContext.order.getOrderDetails.invalidate({

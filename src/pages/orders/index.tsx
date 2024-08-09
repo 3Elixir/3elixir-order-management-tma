@@ -268,13 +268,13 @@ const OrderCard = ({
   const [statusId, setStatusId] = useState(orderStatus.data?.id ?? 0);
 
   const orderStatusQuery = api.orderStatus.getOrderStatuses.useQuery();
-  const sendStatusUpdateMutation =
-    api.telegram.sendOrderStatusUpdateMessage.useMutation();
+  const sendStatusCancelledMutation =
+    api.telegram.sendOrderCancelledUpdateMessage.useMutation();
   const updateOrderStatusMutation = api.order.updateOrderStatus.useMutation({
     onSuccess: ({ data }) => {
       // Send a telegram update message to the channel only for cancelled orders (id: 4)
       if (data.data.attributes.order_status.data.id === 4) {
-        sendStatusUpdateMutation.mutate({
+        sendStatusCancelledMutation.mutate({
           ...data,
           prevStatusName:
             orderStatus.data?.attributes.orderStatus ?? "no order status",
