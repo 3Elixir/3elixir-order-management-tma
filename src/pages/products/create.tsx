@@ -314,14 +314,14 @@ const ProductForm = () => {
                           <SelectItem key={0} value="">
                             No Brand
                           </SelectItem>,
-                          ...brands.map((brand) => (
-                            <SelectItem
-                              key={brand.id}
-                              value={brand.id.toString()}
-                            >
-                              {brand.attributes.brand}
-                            </SelectItem>
-                          )),
+                          // ...brands.map((brand) => (
+                          //   <SelectItem
+                          //     key={brand.id}
+                          //     value={brand.id.toString()}
+                          //   >
+                          //     {brand.attributes.brand}
+                          //   </SelectItem>
+                          // )),
                         ],
                       )
                       .with(
