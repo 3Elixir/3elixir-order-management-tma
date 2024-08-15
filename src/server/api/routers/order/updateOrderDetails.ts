@@ -138,8 +138,8 @@ export const updateOrderDetails = publicProcedure
     };
 
     // Only set sales agents if sales channel allows it
-    const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.includes(
-      salesChannel.name,
+    const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map(c => c.toLowerCase().trim()).includes(
+      salesChannel.name.toLowerCase().trim(),
     );
     if (allowSalesAgents) {
       payload.data.sales_agents.set = salesAgents.map((salesAgent) =>
