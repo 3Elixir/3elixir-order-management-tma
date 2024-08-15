@@ -492,8 +492,8 @@ const OrderFormDetailFields = ({
   const fulfilmentMethodsQuery = api.order.getFulfilmentMethods.useQuery();
 
   // state to determine if sales agents input should be shown
-  const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.includes(
-    form.watch("salesChannel").name,
+  const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map(c => c.toLowerCase().trim()).includes(
+    form.watch("salesChannel").name.toLowerCase().trim(),
   );
 
   const {
