@@ -100,11 +100,7 @@ ${orderProducts
 ~${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}~
 `;
 
-    const bumpMessage = `
-*🚨Order \\#${orderId} has been updated*🚨
-
-Status: _${escapeSpecialChars(prevStatusName)}_ → _${escapeSpecialChars(orderStatus.data.attributes.orderStatus)}_
-`;
+    const bumpMessage = `*🚨Order \\#${orderId} has been cancelled*🚨`;
 
     // Try to update the main order details message in the channel
     let editMessageSuccess = false;
