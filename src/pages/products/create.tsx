@@ -15,7 +15,6 @@ import { useEffect } from "react";
 import { SubmitErrorHandler, SubmitHandler, useForm } from "react-hook-form";
 import { z } from "zod";
 import MainLayout from "~/components/layouts/MainLayout";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import {
   Card,
   CardHeader,
