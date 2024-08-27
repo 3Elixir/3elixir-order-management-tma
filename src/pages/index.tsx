@@ -28,6 +28,14 @@ export default function Home() {
       >
         customers
       </Link>
+      <Link
+        href="/customers/create"
+        className={buttonVariants({
+          variant: "link",
+        })}
+      >
+        Create customers
+      </Link>
     </main>
   );
 }

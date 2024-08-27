@@ -210,8 +210,6 @@ const ProductForm = () => {
     });
   }
 
-  console.log(form.formState.errors.brand?.id?.message);
-
   return (
     <div className="flex flex-grow flex-col">
       <Form {...form}>

@@ -27,7 +27,7 @@ export const createCustomer = publicProcedure
   .meta({
     description: "some shits",
   })
-  .query(async ({ input }) => {
+  .mutation(async ({ input }) => {
     const payload = {
       data: {
         customerName: input.customerName,

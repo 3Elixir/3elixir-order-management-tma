@@ -11,10 +11,16 @@ import {
   createProductFormStore,
 } from "@stores/product-form/product-form-store";
 
+import {
+  type CustomerFormStore,
+  createCustomerFormStore,
+} from "@stores/customer-form/customer-form-store";
+
 export const StoresContext = createContext<{
   orderFormStore: StoreApi<OrderFormStore> | null;
   productFormStore: StoreApi<ProductFormStore> | null;
-}>({ orderFormStore: null, productFormStore: null });
+  customerFormStore: StoreApi<CustomerFormStore> | null;
+}>({ orderFormStore: null, productFormStore: null, customerFormStore: null });
 
 export interface StoresProviderProps {
   children: ReactNode;
@@ -31,11 +37,17 @@ export const StoresProvider = ({ children }: StoresProviderProps) => {
     productFormStoreRef.current = createProductFormStore();
   }
 
+  const customerFormStoreRef = useRef<StoreApi<CustomerFormStore>>();
+  if (!customerFormStoreRef.current) {
+    customerFormStoreRef.current = createCustomerFormStore();
+  }
+
   return (
     <StoresContext.Provider
       value={{
         orderFormStore: orderFormStoreRef.current,
         productFormStore: productFormStoreRef.current,
+        customerFormStore: customerFormStoreRef.current,
       }}
     >
       {children}
