@@ -2,9 +2,7 @@ import { AuthGuard } from "~/lib/contexts/AuthProvider";
 import { NextPageWithLayout } from "~/pages/_app";
 import MainLayout from "~/components/layouts/MainLayout";
 import { api } from "~/utils/api";
-import { inferRouterInputs, TRPCError } from "@trpc/server";
-import { AppRouter } from "~/server/api/root";
-import { useRouter, useSearchParams } from "next/navigation";
+import { TRPCError } from "@trpc/server";
 import {
   Card,
   CardDescription,
@@ -48,9 +46,6 @@ import {
 import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
 import { useEffect } from "react";
 import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
-
-type GetCreateCustomerInputs =
-  inferRouterInputs<AppRouter>["customer"]["createCustomer"];
 
 const CreateCustomerPage: NextPageWithLayout = () => {
   return (

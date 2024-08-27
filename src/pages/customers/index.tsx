@@ -20,6 +20,7 @@ import {
 import { match } from "ts-pattern";
 import { Input } from "~/components/ui/input";
 import useDebounce from "~/lib/hooks/useDebounce";
+import Link from "next/link";
 
 type GetFilteredCustomersInput =
   inferRouterInputs<AppRouter>["customer"]["getFilteredCustomers"];
@@ -211,7 +212,7 @@ const CustomerCard = ({
       </div>
       <Separator />
       <div className="mt-1 flex w-full items-center px-3 pb-2 pt-1 text-sm">
-        <div className="flex-grow">
+        <div className="m mr-2 flex-grow">
           <p className="w-64 truncate text-base font-semibold">
             {customer.attributes.customerName}
           </p>
@@ -223,6 +224,7 @@ const CustomerCard = ({
           </p>
         </div>
         <Button
+          className="min-h-9 min-w-9"
           size="icon"
           variant="outline"
           onClick={() => {

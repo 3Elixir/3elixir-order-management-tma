@@ -2,9 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useBackButton,
   useClosingBehavior,
-  useInitData,
   useMainButton,
-  useMiniApp,
   usePopup,
   usePostEvent,
   useThemeParams,
@@ -16,7 +14,6 @@ import { useEffect } from "react";
 import { SubmitErrorHandler, SubmitHandler, useForm } from "react-hook-form";
 import { z } from "zod";
 import MainLayout from "~/components/layouts/MainLayout";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import {
   Card,
   CardHeader,
@@ -24,7 +21,6 @@ import {
   CardDescription,
 } from "~/components/ui/card";
 import { NextPageWithLayout } from "~/pages/_app";
-import { defaultInitState } from "~/stores/product-form/product-form-store";
 import { productFormSchema } from "~/types/product-schema";
 import {
   Form,
@@ -88,7 +84,6 @@ const ProductForm = () => {
   const router = useRouter();
   const params = useParams<{ id: string }>();
 
-  const tmaClosingBehavior = useClosingBehavior();
   const tmaMainButton = useMainButton();
   const tmaPostEvent = usePostEvent();
   const tmaThemeParams = useThemeParams();
@@ -107,7 +102,8 @@ const ProductForm = () => {
   // Step up tma main button to act as a submit button
   useEffect(() => {
     tmaMainButton.setParams({
-      text: "Save Changes",
+      text: "Save Changes 💾",
+      isLoaderVisible: false,
       isEnabled: true,
     });
 
@@ -127,7 +123,7 @@ const ProductForm = () => {
     tmaViewport.expand();
   }, []);
 
-  // Register pop up confirmation on form submission to confirm product creation
+  // Register pop up confirmation on form submission to confirm product update
   useEffect(() => {
     const onSubmission = async (event: PopupClosedPayload) => {
       if (event.button_id !== "ok") return;

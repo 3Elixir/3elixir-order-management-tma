@@ -297,14 +297,18 @@ const CustomerDetailsFooter = ({
   );
 
   const onEditCustomer = () => {
-    //TODO: Set customer form state values via the store to pre-fill the form
+    //Set customer form state values via the store to pre-fill the form
     updateCustomerForm({
       customerName: details.attributes.customerName,
       customerContact: details.attributes.customerContact,
       customerAddress: details.attributes.customerAddress,
+      salesChannel: {
+        id: details.attributes.sales_channel.data?.id.toString() ?? "",
+        name: details.attributes.customerName,
+      },
     });
 
-    router.push(`/customer/${router.query.id}/edit`);
+    router.push(`/customers/${router.query.id}/edit`);
   };
 
   return (

@@ -24,7 +24,7 @@ const outputSchema = z.object({
 export const updateCustomerDetails = publicProcedure
   .input(inputSchema)
   .output(outputSchema)
-  .query(async ({ input }) => {
+  .mutation(async ({ input }) => {
     const payload = {
       data: {
         customerName: input.customerName,
@@ -37,14 +37,17 @@ export const updateCustomerDetails = publicProcedure
     };
 
     try {
-      const response = await fetch(`${env.STRAPI_API_URL}/api/customers`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+      const response = await fetch(
+        `${env.STRAPI_API_URL}/api/customers/${input.customerId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      });
+      );
 
       if (!response.ok) throw response;
 
