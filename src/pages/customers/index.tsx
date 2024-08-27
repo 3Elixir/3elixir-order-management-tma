@@ -218,7 +218,7 @@ const CustomerCard = ({
           <p className="flex items-center space-x-1 text-sm">
             <span>🏠</span>
             <span className="font-medium text-indigo-700">
-              {customer.attributes.customerAddress}
+              {customer.attributes.customerAddress || "No address"}
             </span>
           </p>
         </div>

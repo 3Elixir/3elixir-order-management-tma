@@ -24,6 +24,7 @@ import { api } from "~/utils/api";
 import { format } from "date-fns";
 import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
 import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
+import { useCustomerForm } from "~/stores/customer-form/useCustomerForm";
 
 type CustomerDetailsOutput =
   inferRouterOutputs<AppRouter>["customer"]["getCustomerDetails"];
@@ -201,7 +202,7 @@ const CustomerDetailsMain = ({
               <strong className="font-medium">🏠 Customer Address</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">
-                {details.attributes.customerAddress}
+                {details.attributes.customerAddress || "No address"}
               </strong>
             </p>
             <p className="flex flex-wrap items-center text-sm">
@@ -291,9 +292,17 @@ const CustomerDetailsFooter = ({
   details: CustomerDetailsOutput["data"];
 }) => {
   const router = useRouter();
+  const updateCustomerForm = useCustomerForm(
+    (state) => state.updateCustomerForm,
+  );
 
   const onEditCustomer = () => {
     //TODO: Set customer form state values via the store to pre-fill the form
+    updateCustomerForm({
+      customerName: details.attributes.customerName,
+      customerContact: details.attributes.customerContact,
+      customerAddress: details.attributes.customerAddress,
+    });
 
     router.push(`/customer/${router.query.id}/edit`);
   };
