@@ -227,10 +227,7 @@ const CustomerDetailsMain = ({
               router.push(`/products?from=customer&customerId=${details.id}`)
             }
           >
-            <SquareArrowOutUpRight
-              className="-ml-0.5 mr-1.5 h-5 w-5"
-              aria-hidden="true"
-            />
+            <SquareArrowOutUpRight className="-ml-0.5 mr-1.5 h-5 w-5" />
             Edit Product Prices
           </Button>
         </div>

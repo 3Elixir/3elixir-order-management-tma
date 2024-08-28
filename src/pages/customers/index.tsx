@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   ArrowRight,
   ChevronRight,
+  NotebookTabs,
   Phone,
   Search,
 } from "lucide-react";
@@ -21,6 +22,11 @@ import { match } from "ts-pattern";
 import { Input } from "~/components/ui/input";
 import useDebounce from "~/lib/hooks/useDebounce";
 import Link from "next/link";
+import { z } from "zod";
+import { useMainButton, useThemeParams } from "@tma.js/sdk-react";
+import { useEffect } from "react";
+import { useOrderForm } from "~/stores/order-form/useOrderForm";
+import toast from "react-hot-toast";
 
 type GetFilteredCustomersInput =
   inferRouterInputs<AppRouter>["customer"]["getFilteredCustomers"];
@@ -51,8 +57,6 @@ const CustomersPage: NextPageWithLayout = () => {
       }
     },
   });
-
-  console.log(searchParams.toString());
 
   const pagination: GetFilteredCustomersInput["pagination"] = {
     page: parseInt(searchParams.get("page") ?? "1"),
@@ -191,7 +195,52 @@ const CustomerCard = ({
 }: {
   customer: GetFilteredCustomersOutput["data"][0];
 }) => {
+  const tmaMainButton = useMainButton();
+  const tmaThemeParams = useThemeParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromStatus = z
+    .union([z.enum(["order"]), z.null()])
+    .parse(searchParams.get("from"));
+
+  // Show main button based on from status
+  useEffect(() => {
+    const onMainbuttonClick = () => router.back();
+    if (fromStatus === "order") {
+      tmaMainButton.on("click", onMainbuttonClick);
+      tmaMainButton.setParams({
+        text: "Cancel",
+        backgroundColor: tmaThemeParams.buttonColor,
+        textColor: tmaThemeParams.buttonTextColor,
+      });
+    }
+
+    return () => {
+      tmaMainButton.off("click", onMainbuttonClick);
+    };
+  }, [tmaMainButton, fromStatus]);
+
+  const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
+
+  const onSelectCustomer = () => {
+    toast.success(
+      `Prefilled form with customer #${customer.id}\n(${customer.attributes.customerName})`,
+      { position: "top-right", duration: 3000 },
+    );
+    updateOrderForm({
+      customerName: customer.attributes.customerName,
+      customerContact: customer.attributes.customerContact,
+      customerAddress: customer.attributes.customerAddress,
+      salesChannel: {
+        id: customer.attributes.sales_channel.data?.id.toString() ?? "",
+        name:
+          customer.attributes.sales_channel.data?.attributes.salesChannel ?? "",
+      },
+    });
+
+    router.back();
+  };
+
   return (
     <li className="flex flex-col rounded border bg-white shadow-sm">
       <div className="flex w-full justify-between px-3 py-2 text-sm">
@@ -223,16 +272,28 @@ const CustomerCard = ({
             </span>
           </p>
         </div>
-        <Button
-          className="min-h-9 min-w-9"
-          size="icon"
-          variant="outline"
-          onClick={() => {
-            router.push(`/customers/${customer.id}`);
-          }}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+
+        {fromStatus === "order" ? (
+          <Button
+            className="min-h-9 min-w-9"
+            size="icon"
+            variant="outline"
+            onClick={() => onSelectCustomer()}
+          >
+            <NotebookTabs className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            className="min-h-9 min-w-9"
+            size="icon"
+            variant="outline"
+            onClick={() => {
+              router.push(`/customers/${customer.id}`);
+            }}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </li>
   );
@@ -306,9 +367,22 @@ const CustomersQueryFooter = ({
 };
 
 CustomersPage.getLayout = (page) => {
+  const searchParams = useSearchParams();
+  const fromStatus = z
+    .union([z.enum(["order"]), z.null()])
+    .parse(searchParams.get("from"));
+
   return (
     <AuthGuard>
-      <MainLayout title="👑 View Customers">{page}</MainLayout>
+      <MainLayout
+        title={
+          fromStatus === "order"
+            ? "💾 Select Order Customer"
+            : "👑 View Customers"
+        }
+      >
+        {page}
+      </MainLayout>
     </AuthGuard>
   );
 };

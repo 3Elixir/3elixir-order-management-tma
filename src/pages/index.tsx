@@ -13,6 +13,14 @@ export default function Home() {
         orders
       </Link>
       <Link
+        href="/orders/create-step1"
+        className={buttonVariants({
+          variant: "link",
+        })}
+      >
+        Create order
+      </Link>
+      <Link
         href="/products"
         className={buttonVariants({
           variant: "link",
@@ -34,7 +42,7 @@ export default function Home() {
           variant: "link",
         })}
       >
-        Create customers
+        Create customer
       </Link>
     </main>
   );
