@@ -136,7 +136,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
 
   return (
     <div>
-      <div className="px-5 pt-4">
+      <div className="px-5 pb-2 pt-4">
         <Link
           href="/customers?from=order"
           className={buttonVariants({
