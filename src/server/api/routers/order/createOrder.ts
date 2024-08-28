@@ -47,6 +47,7 @@ export const createOrder = publicProcedure
     const {
       chatId,
       customerName,
+      attentionTo,
       customerAddress,
       customerContact,
       orderCollectionDateTime,
@@ -65,6 +66,7 @@ export const createOrder = publicProcedure
     const payload = {
       data: {
         customerName,
+        // TODO: Include attentionTo field in payload once backend is updated
         customerContact,
         customerAddress,
         orderCollectionDateTime,
@@ -95,9 +97,9 @@ export const createOrder = publicProcedure
     };
 
     // Only set sales agents if sales channel allows it
-    const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map(c => c.toLowerCase().trim()).includes(
-      salesChannel.name.toLowerCase().trim(),
-    );
+    const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map((c) =>
+      c.toLowerCase().trim(),
+    ).includes(salesChannel.name.toLowerCase().trim());
     if (allowSalesAgents) {
       payload.data.sales_agents.connect = salesAgents.map((salesAgent) =>
         parseInt(salesAgent.value.id),

@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const orderFormStep1Schema = z.object({
   customerName: z.string().min(1, "Customer Name is required"),
+  attentionTo: z.string(),
   customerAddress: z.string(),
   customerContact: z.string().min(1, "Contact is required"),
   paymentMethod: z.object({

@@ -5,7 +5,7 @@ import {
   useThemeParams,
   useViewport,
 } from "@tma.js/sdk-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import { NextPageWithLayout } from "~/pages/_app";
 import { z } from "zod";
@@ -41,6 +41,8 @@ import { Button, buttonVariants } from "~/components/ui/button";
 import { SquareArrowOutUpRight } from "lucide-react";
 import Link from "next/link";
 import { cn } from "~/lib/utils";
+import { Switch } from "~/components/ui/switch";
+import { Label } from "~/components/ui/label";
 
 const CreateOrdersPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -51,10 +53,12 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   const tmaViewport = useViewport();
   const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
 
+  const [hasAttentionTo, setHasAttentionTo] = useState(false);
   const form = useForm<z.infer<typeof orderFormStep1Schema>>({
     resolver: zodResolver(orderFormStep1Schema),
     defaultValues: {
       customerName: orderFormState.customerName,
+      attentionTo: orderFormState.attentionTo,
       customerContact: orderFormState.customerContact,
       customerAddress: orderFormState.customerAddress,
       paymentMethod: orderFormState.paymentMethod,
@@ -140,7 +144,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
           })}
         >
           <SquareArrowOutUpRight className="-ml-0.5 mr-1.5 h-5 w-5" />
-          Prefill customer information
+          Prefill Customer Information
         </Link>
       </div>
       <Form {...form}>
@@ -152,7 +156,20 @@ const CreateOrdersPage: NextPageWithLayout = () => {
               name="customerName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Customer Name</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Customer Name</FormLabel>
+                    <div className="flex items-center space-x-2 rounded-md border p-1 ps-2.5 shadow">
+                      <Label className="text-xs" htmlFor="attention-to">
+                        Attention To
+                      </Label>
+                      <Switch
+                        checked={hasAttentionTo}
+                        onCheckedChange={setHasAttentionTo}
+                        id="attention-to"
+                        aria-label="Attention To"
+                      />
+                    </div>
+                  </div>
                   <FormControl>
                     <Input
                       className="text-base"
@@ -166,6 +183,30 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                 </FormItem>
               )}
             />
+
+            {/* Only render attention to field based on switch */}
+            {hasAttentionTo && (
+              <FormField
+                control={form.control}
+                name="attentionTo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Attention To</FormLabel>
+                    <FormControl>
+                      <Input
+                        className="text-base"
+                        placeholder="Accounts Payable"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Intended recipient of the correspondence
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+            )}
+
             {/* Customer Address */}
             <FormField
               control={form.control}
@@ -186,7 +227,8 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                 </FormItem>
               )}
             />
-            {/* Customer Address */}
+
+            {/* Customer Contact */}
             <FormField
               control={form.control}
               name="customerContact"
@@ -245,6 +287,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                 </FormItem>
               )}
             />
+
             {/* Payment Status */}
             <FormField
               control={form.control}

@@ -566,11 +566,11 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                 name="fulfilmentDates.hasEnd"
                 render={({ field }) => (
                   <div className="flex items-center space-x-2 rounded-md border p-1 ps-2.5 shadow">
-                    <FormLabel className="text-xs">End datetime</FormLabel>
+                    <FormLabel className="text-xs">End Datetime</FormLabel>
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
-                      aria-label="End datetime"
+                      aria-label="End Datetime"
                     />
                   </div>
                 )}
