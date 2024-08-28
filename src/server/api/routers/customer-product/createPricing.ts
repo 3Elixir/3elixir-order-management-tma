@@ -54,7 +54,6 @@ export const createPricing = publicProcedure
       if (!response.ok) throw response;
 
       const data = await response.json();
-      console.log(data);
       return await data;
     } catch (error) {
       console.error("Failed to create customer product pricing", error);
