@@ -1,6 +1,6 @@
 import { useBackButton, useInitData, usePopup } from "@tma.js/sdk-react";
 import { inferRouterOutputs } from "@trpc/server";
-import { Dot } from "lucide-react";
+import { Dot, SquareArrowOutUpRight } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
@@ -215,6 +215,25 @@ const CustomerDetailsMain = ({
             </p>
           </div>
         </CardContent>
+
+        <Separator />
+
+        <div className="p-2">
+          <Button
+            variant="ghost"
+            type="button"
+            className="w-full"
+            onClick={() =>
+              router.push(`/products?from=customer&customerId=${details.id}`)
+            }
+          >
+            <SquareArrowOutUpRight
+              className="-ml-0.5 mr-1.5 h-5 w-5"
+              aria-hidden="true"
+            />
+            Edit Product Prices
+          </Button>
+        </div>
       </Card>
 
       <Card className="border-red-300">

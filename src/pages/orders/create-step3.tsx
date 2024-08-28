@@ -185,7 +185,7 @@ const EmptyOrderProduct = () => {
       <Button
         type="button"
         className="mt-6"
-        onClick={() => router.push("/products?fromOrder=true")}
+        onClick={() => router.push("/products?from=order")}
       >
         <SquareArrowOutUpRight
           className="-ml-0.5 mr-1.5 h-5 w-5"
@@ -220,7 +220,7 @@ const OrderProductList = ({
 
   const onNavigateToProducts = () => {
     updateOrderForm(form.getValues());
-    router.push("/products?fromOrder=true");
+    router.push("/products?from=order");
   };
 
   return (
@@ -305,7 +305,7 @@ const OrderProductList = ({
           onClick={() => onNavigateToProducts()}
         >
           <PlusCircle className="h-4 w-4" />
-          Add more products
+          Add More Products
         </Button>
       </CardFooter>
     </Card>

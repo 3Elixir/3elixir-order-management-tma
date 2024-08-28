@@ -492,9 +492,9 @@ const OrderFormDetailFields = ({
   const fulfilmentMethodsQuery = api.order.getFulfilmentMethods.useQuery();
 
   // state to determine if sales agents input should be shown
-  const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map(c => c.toLowerCase().trim()).includes(
-    form.watch("salesChannel").name.toLowerCase().trim(),
-  );
+  const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map((c) =>
+    c.toLowerCase().trim(),
+  ).includes(form.watch("salesChannel").name.toLowerCase().trim());
 
   const {
     fields: salesAgentArray,
@@ -1088,7 +1088,7 @@ const OrderFormProductFields = ({
 
   const onNavigateToProducts = () => {
     updateOrderForm(form.getValues());
-    router.push("/products?fromOrder=true");
+    router.push("/products?from=order");
   };
 
   return (
@@ -1187,7 +1187,7 @@ const OrderFormProductFields = ({
                   onClick={() => onNavigateToProducts()}
                 >
                   <PlusCircle className="h-4 w-4" />
-                  Add more products
+                  Add More Products
                 </Button>
               </CardFooter>
             </Card>
