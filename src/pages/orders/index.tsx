@@ -1,5 +1,4 @@
 import type { NextPageWithLayout } from "~/pages/_app";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import { Button } from "~/components/ui/button";
 import MainLayout from "~/components/layouts/MainLayout";
 import { api } from "~/utils/api";
@@ -59,7 +58,6 @@ type SortOptionsType =
 const OrdersPage: NextPageWithLayout = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Derive states for ordersQuery from URL params
   const pagination: PaginationOptionsType = {
@@ -137,7 +135,6 @@ const OrdersPage: NextPageWithLayout = () => {
       </div>
 
       <section className="h-full overflow-y-auto bg-stone-100 px-3 pt-3">
-        <div ref={scrollRef} />
         {match(ordersQuery)
           .with({ status: "success" }, ({ data: { data: filteredOrders } }) =>
             filteredOrders.length > 0 ? (
@@ -859,7 +856,6 @@ const FilterToggleButton = ({
   );
 };
 
-// Pagination for the orders list
 const OrdersQueryFooter = ({
   pagination,
   isQueryLoading,

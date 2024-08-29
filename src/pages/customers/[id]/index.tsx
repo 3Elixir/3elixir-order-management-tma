@@ -1,8 +1,10 @@
 import { useBackButton, useInitData, usePopup } from "@tma.js/sdk-react";
-import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
+import { inferRouterOutputs } from "@trpc/server";
+import { Dot, SquareArrowOutUpRight } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
+import { match } from "ts-pattern";
 import MainLayout from "~/components/layouts/MainLayout";
 import { Button } from "~/components/ui/button";
 import {
@@ -14,27 +16,28 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
-import { NextPageWithLayout } from "~/pages/_app";
-import { api } from "~/utils/api";
-import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
-import { inferRouterOutputs } from "@trpc/server";
-import { AppRouter } from "~/server/api/root";
-import { match } from "ts-pattern";
 import { Skeleton } from "~/components/ui/skeleton";
-import { Dot } from "lucide-react";
-import { format } from "date-fns";
-import { useProductForm } from "~/stores/product-form/useProductForm";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { NextPageWithLayout } from "~/pages/_app";
+import { AppRouter } from "~/server/api/root";
+import { api } from "~/utils/api";
+import { format } from "date-fns";
+import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
+import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
+import { useCustomerForm } from "~/stores/customer-form/useCustomerForm";
 
-const ProductDetailsPage: NextPageWithLayout = () => {
+type CustomerDetailsOutput =
+  inferRouterOutputs<AppRouter>["customer"]["getCustomerDetails"];
+
+const CustomerDetailsPage: NextPageWithLayout = () => {
   const params = useParams<{ id: string }>();
   const router = useRouter();
 
   const tmaBackButton = useBackButton();
 
-  const productDetailsQuery = api.product.getProductDetails.useQuery(
+  const customerDetailsQuery = api.customer.getCustomerDetails.useQuery(
     {
-      productId: params?.id ?? "",
+      customerId: params?.id ?? "",
     },
     {
       enabled: !!params?.id,
@@ -56,14 +59,14 @@ const ProductDetailsPage: NextPageWithLayout = () => {
   return (
     <div className="flex flex-grow flex-col">
       <section className="h-full flex-1 overflow-y-auto bg-stone-100">
-        {match(productDetailsQuery)
+        {match(customerDetailsQuery)
           .with(
             {
               status: "success",
             },
-            ({ data: { data: productDetails } }) => (
+            ({ data: { data: customerDetails } }) => (
               <>
-                <ProductDetailsMain details={productDetails} />
+                <CustomerDetailsMain details={customerDetails} />
               </>
             ),
           )
@@ -71,48 +74,40 @@ const ProductDetailsPage: NextPageWithLayout = () => {
             {
               status: "pending",
             },
-            () => <ProductDetailsSkeleton />,
+            () => <CustomerDetailsSkeleton />,
           )
           .with(
             {
               status: "error",
             },
-            ({ error }) => <ProductDetailsError errorMessage={error.message} />,
+            ({ error }) => (
+              <CustomerDetailsError errorMessage={error.message} />
+            ),
           )
           .exhaustive()}
       </section>
-      {productDetailsQuery.data && (
-        <ProductDetailsFooter details={productDetailsQuery.data.data} />
+      {customerDetailsQuery.data && (
+        <CustomerDetailsFooter details={customerDetailsQuery.data.data} />
       )}
     </div>
   );
 };
 
-const ProductDetailsMain = ({
-  details: {
-    id: productId,
-    attributes: {
-      sku,
-      name: productName,
-      brand: productBrand,
-      category: productCategory,
-      createdAt,
-      updatedAt,
-    },
-  },
+const CustomerDetailsMain = ({
+  details,
 }: {
-  details: inferRouterOutputs<AppRouter>["product"]["getProductDetails"]["data"];
+  details: CustomerDetailsOutput["data"];
 }) => {
   const tmaInitData = useInitData();
   const tmaPopup = usePopup();
   const router = useRouter();
 
-  const deleteProductMutation = api.product.deleteProduct.useMutation();
+  const deleteCustomerMutation = api.customer.deleteCustomer.useMutation();
 
-  const onDeleteOrder = () => {
+  const onDeleteCustomer = () => {
     tmaPopup.open({
-      title: "Delete Order",
-      message: "Are you sure you want to delete this order?",
+      title: "Delete Customer",
+      message: "Are you sure you want to delete this customer?",
       buttons: [
         {
           type: "ok",
@@ -125,15 +120,15 @@ const ProductDetailsMain = ({
       ],
     });
 
-    const onConfrimDeleteOrder = (payload: PopupClosedPayload) => {
-      unregisterTmaEvent("popup_closed", onConfrimDeleteOrder);
+    const onConfrimDeleteCustomer = (payload: PopupClosedPayload) => {
+      unregisterTmaEvent("popup_closed", onConfrimDeleteCustomer);
 
       if (payload.button_id !== "ok") return;
       if (!tmaInitData?.user?.id) return;
 
-      deleteProductMutation.mutate(
+      deleteCustomerMutation.mutate(
         {
-          productId,
+          customerId: details.id,
         },
         {
           onError: (error) =>
@@ -142,21 +137,21 @@ const ProductDetailsMain = ({
               message: error.message,
               buttons: [{ type: "ok" }],
             }),
-          onSuccess: () => router.push("/products"),
+          onSuccess: () => router.push("/customers"),
         },
       );
     };
 
-    registerTmaEvent("popup_closed", onConfrimDeleteOrder);
+    registerTmaEvent("popup_closed", onConfrimDeleteCustomer);
   };
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-3">
-      {/* Product details card */}
+      {/* Customer details card */}
       <Card className="border-dashed">
         <CardHeader className="pb-4">
           <div className="mb-1 flex items-center justify-between">
-            <CardTitle className="">Product #{productId}</CardTitle>
+            <CardTitle className="">Customer #{details.id}</CardTitle>
           </div>
           <CardDescription>
             <div className="flex flex-col">
@@ -164,14 +159,20 @@ const ProductDetailsMain = ({
                 <strong className="font-semibold">🕐 Created</strong>
                 <Dot className="h-3.5 w-3.5" />
                 <span className="font-light">
-                  {format(new Date(createdAt), "dd MMM yyyy - h:mm a")}
+                  {format(
+                    new Date(details.attributes.createdAt),
+                    "dd MMM yyyy - h:mm a",
+                  )}
                 </span>
               </p>
               <p className="flex items-center">
                 <strong className="font-semibold">✍️ Last Updated</strong>
                 <Dot className="h-3.5 w-3.5" />
                 <span className="font-light">
-                  {format(new Date(updatedAt), "dd MMM yyyy - h:mm a")}
+                  {format(
+                    new Date(details.attributes.updatedAt),
+                    "dd MMM yyyy - h:mm a",
+                  )}
                 </span>
               </p>
             </div>
@@ -180,44 +181,64 @@ const ProductDetailsMain = ({
 
         <Separator />
 
-        {/* Product information */}
+        {/* Customer information */}
         <CardContent className="py-4">
           <div className="flex flex-col space-y-0.5">
             <p className="flex flex-wrap items-center text-sm">
-              <strong className="font-medium">🆔 SKU</strong>
-              <Dot className="h-3.5 w-3.5" />
-              <strong className="font-light">{sku}</strong>
-            </p>
-            <p className="flex flex-wrap items-center text-sm">
-              <strong className="font-medium">🏷️ Product Name</strong>
-              <Dot className="h-3.5 w-3.5" />
-              <strong className="font-light">{productName}</strong>
-            </p>
-            <p className="flex flex-wrap items-center text-sm">
-              <strong className="font-medium">🥃 Brand</strong>
+              <strong className="font-medium">👤 Customer Name</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">
-                {productBrand.data?.attributes.brand ?? "no brand"}
+                {details.attributes.customerName}
               </strong>
             </p>
             <p className="flex flex-wrap items-center text-sm">
-              <strong className="font-medium">🗃️ Category</strong>
+              <strong className="font-medium">📞 Customer Contact</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">
-                {productCategory.data?.attributes.category ?? "no category"}
+                {details.attributes.customerContact}
+              </strong>
+            </p>
+            <p className="flex flex-wrap items-center text-sm">
+              <strong className="font-medium">🏠 Customer Address</strong>
+              <Dot className="h-3.5 w-3.5" />
+              <strong className="font-light">
+                {details.attributes.customerAddress || "No address"}
+              </strong>
+            </p>
+            <p className="flex flex-wrap items-center text-sm">
+              <strong className="font-medium">🛒 Default Sales Channel</strong>
+              <Dot className="h-3.5 w-3.5" />
+              <strong className="font-light">
+                {details.attributes.sales_channel.data?.attributes
+                  .salesChannel ?? "No sales channel"}
               </strong>
             </p>
           </div>
         </CardContent>
+
+        <Separator />
+
+        <div className="p-2">
+          <Button
+            variant="ghost"
+            type="button"
+            className="w-full"
+            onClick={() =>
+              router.push(`/products?from=customer&customerId=${details.id}`)
+            }
+          >
+            <SquareArrowOutUpRight className="-ml-0.5 mr-1.5 h-5 w-5" />
+            Edit Product Prices
+          </Button>
+        </div>
       </Card>
 
-      {/* Delete product card */}
       <Card className="border-red-300">
         <CardHeader>
-          <CardTitle>Delete Product</CardTitle>
+          <CardTitle>Delete Customer</CardTitle>
           <CardDescription>
-            The product will be permanently deleted. This action is irreversible
-            and cannot be undone.
+            The customer will be permanently deleted. This action is
+            irreversible and cannot be undone.
           </CardDescription>
         </CardHeader>
 
@@ -225,10 +246,12 @@ const ProductDetailsMain = ({
         <CardFooter className="justify-end px-3 pb-3 pt-3">
           <Button
             variant="destructive"
-            onClick={() => onDeleteOrder()}
-            disabled={deleteProductMutation.isPending}
+            onClick={() => onDeleteCustomer()}
+            disabled={deleteCustomerMutation.isPending}
           >
-            {deleteProductMutation.isPending ? "Deleting..." : "Delete Product"}
+            {deleteCustomerMutation.isPending
+              ? "Deleting..."
+              : "Delete Customer"}
           </Button>
         </CardFooter>
       </Card>
@@ -236,13 +259,13 @@ const ProductDetailsMain = ({
   );
 };
 
-const ProductDetailsSkeleton = () => {
+const CustomerDetailsSkeleton = () => {
   return (
     <div className="flex flex-1 flex-col gap-4 p-3">
       <Card className="border-dashed">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center pb-1">
-            Product
+            Customer
             <Skeleton className="ml-1.5 h-5 w-10" />
           </CardTitle>
           <CardDescription>
@@ -265,7 +288,7 @@ const ProductDetailsSkeleton = () => {
   );
 };
 
-const ProductDetailsError = ({ errorMessage }: { errorMessage: string }) => {
+const CustomerDetailsError = ({ errorMessage }: { errorMessage: string }) => {
   return (
     <div className="flex flex-1 flex-col items-center justify-center p-8">
       <span className="text-5xl">💩</span>
@@ -279,47 +302,44 @@ const ProductDetailsError = ({ errorMessage }: { errorMessage: string }) => {
   );
 };
 
-const ProductDetailsFooter = ({
+const CustomerDetailsFooter = ({
   details,
 }: {
-  details: inferRouterOutputs<AppRouter>["product"]["getProductDetails"]["data"];
+  details: CustomerDetailsOutput["data"];
 }) => {
   const router = useRouter();
-  const updateProductForm = useProductForm((store) => store.updateProductForm);
+  const updateCustomerForm = useCustomerForm(
+    (state) => state.updateCustomerForm,
+  );
 
-  const onEditProduct = () => {
-    // Set product form state values via the store to pre-fill the form
-    updateProductForm({
-      sku: details.attributes.sku,
-      name: details.attributes.name,
-      brand: {
-        id: details.attributes.brand.data?.id.toString() ?? "0",
-        name: details.attributes.brand.data?.attributes.brand ?? "no brand",
-      },
-      category: {
-        id: details.attributes.category.data?.id.toString() ?? "0",
-        name:
-          details.attributes.category.data?.attributes.category ??
-          "no category",
+  const onEditCustomer = () => {
+    //Set customer form state values via the store to pre-fill the form
+    updateCustomerForm({
+      customerName: details.attributes.customerName,
+      customerContact: details.attributes.customerContact,
+      customerAddress: details.attributes.customerAddress,
+      salesChannel: {
+        id: details.attributes.sales_channel.data?.id.toString() ?? "",
+        name: details.attributes.customerName,
       },
     });
 
-    router.push(`/products/${router.query.id}/edit`);
+    router.push(`/customers/${router.query.id}/edit`);
   };
 
   return (
     <footer className="sticky bottom-0 flex items-center justify-end gap-2 border-t bg-white p-3">
-      <Button onClick={() => onEditProduct()}>Edit</Button>
+      <Button onClick={() => onEditCustomer()}>Edit</Button>
     </footer>
   );
 };
 
-ProductDetailsPage.getLayout = (page) => {
+CustomerDetailsPage.getLayout = (page) => {
   return (
     <AuthGuard>
-      <MainLayout title="Product Details">{page}</MainLayout>
+      <MainLayout title="Customer Details">{page}</MainLayout>
     </AuthGuard>
   );
 };
 
-export default ProductDetailsPage;
+export default CustomerDetailsPage;

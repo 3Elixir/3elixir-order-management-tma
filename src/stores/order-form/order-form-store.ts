@@ -11,7 +11,9 @@ export type OrderFormActions = {
 export type OrderFormStore = OrderFormState & OrderFormActions;
 
 export const defaultInitState: OrderFormState = {
+  customerId: null,
   customerName: "",
+  attentionTo: "",
   customerContact: "",
   customerAddress: "",
   fulfilmentMethod: {

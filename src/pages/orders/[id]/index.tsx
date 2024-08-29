@@ -1,7 +1,6 @@
 import MainLayout from "~/components/layouts/MainLayout";
 import { NextPageWithLayout } from "~/pages/_app";
 import { useParams } from "next/navigation";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import { useBackButton, usePopup, useInitData } from "@tma.js/sdk-react";
 import { on as onTmaEvent, off as offTmaEvent } from "@tma.js/sdk";
 import { useRouter } from "next/router";

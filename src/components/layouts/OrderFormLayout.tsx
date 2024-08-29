@@ -1,4 +1,3 @@
-import { useThemeParams } from "@tma.js/sdk-react";
 import { type PropsWithChildren } from "react";
 import CreationFormProgress from "../orders/CreationFormProgress";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
@@ -20,6 +19,7 @@ const OrderFormLayout = ({
   return (
     <div className="flex h-full flex-col pt-4">
       <CreationFormProgress currentStep={currentStep} totalSteps={totalSteps} />
+
       <Card className="mx-4 mt-4">
         <CardHeader>
           <CardTitle>{title}</CardTitle>

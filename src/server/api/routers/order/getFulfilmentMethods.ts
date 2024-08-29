@@ -8,7 +8,7 @@ const outputSchema = z.object({
     z.object({
       id: z.number(),
       attributes: z.object({
-        fulfilmentMethod: z.string(), // TODO: Change to fulfilmentMethod when the API is updated
+        fulfilmentMethod: z.string(),
         createdAt: z.string(),
         updatedAt: z.string(),
         publishedAt: z.string(),

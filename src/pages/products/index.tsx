@@ -7,7 +7,6 @@ import {
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/router";
 import React, { useEffect, useMemo, useState } from "react";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import { NextPageWithLayout } from "~/pages/_app";
 import { api } from "@utils/api";
 import { Input } from "~/components/ui/input";
@@ -48,11 +47,25 @@ import { Switch } from "~/components/ui/switch";
 import { orderFormSchema } from "~/types/order-schema";
 import { z } from "zod";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { SubmitErrorHandler, SubmitHandler, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "~/components/ui/form";
+import toast from "react-hot-toast";
 
 type FilterOptionsType =
   inferRouterOutputs<AppRouter>["product"]["getFilterOptions"];
+
 type PaginationOptionsType =
   inferRouterInputs<AppRouter>["product"]["getFilteredProducts"]["pagination"];
+
+const fromStatusSchema = z.union([z.enum(["order", "customer"]), z.null()]);
 
 const ProductsPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -61,7 +74,7 @@ const ProductsPage: NextPageWithLayout = () => {
   const tmaThemeParams = useThemeParams();
   const tmaClosingBehavior = useClosingBehavior();
   const searchParams = useSearchParams();
-  const isFromOrder = !!searchParams.get("fromOrder");
+  const fromStatus = fromStatusSchema.safeParse(searchParams.get("from")).data;
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -109,38 +122,51 @@ const ProductsPage: NextPageWithLayout = () => {
     tmaBackButton.hide();
   }, []);
 
-  // Show main button if the page is from order
+  // Show main button based on fromStatus
   useEffect(() => {
     let onButtonClick = () => {};
-    if (isFromOrder) {
-      tmaMainButton.setParams({
-        text: "Finish Adding 🛍️",
-        isEnabled: true,
-        isLoaderVisible: false,
-        backgroundColor: tmaThemeParams.buttonColor,
-        textColor: tmaThemeParams.buttonTextColor,
-      });
-      onButtonClick = () => router.back();
-      tmaMainButton.on("click", onButtonClick);
-      tmaMainButton.show();
-    } else {
-      tmaMainButton.hide();
-    }
+
+    match(fromStatus)
+      .with("order", () => {
+        tmaMainButton.setParams({
+          text: "Finish adding products 🛍️",
+          isEnabled: true,
+          isLoaderVisible: false,
+          backgroundColor: tmaThemeParams.buttonColor,
+          textColor: tmaThemeParams.buttonTextColor,
+        });
+        onButtonClick = () => router.back();
+        tmaMainButton.on("click", onButtonClick);
+        tmaMainButton.show();
+      })
+      .with("customer", () => {
+        tmaMainButton.setParams({
+          text: "Finish editing prices 🏷️",
+          isEnabled: true,
+          isLoaderVisible: false,
+          backgroundColor: tmaThemeParams.buttonColor,
+          textColor: tmaThemeParams.buttonTextColor,
+        });
+        onButtonClick = () => router.back();
+        tmaMainButton.on("click", onButtonClick);
+        tmaMainButton.show();
+      })
+      .otherwise(() => tmaBackButton.hide());
 
     return () => {
       tmaMainButton.hide();
       tmaMainButton.off("click", onButtonClick);
     };
-  }, [isFromOrder]);
+  }, [fromStatus]);
 
-  // Enable closing confirmation if the page is from order
+  // Enable closing confirmation based on fromStatus
   useEffect(() => {
-    if (isFromOrder) {
+    if (fromStatus === "order" || fromStatus === "customer") {
       tmaClosingBehavior.enableConfirmation();
     } else {
       tmaClosingBehavior.disableConfirmation();
     }
-  }, [isFromOrder]);
+  }, [fromStatus]);
 
   return (
     <div className="flex flex-grow flex-col">
@@ -162,7 +188,7 @@ const ProductsPage: NextPageWithLayout = () => {
           setAppliedFilters={setAppliedFilters}
           isOnlyAddedProducts={isOnlyAddedProducts}
           setIsOnlyAddedProducts={setIsOnlyAddedProducts}
-          isFromOrder={isFromOrder}
+          fromStatus={fromStatus}
           setPagination={setPagination}
         />
       </div>
@@ -176,8 +202,8 @@ const ProductsPage: NextPageWithLayout = () => {
               filteredProducts.length > 0 ? (
                 <ProductsQueryList
                   products={filteredProducts}
-                  isFromOrder={isFromOrder}
                   isOnlyAddedProducts={isOnlyAddedProducts}
+                  fromStatus={fromStatus}
                 />
               ) : (
                 <ProductsQueryEmpty />
@@ -252,15 +278,17 @@ const ProductsQueryEmpty = () => {
 
 const ProductsQueryList = ({
   products,
-  isFromOrder,
   isOnlyAddedProducts,
+  fromStatus,
 }: {
   products: inferRouterOutputs<AppRouter>["product"]["getFilteredProducts"]["data"];
-  isFromOrder: boolean;
   isOnlyAddedProducts: boolean;
+  fromStatus?: z.infer<typeof fromStatusSchema>;
 }) => {
-  const { orderProducts } = useOrderForm((state) => ({
+  const { orderProducts, customerId, customerName } = useOrderForm((state) => ({
     orderProducts: state.orderProducts,
+    customerId: state.customerId,
+    customerName: state.customerName,
   }));
 
   const parsedProducts = useMemo(() => {
@@ -283,6 +311,13 @@ const ProductsQueryList = ({
 
   return (
     <ul className="space-y-2 pb-4">
+      {customerId && (
+        <p className="ml-1 text-sm text-gray-500">
+          Showing{" "}
+          <span className="font-medium text-primary">{customerName}'s</span>{" "}
+          product prices
+        </p>
+      )}
       {isOnlyAddedProducts && parsedProducts.length === 0 && (
         <div className="flex flex-col items-center justify-center p-8">
           <span className="text-5xl">🤷‍♂️</span>
@@ -294,13 +329,18 @@ const ProductsQueryList = ({
           </span>
         </div>
       )}
-      {parsedProducts.map((product) => (
-        <ProductCard
-          key={product.productId}
-          product={product}
-          isFromOrder={isFromOrder}
-        />
-      ))}
+      {parsedProducts.map((product) =>
+        match(fromStatus)
+          .with("order", () => (
+            <ProductCardOrder key={product.productId} product={product} />
+          ))
+          .with("customer", () => (
+            <ProductCardCustomer key={product.productId} product={product} />
+          ))
+          .otherwise(() => (
+            <ProductCardDefault key={product.productId} product={product} />
+          )),
+      )}
       <div className="flex flex-col gap-1 p-2 pt-4 text-muted-foreground">
         <p className="text-center text-sm font-medium ">End of page</p>
         <p className="text-center text-xs">
@@ -311,19 +351,76 @@ const ProductsQueryList = ({
   );
 };
 
-const ProductCard = ({
+const ProductCardDefault = ({
   product,
-  isFromOrder,
 }: {
   product: z.infer<typeof orderFormSchema>["orderProducts"][0];
-  isFromOrder: boolean;
 }) => {
   const router = useRouter();
 
-  const { orderProducts, updateOrderForm } = useOrderForm((state) => ({
-    orderProducts: state.orderProducts,
-    updateOrderForm: state.updateOrderForm,
-  }));
+  console.log("Rendering product - default");
+
+  return (
+    <li
+      key={product.productId}
+      className="flex flex-col rounded border bg-white shadow-sm"
+    >
+      <div className="flex w-full justify-between px-3 py-2 text-sm">
+        <span className="flex items-center font-medium text-gray-600">
+          <Hash className="h-3 w-3" />
+          {product.sku}
+        </span>
+        <Badge>{product.category}</Badge>
+      </div>
+      <Separator />
+      <div className="mt-1 flex w-full items-center px-3 pb-2 pt-1 text-sm">
+        <div className="flex-grow">
+          <p className="w-72 truncate text-base font-semibold">
+            {product.name}
+          </p>
+          <p className="flex items-center text-sm">
+            <span>By</span>
+            <Dot className="h-3.5 w-3.5" />
+            <span className="font-medium text-indigo-700">{product.brand}</span>
+          </p>
+        </div>
+
+        <Button
+          size="icon"
+          variant="outline"
+          onClick={() => {
+            router.push(`/products/${product.productId}`);
+          }}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </li>
+  );
+};
+
+const ProductCardOrder = ({
+  product,
+}: {
+  product: z.infer<typeof orderFormSchema>["orderProducts"][0];
+}) => {
+  const { customerId, orderProducts, updateOrderForm } = useOrderForm(
+    (state) => ({
+      customerId: state.customerId,
+      orderProducts: state.orderProducts,
+      updateOrderForm: state.updateOrderForm,
+    }),
+  );
+
+  const customerProductPriceQuery = api.customerProduct.getPricing.useQuery(
+    {
+      customerId: customerId ?? 0,
+      productId: product.productId,
+    },
+    {
+      enabled: !!customerId,
+    },
+  );
 
   const onAddToOrder = () => {
     updateOrderForm({
@@ -335,7 +432,7 @@ const ProductCard = ({
           category: product.category,
           name: product.name,
           sku: product.sku,
-          price: 10,
+          price: customerProductPriceQuery.data?.attributes.price ?? 10, // TODO: Replace with default product price when implemented
           quantity: 1,
         },
       ],
@@ -369,44 +466,307 @@ const ProductCard = ({
       <Separator />
       <div className="mt-1 flex w-full items-center px-3 pb-2 pt-1 text-sm">
         <div className="flex-grow">
-          <p className="w-64 truncate text-base font-semibold">
+          <p className="w-72 truncate text-base font-semibold">
             {product.name}
           </p>
-          <p className="flex items-center text-sm">
-            <span>By</span>
+
+          <div className="flex items-center">
+            <p className="flex items-center text-sm">
+              <span>By</span>
+              <Dot className="h-3.5 w-3.5" />
+              <span className="font-medium text-indigo-700">
+                {product.brand}
+              </span>
+            </p>
             <Dot className="h-3.5 w-3.5" />
-            <span className="font-medium text-indigo-700">{product.brand}</span>
-          </p>
+            {/* Render price editing sheet based on query */}
+            {match(customerProductPriceQuery)
+              .with({ status: "success" }, ({ data }) => (
+                <Badge
+                  variant={"outline"}
+                  className={cn(!data?.attributes.price && "shadow")}
+                >
+                  {data?.attributes.price
+                    ? `$${data.attributes.price.toFixed(2)}`
+                    : "No price"}
+                </Badge>
+              ))
+              .with({ status: "pending" }, () => (
+                <Skeleton className="h-5 w-16" />
+              ))
+              .with({ status: "error" }, () => <>Error fetching price</>)
+              .exhaustive()}
+          </div>
         </div>
-        {isFromOrder ? (
-          isInOrder ? (
-            <Button
-              size="icon"
-              variant="destructive"
-              onClick={() => onRemoveFromOrder()}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() => onAddToOrder()}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          )
-        ) : (
+
+        {/* Render button based on whether product has been added to order */}
+        {isInOrder ? (
           <Button
             size="icon"
-            variant="outline"
-            onClick={() => {
-              router.push(`/products/${product.productId}`);
-            }}
+            variant="destructive"
+            onClick={() => onRemoveFromOrder()}
           >
-            <ChevronRight className="h-4 w-4" />
+            <X className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button size="icon" variant="outline" onClick={() => onAddToOrder()}>
+            <Plus className="h-4 w-4" />
           </Button>
         )}
+      </div>
+    </li>
+  );
+};
+
+const productPricingFormSchema = z.object({
+  id: z.number().optional(),
+  price: z.string(),
+});
+const ProductCardCustomer = ({
+  product,
+}: {
+  product: z.infer<typeof orderFormSchema>["orderProducts"][0];
+}) => {
+  const tmaMainButton = useMainButton();
+  const searchParams = useSearchParams();
+  const queryContext = api.useUtils();
+
+  const customerProductPriceQuery = api.customerProduct.getPricing.useQuery({
+    customerId: parseInt(searchParams.get("customerId") ?? "0"),
+    productId: product.productId,
+  });
+  const customerProductUpdatePriceMutation =
+    api.customerProduct.updatePricing.useMutation({
+      onSuccess: ({ data }) => {
+        toast.success(
+          data.attributes.price
+            ? `Set price to $${data.attributes.price.toFixed(2)}`
+            : "Removed price",
+          {
+            position: "top-right",
+          },
+        );
+        queryContext.customerProduct.getPricing.invalidate({
+          customerId: parseInt(searchParams.get("customerId") ?? "0"),
+          productId: product.productId,
+        });
+        form.reset({
+          id: data.id,
+          price: data?.attributes.price ? data.attributes.price.toString() : "",
+        });
+      },
+    });
+  const customerProductCreatePriceMutation =
+    api.customerProduct.createPricing.useMutation({
+      onSuccess: ({ data }) => {
+        toast.success(
+          data.attributes.price
+            ? `Set price to $${data.attributes.price.toFixed(2)}`
+            : "Removed price",
+          {
+            position: "top-right",
+          },
+        );
+        queryContext.customerProduct.getPricing.invalidate({
+          customerId: parseInt(searchParams.get("customerId") ?? "0"),
+          productId: product.productId,
+        });
+        form.reset({
+          id: data.id,
+          price: data?.attributes.price ? data.attributes.price.toString() : "",
+        });
+      },
+    });
+
+  const form = useForm<z.infer<typeof productPricingFormSchema>>({
+    resolver: zodResolver(productPricingFormSchema),
+    defaultValues: async () => {
+      const data = await queryContext.customerProduct.getPricing.ensureData({
+        customerId: parseInt(searchParams.get("customerId") ?? "0"),
+        productId: product.productId,
+      });
+      return {
+        id: data?.id,
+        price: data?.attributes.price ? data.attributes.price.toString() : "",
+      };
+    },
+  });
+
+  const onSubmit: SubmitHandler<z.infer<typeof productPricingFormSchema>> = (
+    data,
+  ) => {
+    const priceInFloat = parseFloat(data.price);
+
+    if (!data.id) {
+      // Create customer product entry
+      customerProductCreatePriceMutation.mutate({
+        customerId: parseInt(searchParams.get("customerId") ?? "0"),
+        productId: product.productId,
+        price: isNaN(priceInFloat) ? null : priceInFloat,
+      });
+    } else {
+      // Update customer product entry
+      customerProductUpdatePriceMutation.mutate({
+        id: data.id,
+        price: isNaN(priceInFloat) ? null : priceInFloat,
+      });
+    }
+  };
+
+  const onError: SubmitErrorHandler<
+    z.infer<typeof productPricingFormSchema>
+  > = (error) => {
+    console.error(error);
+  };
+
+  return (
+    <li
+      key={product.productId}
+      className="flex flex-col rounded border bg-white shadow-sm"
+    >
+      <div className="flex w-full justify-between px-3 py-2 text-sm">
+        <span className="flex items-center font-medium text-gray-600">
+          <Hash className="h-3 w-3" />
+          {product.sku}
+        </span>
+        <Badge>{product.category}</Badge>
+      </div>
+      <Separator />
+      <div className="mt-1 flex w-full items-center px-3 pb-2 pt-1 text-sm">
+        <div className="flex-grow">
+          <p className="w-72 truncate text-base font-semibold">
+            {product.name}
+          </p>
+
+          <div className="flex items-center">
+            <span>By</span>
+            <Dot className="h-3.5 w-3.5" />
+            <p className="flex items-center text-sm">
+              <span className="font-medium text-indigo-700">
+                {product.brand}
+              </span>
+            </p>
+            <Dot className="h-3.5 w-3.5" />
+            <div className="mt-0.5 flex items-center text-sm">
+              {/* Render price editing sheet based on query */}
+              {match(customerProductPriceQuery)
+                .with({ status: "success" }, ({ data }) => (
+                  <Sheet
+                    onOpenChange={(open) => {
+                      open ? tmaMainButton.hide() : tmaMainButton.show();
+                      open && form.reset();
+                    }}
+                  >
+                    <SheetTrigger
+                      disabled={
+                        customerProductUpdatePriceMutation.isPending ||
+                        customerProductCreatePriceMutation.isPending ||
+                        customerProductPriceQuery.isFetching
+                      }
+                    >
+                      {customerProductCreatePriceMutation.isPending ||
+                      customerProductUpdatePriceMutation.isPending ||
+                      customerProductPriceQuery.isFetching ? (
+                        <Skeleton className="h-5 w-16" />
+                      ) : (
+                        <Badge
+                          variant={"outline"}
+                          className={cn(!data?.attributes.price && "shadow")}
+                        >
+                          {data?.attributes.price
+                            ? `$${data.attributes.price.toFixed(2)}`
+                            : "Set price"}
+                        </Badge>
+                      )}
+                    </SheetTrigger>
+
+                    <SheetContent side="top">
+                      <SheetHeader>
+                        <SheetTitle>Customer Product Pricing</SheetTitle>
+                        <SheetDescription>
+                          Set a default price for this product that will
+                          automatically apply to orders from this specific
+                          customer
+                        </SheetDescription>
+                      </SheetHeader>
+                      {/* Product preview */}
+                      <div className="mt-4 flex flex-col rounded border bg-white shadow">
+                        <div className="flex w-full justify-between px-3 py-2 text-sm">
+                          <span className="flex items-center font-medium text-gray-600">
+                            <Hash className="h-3 w-3" />
+                            {product.sku}
+                          </span>
+                          <Badge>{product.category}</Badge>
+                        </div>
+                        <Separator />
+                        <div className="mt-1 flex w-full items-center px-3 pb-2 pt-1 text-sm">
+                          <div className="flex-grow">
+                            <p className="w-72 truncate text-base font-semibold">
+                              {product.name}
+                            </p>
+                            <p className="flex items-center text-sm">
+                              <span>By</span>
+                              <Dot className="h-3.5 w-3.5" />
+                              <span className="font-medium text-indigo-700">
+                                {product.brand}
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <Form {...form}>
+                        <div className="grid gap-4 py-4">
+                          <FormField
+                            control={form.control}
+                            name="price"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <FormLabel
+                                    htmlFor="product-price"
+                                    className="text-right"
+                                  >
+                                    Price ($)
+                                  </FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      className="col-span-3"
+                                      type="number"
+                                      inputMode="decimal"
+                                      placeholder="Enter a price"
+                                      min={0}
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </Form>
+                      <SheetFooter>
+                        <SheetClose asChild>
+                          <Button
+                            onClick={() => {
+                              form.handleSubmit(onSubmit, () => onError)();
+                            }}
+                          >
+                            Save price
+                          </Button>
+                        </SheetClose>
+                      </SheetFooter>
+                    </SheetContent>
+                  </Sheet>
+                ))
+                .with({ status: "pending" }, () => (
+                  <Skeleton className="h-5 w-16" />
+                ))
+                .with({ status: "error" }, () => <>Failed to fetch price</>)
+                .exhaustive()}
+            </div>
+          </div>
+        </div>
       </div>
     </li>
   );
@@ -419,7 +779,7 @@ const ProductsQueryFilterSheet = ({
   setAppliedFilters,
   isOnlyAddedProducts,
   setIsOnlyAddedProducts,
-  isFromOrder,
+  fromStatus,
   setPagination,
 }: {
   filters: FilterOptionsType;
@@ -428,7 +788,7 @@ const ProductsQueryFilterSheet = ({
   setAppliedFilters: React.Dispatch<React.SetStateAction<FilterOptionsType>>;
   isOnlyAddedProducts: boolean;
   setIsOnlyAddedProducts: React.Dispatch<React.SetStateAction<boolean>>;
-  isFromOrder: boolean;
+  fromStatus?: z.infer<typeof fromStatusSchema>;
   setPagination: React.Dispatch<React.SetStateAction<PaginationOptionsType>>;
 }) => {
   const filterOptionsQuery = api.product.getFilterOptions.useQuery();
@@ -464,7 +824,7 @@ const ProductsQueryFilterSheet = ({
             Filter products by category and brand
           </SheetDescription>
         </SheetHeader>
-        {isFromOrder && (
+        {fromStatus === "order" && (
           <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
             <div className="space-y-0.5">
               <Label>Added products</Label>
@@ -683,8 +1043,12 @@ const ProductsQueryFooter = ({
 };
 
 ProductsPage.getLayout = (page) => {
-  const isFromOrder = !!useSearchParams().get("fromOrder");
-  const title = isFromOrder ? "🛍️ Add Products" : "🍾 View Products";
+  const searchParams = useSearchParams();
+  const fromStatus = fromStatusSchema.safeParse(searchParams.get("from")).data;
+  const title = match(fromStatus)
+    .with("order", () => "🛍️ Add Products")
+    .with("customer", () => "🏷️ Edit Prices")
+    .otherwise(() => "🍾 View Products");
 
   return (
     <AuthGuard>
