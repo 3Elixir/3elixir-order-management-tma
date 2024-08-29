@@ -285,8 +285,10 @@ const ProductsQueryList = ({
   isOnlyAddedProducts: boolean;
   fromStatus?: z.infer<typeof fromStatusSchema>;
 }) => {
-  const { orderProducts } = useOrderForm((state) => ({
+  const { orderProducts, customerId, customerName } = useOrderForm((state) => ({
     orderProducts: state.orderProducts,
+    customerId: state.customerId,
+    customerName: state.customerName,
   }));
 
   const parsedProducts = useMemo(() => {
@@ -309,6 +311,13 @@ const ProductsQueryList = ({
 
   return (
     <ul className="space-y-2 pb-4">
+      {customerId && (
+        <p className="ml-1 text-sm text-gray-500">
+          Showing{" "}
+          <span className="font-medium text-primary">{customerName}'s</span>{" "}
+          product prices
+        </p>
+      )}
       {isOnlyAddedProducts && parsedProducts.length === 0 && (
         <div className="flex flex-col items-center justify-center p-8">
           <span className="text-5xl">🤷‍♂️</span>
@@ -395,10 +404,23 @@ const ProductCardOrder = ({
 }: {
   product: z.infer<typeof orderFormSchema>["orderProducts"][0];
 }) => {
-  const { orderProducts, updateOrderForm } = useOrderForm((state) => ({
-    orderProducts: state.orderProducts,
-    updateOrderForm: state.updateOrderForm,
-  }));
+  const { customerId, orderProducts, updateOrderForm } = useOrderForm(
+    (state) => ({
+      customerId: state.customerId,
+      orderProducts: state.orderProducts,
+      updateOrderForm: state.updateOrderForm,
+    }),
+  );
+
+  const customerProductPriceQuery = api.customerProduct.getPricing.useQuery(
+    {
+      customerId: customerId ?? 0,
+      productId: product.productId,
+    },
+    {
+      enabled: !!customerId,
+    },
+  );
 
   const onAddToOrder = () => {
     updateOrderForm({
@@ -410,7 +432,7 @@ const ProductCardOrder = ({
           category: product.category,
           name: product.name,
           sku: product.sku,
-          price: 10,
+          price: customerProductPriceQuery.data?.attributes.price ?? 10, // TODO: Replace with default product price when implemented
           quantity: 1,
         },
       ],
@@ -428,8 +450,6 @@ const ProductCardOrder = ({
   const isInOrder = orderProducts.some(
     (orderProduct) => orderProduct.productId === product.productId,
   );
-
-  console.log("Rendering product - order");
 
   return (
     <li
@@ -449,11 +469,34 @@ const ProductCardOrder = ({
           <p className="w-72 truncate text-base font-semibold">
             {product.name}
           </p>
-          <p className="flex items-center text-sm">
-            <span>By</span>
+
+          <div className="flex items-center">
+            <p className="flex items-center text-sm">
+              <span>By</span>
+              <Dot className="h-3.5 w-3.5" />
+              <span className="font-medium text-indigo-700">
+                {product.brand}
+              </span>
+            </p>
             <Dot className="h-3.5 w-3.5" />
-            <span className="font-medium text-indigo-700">{product.brand}</span>
-          </p>
+            {/* Render price editing sheet based on query */}
+            {match(customerProductPriceQuery)
+              .with({ status: "success" }, ({ data }) => (
+                <Badge
+                  variant={"outline"}
+                  className={cn(!data?.attributes.price && "shadow")}
+                >
+                  {data?.attributes.price
+                    ? `$${data.attributes.price.toFixed(2)}`
+                    : "No price"}
+                </Badge>
+              ))
+              .with({ status: "pending" }, () => (
+                <Skeleton className="h-5 w-16" />
+              ))
+              .with({ status: "error" }, () => <>Error fetching price</>)
+              .exhaustive()}
+          </div>
         </div>
 
         {/* Render button based on whether product has been added to order */}

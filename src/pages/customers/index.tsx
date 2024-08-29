@@ -21,7 +21,6 @@ import {
 import { match } from "ts-pattern";
 import { Input } from "~/components/ui/input";
 import useDebounce from "~/lib/hooks/useDebounce";
-import Link from "next/link";
 import { z } from "zod";
 import { useMainButton, useThemeParams } from "@tma.js/sdk-react";
 import { useEffect } from "react";
@@ -220,14 +219,19 @@ const CustomerCard = ({
     };
   }, [tmaMainButton, fromStatus]);
 
-  const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
+  const { updateOrderForm, ...customerFormState } = useOrderForm(
+    (store) => store,
+  );
 
   const onSelectCustomer = () => {
     toast.success(
       `Prefilled form with customer #${customer.id}\n(${customer.attributes.customerName})`,
       { position: "top-right", duration: 3000 },
     );
+
+    // Prefill order form with selected customer's details
     updateOrderForm({
+      customerId: customer.id,
       customerName: customer.attributes.customerName,
       customerContact: customer.attributes.customerContact,
       customerAddress: customer.attributes.customerAddress,
@@ -238,6 +242,7 @@ const CustomerCard = ({
       },
     });
 
+    // Return back to order creation form
     router.back();
   };
 

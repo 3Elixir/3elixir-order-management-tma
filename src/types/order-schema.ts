@@ -96,11 +96,16 @@ export const orderFormStep4Schema = z.object({
   deliveryFee: z.number().min(0, "Delivery Fee cannot be negative"),
 });
 
+export const orderFormMeta = z.object({
+  customerId: z.number().nullable(),
+});
+
 // Combine all schemas into one
 export const orderFormSchema = orderFormStep1Schema
   .merge(orderFormStep2Schema)
   .merge(orderFormStep3Schema)
-  .merge(orderFormStep4Schema);
+  .merge(orderFormStep4Schema)
+  .merge(orderFormMeta);
 
 // sales channels that require sales agents
 export const SALES_CHANNELS_WITH_SALES_AGENTS = ["walk-in", "b2c", "b2b"];

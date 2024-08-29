@@ -58,9 +58,11 @@ import { inferRouterOutputs } from "@trpc/server";
 import { Label } from "~/components/ui/label";
 import { Switch } from "~/components/ui/switch";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { useSearchParams } from "next/navigation";
 
 const CreateOrdersPage: NextPageWithLayout = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const tmaMainButton = useMainButton();
   const tmaBackButton = useBackButton();
   const tmaPostEvent = usePostEvent();

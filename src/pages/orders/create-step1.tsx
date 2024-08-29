@@ -38,11 +38,13 @@ import { match } from "ts-pattern";
 import { DropDown } from "~/components/ui/dropdown";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
 import { Button, buttonVariants } from "~/components/ui/button";
-import { SquareArrowOutUpRight } from "lucide-react";
+import { SquareArrowOutUpRight, UserRoundCheck, X } from "lucide-react";
 import Link from "next/link";
 import { cn } from "~/lib/utils";
 import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
+import { useSearchParams } from "next/navigation";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 
 const CreateOrdersPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -137,15 +139,32 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   return (
     <div>
       <div className="px-5 pb-2 pt-4">
-        <Link
-          href="/customers?from=order"
-          className={buttonVariants({
-            className: "w-full",
-          })}
-        >
-          <SquareArrowOutUpRight className="-ml-0.5 mr-1.5 h-5 w-5" />
-          Prefill Customer Information
-        </Link>
+        {orderFormState.customerId ? (
+          <Alert className="relative">
+            <UserRoundCheck className="h-4 w-4" />
+            <div></div>
+            <AlertTitle>Customer selected!</AlertTitle>
+            <AlertDescription>
+              <span>
+                Click{" "}
+                <Link href="/customers?from=order" className="underline">
+                  {orderFormState.customerName}
+                </Link>{" "}
+                to change
+              </span>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Link
+            href="/customers?from=order"
+            className={buttonVariants({
+              className: "w-full",
+            })}
+          >
+            <SquareArrowOutUpRight className="-ml-0.5 mr-1.5 h-5 w-5" />
+            Prefill Customer Information
+          </Link>
+        )}
       </div>
       <Form {...form}>
         <form>
