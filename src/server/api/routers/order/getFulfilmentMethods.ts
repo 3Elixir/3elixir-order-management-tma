@@ -31,7 +31,7 @@ export const getFulfilmentMethods = publicProcedure
     // Fetch products from Strapi API
     try {
       const response = await fetch(
-        `${env.STRAPI_API_URL}/api/delivery-methods`, // TODO: Change to fulfilment-methods when the API is updated
+        `${env.STRAPI_API_URL}/api/delivery-methods`,
         {
           headers: {
             "Content-Type": "application/json",

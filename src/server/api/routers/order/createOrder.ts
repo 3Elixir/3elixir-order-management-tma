@@ -66,7 +66,7 @@ export const createOrder = publicProcedure
     const payload = {
       data: {
         customerName,
-        // TODO: Include attentionTo field in payload once backend is updated
+        attentionTo: attentionTo || null,
         customerContact,
         customerAddress,
         orderCollectionDateTime,
