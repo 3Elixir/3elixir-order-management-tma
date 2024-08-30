@@ -16,6 +16,7 @@ export const sendOrderDetailsUpdateMessage = publicProcedure
         id: orderId,
         attributes: {
           customerName,
+          attentionTo,
           customerContact,
           customerAddress,
           fulfilment_method,
@@ -83,6 +84,7 @@ ${orderProducts
 
 __*2\\. Order details*__
 \\- Customer name: ${escapeSpecialChars(customerName)}
+${attentionTo ? `\\- Attn: ${escapeSpecialChars(attentionTo.trim())}` : ""}
 \\- Customer contact: ${escapeSpecialChars(customerContact)}
 \\- Customer Address: ${escapeSpecialChars(customerAddress)}
 \\- Payment method: ${escapeSpecialChars(paymentMethod.data.attributes.paymentMethod)}
