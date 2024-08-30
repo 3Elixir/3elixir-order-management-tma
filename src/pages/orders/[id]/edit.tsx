@@ -366,7 +366,10 @@ const OrderFormCustomerFields = ({
                 </Label>
                 <Switch
                   checked={hasAttentionTo}
-                  onCheckedChange={setHasAttentionTo}
+                  onCheckedChange={(checked) => {
+                    setHasAttentionTo(checked);
+                    !checked && form.setValue("attentionTo", ""); // Reset attentionTo field upon uncheck
+                  }}
                   id="attention-to"
                   aria-label="Attention To"
                 />
