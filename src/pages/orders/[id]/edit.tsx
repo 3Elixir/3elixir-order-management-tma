@@ -11,7 +11,7 @@ import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
 import { inferRouterOutputs } from "@trpc/server";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   type UseFormReturn,
   type SubmitHandler,
@@ -22,7 +22,6 @@ import {
 import { match } from "ts-pattern";
 import { z } from "zod";
 import MainLayout from "~/components/layouts/MainLayout";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import {
   Card,
   CardContent,
@@ -175,8 +174,6 @@ const OrderEditForm = ({
     api.telegram.sendOrderDetailsUpdateMessage.useMutation();
   const sendOrderCancelledUpdateMessageMutation =
     api.telegram.sendOrderCancelledUpdateMessage.useMutation();
-  const sendStatusUpdateMessageMutation =
-    api.telegram.sendOrderStatusUpdateMessage.useMutation();
 
   const orderUpdateMutation = api.order.updateOrderDetails.useMutation({
     onSuccess: ({ data }) => {
@@ -301,8 +298,6 @@ const OrderEditForm = ({
         },
       ],
     });
-
-    console.info(formValues);
   };
 
   const onErrors: SubmitErrorHandler<z.infer<typeof orderFormSchema>> = (
@@ -351,6 +346,9 @@ const OrderFormCustomerFields = ({
 }) => {
   const paymentMethodsQuery = api.order.getPaymentMethods.useQuery();
   const paymentStatusesQuery = api.order.getPaymentStatuses.useQuery();
+  const [hasAttentionTo, setHasAttentionTo] = useState(
+    () => !!form.getValues("attentionTo"),
+  );
 
   return (
     <>
@@ -360,7 +358,20 @@ const OrderFormCustomerFields = ({
         name="customerName"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Customer Name</FormLabel>
+            <div className="flex items-center justify-between">
+              <FormLabel>Customer Name</FormLabel>
+              <div className="flex items-center space-x-2 rounded-md border p-1 ps-2.5 shadow">
+                <Label className="text-xs" htmlFor="attention-to">
+                  Attention To
+                </Label>
+                <Switch
+                  checked={hasAttentionTo}
+                  onCheckedChange={setHasAttentionTo}
+                  id="attention-to"
+                  aria-label="Attention To"
+                />
+              </div>
+            </div>
             <FormControl>
               <Input className="text-base" placeholder="Bryan" {...field} />
             </FormControl>
@@ -370,6 +381,29 @@ const OrderFormCustomerFields = ({
           </FormItem>
         )}
       />
+
+      {/* Attention To */}
+      {hasAttentionTo && (
+        <FormField
+          control={form.control}
+          name="attentionTo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Attention To</FormLabel>
+              <FormControl>
+                <Input
+                  className="text-base"
+                  placeholder="Accounts Payable"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Intended recipient of the correspondence
+              </FormDescription>
+            </FormItem>
+          )}
+        />
+      )}
 
       {/* Customer Address */}
       <FormField
@@ -1006,60 +1040,6 @@ const OrderFormDetailFields = ({
             : "Please select the date and time for order Fulfilment."}
         </FormDescription>
       </div>
-
-      {/* Fulfilment datetime */}
-      {/* <FormField
-        control={form.control}
-        name="orderCollectionDateTime"
-        render={({ field }) => (
-          <FormItem className="flex flex-col pt-2">
-            <FormLabel>Fulfilment Datetime</FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground",
-                    )}
-                  >
-                    {field.value ? (
-                      format(field.value, "PPP h:mm a")
-                    ) : (
-                      <span>Pick a date and time</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={(date) => {
-                    const newDate = date ?? new Date();
-                    newDate.setHours(field.value.getHours());
-                    newDate.setMinutes(field.value.getMinutes());
-                    field.onChange(newDate);
-                  }}
-                  initialFocus
-                />
-                <div className="border-t border-border p-3">
-                  <TimePicker
-                    setDate={field.onChange}
-                    date={field.value || new Date()}
-                    hasSeconds={false}
-                  />
-                </div>
-              </PopoverContent>
-            </Popover>
-            <FormDescription>
-              Please select the date and time for order collection.
-            </FormDescription>
-          </FormItem>
-        )}
-      /> */}
     </>
   );
 };

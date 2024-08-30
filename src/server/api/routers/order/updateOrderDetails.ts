@@ -93,6 +93,7 @@ export const updateOrderDetails = publicProcedure
     const {
       orderId,
       customerName,
+      attentionTo,
       customerAddress,
       customerContact,
       fulfilmentMethod,
@@ -110,6 +111,7 @@ export const updateOrderDetails = publicProcedure
     const payload = {
       data: {
         customerName,
+        attentionTo: attentionTo.trim() ?? null,
         customerAddress,
         customerContact,
         fulfilmentStart,

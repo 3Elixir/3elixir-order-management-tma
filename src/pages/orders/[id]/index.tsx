@@ -786,6 +786,7 @@ Payment details
     // Set order form state values via store to prefill the form
     updateOrderForm({
       customerName: details.attributes.customerName,
+      attentionTo: details.attributes.attentionTo ?? "",
       customerAddress: details.attributes.customerAddress,
       customerContact: details.attributes.customerContact,
       paymentMethod: {
