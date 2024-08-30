@@ -736,8 +736,7 @@ Order #${orderId}
 Last updated: ${format(new Date(updatedAt), "dd/MM/yyyy - h:mm a")}
 
 1. Customer Information
-- Name: ${customerName}
-${attentionTo ? `-Attn: ${attentionTo.trim()}` : ""}
+- Name: ${customerName}${attentionTo ? `\n- Attn: ${attentionTo.trim()}` : ""}
 - Contact: ${customerContact}
 - Address: ${customerAddress}
 - Payment: ${paymentMethod.data?.attributes.paymentMethod ?? "no payment method"}
