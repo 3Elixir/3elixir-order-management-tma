@@ -64,7 +64,6 @@ ${orderProducts
 __*2\\. Order details*__
 \\- Customer name: ${escapeSpecialChars(customerName)}
 ${attentionTo ? `\\- Attn: ${escapeSpecialChars(attentionTo.trim())}` : ""}
-\\- Attn: ${escapeSpecialChars(attentionTo.trim() ?? "No ")}
 \\- Customer contact: ${escapeSpecialChars(customerContact)}
 \\- Customer Address: ${escapeSpecialChars(customerAddress)}
 \\- Payment method: ${escapeSpecialChars(paymentMethod.name)}
