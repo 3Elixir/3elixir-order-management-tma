@@ -115,6 +115,7 @@ const OrderDetailsMain = ({
     attributes: {
       createdAt,
       customerName,
+      attentionTo,
       customerContact,
       customerAddress,
       payment_method: paymentMethod,
@@ -339,6 +340,13 @@ const OrderDetailsMain = ({
         {/* Customer information */}
         <CardContent className="py-4">
           <div className="flex flex-col space-y-0.5">
+            {attentionTo && (
+              <p className="flex flex-wrap items-center text-sm">
+                <strong className="font-medium">📢 Attention To</strong>
+                <Dot className="h-3.5 w-3.5" />
+                <strong className="font-light">{attentionTo}</strong>
+              </p>
+            )}
             <p className="flex flex-wrap items-center text-sm">
               <strong className="font-medium">👤 Customer Name</strong>
               <Dot className="h-3.5 w-3.5" />
@@ -686,6 +694,7 @@ const OrderFooter = ({
     id: orderId,
     attributes: {
       customerName,
+      attentionTo,
       customerContact,
       customerAddress,
       fulfilmentStart,
@@ -728,6 +737,7 @@ Last updated: ${format(new Date(updatedAt), "dd/MM/yyyy - h:mm a")}
 
 1. Customer Information
 - Name: ${customerName}
+${attentionTo ? `-Attn: ${attentionTo.trim()}` : ""}
 - Contact: ${customerContact}
 - Address: ${customerAddress}
 - Payment: ${paymentMethod.data?.attributes.paymentMethod ?? "no payment method"}
