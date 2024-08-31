@@ -56,7 +56,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   const form = useForm<z.infer<typeof orderFormStep1Schema>>({
     resolver: zodResolver(orderFormStep1Schema),
     defaultValues: {
-      hasAttentionTo: false,
+      hasAttentionTo: orderFormState.hasAttentionTo,
       attentionTo: orderFormState.attentionTo,
       customerName: orderFormState.customerName,
       customerContact: orderFormState.customerContact,
@@ -208,7 +208,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
             />
 
             {/* Only render attention to field based on switch */}
-            {orderFormState.hasAttentionTo && (
+            {form.watch("hasAttentionTo") && (
               <FormField
                 control={form.control}
                 name="attentionTo"
