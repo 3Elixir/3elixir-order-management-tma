@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { env } from "~/env";
 import { publicProcedure } from "~/server/api/trpc";
-import { db } from "~/server/db";
-import { createCaller } from "../../root";
 import {
   SALES_CHANNELS_WITH_SALES_AGENTS,
   orderFormSchema,
@@ -93,6 +91,7 @@ export const updateOrderDetails = publicProcedure
     const {
       orderId,
       customerName,
+      hasAttentionTo,
       attentionTo,
       customerAddress,
       customerContact,
@@ -108,10 +107,12 @@ export const updateOrderDetails = publicProcedure
       remarks,
     } = input;
 
+    const cleanedAttentionTo = attentionTo.trim() ?? null;
+
     const payload = {
       data: {
         customerName,
-        attentionTo: attentionTo.trim() ?? null,
+        attentionTo: hasAttentionTo ? cleanedAttentionTo : null,
         customerAddress,
         customerContact,
         fulfilmentStart,

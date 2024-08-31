@@ -344,11 +344,12 @@ const OrderFormCustomerFields = ({
 }: {
   form: UseFormReturn<z.infer<typeof orderFormSchema>>;
 }) => {
+  const { hasAttentionTo, updateOrderForm } = useOrderForm((store) => ({
+    hasAttentionTo: store.hasAttentionTo,
+    updateOrderForm: store.updateOrderForm,
+  }));
   const paymentMethodsQuery = api.order.getPaymentMethods.useQuery();
   const paymentStatusesQuery = api.order.getPaymentStatuses.useQuery();
-  const [hasAttentionTo, setHasAttentionTo] = useState(
-    () => !!form.getValues("attentionTo"),
-  );
 
   return (
     <>
@@ -366,10 +367,11 @@ const OrderFormCustomerFields = ({
                 </Label>
                 <Switch
                   checked={hasAttentionTo}
-                  onCheckedChange={(checked) => {
-                    setHasAttentionTo(checked);
-                    !checked && form.setValue("attentionTo", ""); // Reset attentionTo field upon uncheck
-                  }}
+                  onCheckedChange={(checked) =>
+                    updateOrderForm({
+                      hasAttentionTo: checked,
+                    })
+                  }
                   id="attention-to"
                   aria-label="Attention To"
                 />
