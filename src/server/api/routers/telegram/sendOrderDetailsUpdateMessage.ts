@@ -1,6 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
 import { Telegram, TelegramError } from "telegraf";
-import { z } from "zod";
 import { env } from "~/env";
 import { escapeSpecialChars } from "~/lib/utils";
 import { publicProcedure } from "~/server/api/trpc";

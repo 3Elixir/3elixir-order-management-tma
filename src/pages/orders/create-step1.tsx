@@ -36,13 +36,12 @@ import {
 import { match } from "ts-pattern";
 import { DropDown } from "~/components/ui/dropdown";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
-import { Button, buttonVariants } from "~/components/ui/button";
+import { buttonVariants } from "~/components/ui/button";
 import { SquareArrowOutUpRight, UserRoundCheck, X } from "lucide-react";
 import Link from "next/link";
 import { cn } from "~/lib/utils";
 import { Switch } from "~/components/ui/switch";
 import { Label } from "~/components/ui/label";
-import { useSearchParams } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 
 const CreateOrdersPage: NextPageWithLayout = () => {
@@ -57,8 +56,9 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   const form = useForm<z.infer<typeof orderFormStep1Schema>>({
     resolver: zodResolver(orderFormStep1Schema),
     defaultValues: {
-      customerName: orderFormState.customerName,
+      hasAttentionTo: false,
       attentionTo: orderFormState.attentionTo,
+      customerName: orderFormState.customerName,
       customerContact: orderFormState.customerContact,
       customerAddress: orderFormState.customerAddress,
       paymentMethod: orderFormState.paymentMethod,
@@ -180,10 +180,12 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                         Attention To
                       </Label>
                       <Switch
-                        checked={orderFormState.hasAttentionTo}
+                        checked={form.watch("hasAttentionTo")}
                         onCheckedChange={(checked) =>
-                          updateOrderForm({
-                            hasAttentionTo: checked,
+                          form.setValue("hasAttentionTo", checked, {
+                            shouldTouch: true,
+                            shouldDirty: true,
+                            shouldValidate: true,
                           })
                         }
                         id="attention-to"
