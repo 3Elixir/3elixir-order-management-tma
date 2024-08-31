@@ -48,6 +48,7 @@ export const createOrder = publicProcedure
     const {
       chatId,
       customerName,
+      hasAttentionTo,
       attentionTo,
       customerAddress,
       customerContact,
@@ -64,10 +65,13 @@ export const createOrder = publicProcedure
       remarks,
     } = input;
 
+    // Clean conditional field - attentionTo
+    const cleanedAttentionTo = attentionTo.trim() ?? null;
+
     const payload = {
       data: {
         customerName,
-        attentionTo: attentionTo.trim() || null,
+        attentionTo: hasAttentionTo ? cleanedAttentionTo : null,
         customerContact,
         customerAddress,
         orderCollectionDateTime,

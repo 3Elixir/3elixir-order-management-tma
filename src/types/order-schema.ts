@@ -2,8 +2,9 @@ import { isAfter, isEqual } from "date-fns";
 import { z } from "zod";
 
 export const orderFormStep1Schema = z.object({
-  customerName: z.string().min(1, "Customer Name is required"),
+  hasAttentionTo: z.boolean(),
   attentionTo: z.string(),
+  customerName: z.string().min(1, "Customer Name is required"),
   customerAddress: z.string(),
   customerContact: z.string().min(1, "Contact is required"),
   paymentMethod: z.object({

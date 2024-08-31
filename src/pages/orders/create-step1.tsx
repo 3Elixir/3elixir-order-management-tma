@@ -6,7 +6,6 @@ import {
   useViewport,
 } from "@tma.js/sdk-react";
 import { useEffect, useState } from "react";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import { NextPageWithLayout } from "~/pages/_app";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,7 +54,6 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   const tmaViewport = useViewport();
   const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
 
-  const [hasAttentionTo, setHasAttentionTo] = useState(false);
   const form = useForm<z.infer<typeof orderFormStep1Schema>>({
     resolver: zodResolver(orderFormStep1Schema),
     defaultValues: {
@@ -182,11 +180,12 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                         Attention To
                       </Label>
                       <Switch
-                        checked={hasAttentionTo}
-                        onCheckedChange={(checked) => {
-                          setHasAttentionTo(checked);
-                          !checked && form.setValue("attentionTo", ""); // Reset attentionTo field upon uncheck
-                        }}
+                        checked={orderFormState.hasAttentionTo}
+                        onCheckedChange={(checked) =>
+                          updateOrderForm({
+                            hasAttentionTo: checked,
+                          })
+                        }
                         id="attention-to"
                         aria-label="Attention To"
                       />
@@ -207,7 +206,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
             />
 
             {/* Only render attention to field based on switch */}
-            {hasAttentionTo && (
+            {orderFormState.hasAttentionTo && (
               <FormField
                 control={form.control}
                 name="attentionTo"
