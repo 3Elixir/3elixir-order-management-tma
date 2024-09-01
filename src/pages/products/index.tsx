@@ -685,8 +685,7 @@ const ProductCardCustomer = ({
                         <SheetTitle>Customer Product Pricing</SheetTitle>
                         <SheetDescription>
                           Set a default price for this product that will
-                          automatically apply to orders from this specific
-                          customer
+                          automatically apply to this customer’s orders
                         </SheetDescription>
                       </SheetHeader>
                       {/* Product preview */}
