@@ -64,6 +64,7 @@ export const createOrder = publicProcedure
       orderProducts,
       deliveryFee,
       remarks,
+      excludeGst,
     } = input;
 
     // Clean conditional field - attentionTo
@@ -77,6 +78,7 @@ export const createOrder = publicProcedure
         customerAddress,
         orderCollectionDateTime,
         remarks,
+        excludeGst,
         orderProducts,
         deliveryFee,
         fulfilmentStart,

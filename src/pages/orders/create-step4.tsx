@@ -257,12 +257,12 @@ const CreateOrdersPage: NextPageWithLayout = () => {
           </div>
         </form>
       </Form>
-      <OrderProductFooter form={form} />
+      <OrderSummaryFooter form={form} />
     </>
   );
 };
 
-const OrderProductFooter = ({
+const OrderSummaryFooter = ({
   form,
 }: {
   form: UseFormReturn<z.infer<typeof orderFormStep4Schema>>;

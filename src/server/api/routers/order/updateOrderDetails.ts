@@ -106,6 +106,7 @@ export const updateOrderDetails = publicProcedure
       orderProducts,
       deliveryFee,
       remarks,
+      excludeGst,
     } = input;
 
     const cleanedAttentionTo = attentionTo.trim() ?? null;
@@ -121,6 +122,7 @@ export const updateOrderDetails = publicProcedure
         deliveryFee,
         remarks,
         orderProducts,
+        excludeGst,
         payment_method: {
           set: [parseInt(paymentMethod.id)],
         },
