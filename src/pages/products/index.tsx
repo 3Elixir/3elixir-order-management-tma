@@ -358,8 +358,6 @@ const ProductCardDefault = ({
 }) => {
   const router = useRouter();
 
-  console.log("Rendering product - default");
-
   return (
     <li
       key={product.productId}

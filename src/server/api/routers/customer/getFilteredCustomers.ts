@@ -90,7 +90,6 @@ export const getFilteredCustomers = publicProcedure
       if (!response.ok) throw response;
       return await response.json();
     } catch (error) {
-      console.log(error);
       console.error("Failed to fetch customers", error);
 
       if (error instanceof TRPCError) throw error;

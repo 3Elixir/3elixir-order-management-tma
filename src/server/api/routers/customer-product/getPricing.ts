@@ -70,7 +70,6 @@ export const getPricing = publicProcedure
       const parsedData = outputSchema.parse(await response.json());
       return parsedData.data[0] ?? null;
     } catch (error) {
-      console.log(error);
       console.error("Failed to fetch customer product entry", error);
 
       if (error instanceof TRPCError) throw error;
