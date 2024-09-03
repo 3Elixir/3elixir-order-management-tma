@@ -28,6 +28,7 @@ const outputSchema = z.object({
       remarks: z.string(),
       orderCollectionDateTime: z.string(),
       orderId: z.string().nullable(),
+      excludeGst: z.boolean(),
       createdAt: z.string(),
       updatedAt: z.string(),
       publishedAt: z.string(),

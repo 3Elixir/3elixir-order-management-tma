@@ -39,6 +39,7 @@ export const outputSchema = z.object({
       fulfilmentStart: z.string().nullable(),
       fulfilmentEnd: z.string().nullable(),
       deliveryFee: z.number().nullable(),
+      excludeGst: z.boolean(),
       telegramMessage: z
         .object({ chat_id: z.number(), message_id: z.number() })
         .nullable(),

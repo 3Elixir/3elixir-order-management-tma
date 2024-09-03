@@ -37,6 +37,7 @@ const outputSchema = z.object({
       createdAt: z.string(),
       updatedAt: z.string(),
       publishedAt: z.string(),
+      excludeGst: z.boolean(),
     }),
   }),
   meta: z.object({}),

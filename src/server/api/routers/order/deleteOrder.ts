@@ -31,6 +31,7 @@ export const outputSchema = z.object({
         }),
       ),
       remarks: z.string(),
+      excludeGst: z.boolean(),
       orderCollectionDateTime: z.string(),
       orderId: z.string().nullable(),
       createdAt: z.string(),
