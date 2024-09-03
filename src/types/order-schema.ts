@@ -95,6 +95,7 @@ export const orderFormStep3Schema = z.object({
 export const orderFormStep4Schema = z.object({
   remarks: z.string(),
   deliveryFee: z.number().min(0, "Delivery Fee cannot be negative"),
+  excludeGst: z.boolean(),
 });
 
 export const orderFormMeta = z.object({

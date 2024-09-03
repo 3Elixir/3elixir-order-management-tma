@@ -154,7 +154,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
             name="orderProducts"
             render={() => (
               <FormItem>
-                <FormLabel>Products</FormLabel>
+                <FormLabel>Product Cart</FormLabel>
                 {orderProducts.length ? (
                   <OrderProductList form={form} />
                 ) : (
@@ -329,18 +329,18 @@ const OrderProductFooter = ({
 
   return (
     <div className="sticky bottom-0 flex justify-between border-t bg-white px-4 py-3 shadow">
-      <div className="text-md flex items-center">
-        <Label>Total:</Label>
-        <p className="ml-1 font-semibold">${totalOrderPrice}</p>
-      </div>
-
       <Drawer>
         <DrawerTrigger asChild>
-          <Button type="button">Details</Button>
+          <Button type="button" className="ml-auto">
+            <Label>Cart Total:</Label>
+            <p className="ml-1 font-semibold underline underline-offset-2">
+              ${totalOrderPrice}
+            </p>
+          </Button>
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Order Summary</DrawerTitle>
+            <DrawerTitle>Cart Summary</DrawerTitle>
             <DrawerClose />
           </DrawerHeader>
           <DrawerDescription>
@@ -384,7 +384,7 @@ const OrderProductFooter = ({
                 <TableFooter>
                   <TableRow>
                     <TableCell colSpan={3} className="text-right text-primary">
-                      <Label className="font-semibold">Grand Total:</Label>
+                      <Label className="font-semibold">Cart Total:</Label>
                     </TableCell>
                     <TableCell
                       className="text-right font-semibold text-primary underline"
