@@ -193,7 +193,12 @@ const OrderEditForm = ({
 
   const orderUpdateMutation = api.order.updateOrderDetails.useMutation({
     onSuccess: ({ data }) => {
-      if (data.data.attributes.order_status.data.id === 4) {
+      // Send a telegram update message to the channel only for cancelled orders
+      if (
+        data.data.attributes.order_status.data.attributes.orderStatus
+          .trim()
+          .toLowerCase() === "cancelled"
+      ) {
         sendOrderCancelledUpdateMessageMutation.mutate({
           ...data,
           prevStatusName:

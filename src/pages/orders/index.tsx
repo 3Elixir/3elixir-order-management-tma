@@ -272,8 +272,12 @@ const OrderCard = ({
 
   const updateOrderStatusMutation = api.order.updateOrderStatus.useMutation({
     onSuccess: ({ data }) => {
-      // Send a telegram update message to the channel only for cancelled orders (id: 4)
-      if (data.data.attributes.order_status.data.id === 4) {
+      // Send a telegram update message to the channel only for cancelled orders
+      if (
+        data.data.attributes.order_status.data.attributes.orderStatus
+          .trim()
+          .toLowerCase() === "cancelled"
+      ) {
         sendStatusCancelledMessageMutation.mutate({
           ...data,
           prevStatusName:

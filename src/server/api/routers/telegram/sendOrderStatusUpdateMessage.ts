@@ -94,7 +94,6 @@ ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 
 `;
 
     // Try to update the main order details message in the channel
-    let editMessageSuccess = false;
     try {
       if (!telegramMessage) {
         throw new Error("No telegram message found, cannot update message");
@@ -109,7 +108,6 @@ ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 
           parse_mode: "MarkdownV2",
         },
       );
-      editMessageSuccess = true;
     } catch (error) {
       console.error("Error updating order details message", error);
     }
