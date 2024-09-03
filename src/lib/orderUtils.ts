@@ -1,7 +1,7 @@
 import { orderFormSchema } from "~/types/order-schema";
 import { z } from "zod";
 
-const GST_PERCENTAGE = 0.09;
+export const DEFAULT_GST_PERCENTAGE = 0.09;
 
 /**
  * Calculates the grand total of an order and the GST cost.
@@ -31,7 +31,7 @@ export function calculateOrderGrandTotal(
   products: z.infer<typeof orderFormSchema>["orderProducts"],
   deliveryFee: number,
   excludeGst: boolean,
-  gstPercentage: number = GST_PERCENTAGE, // Default value for gstPercentage
+  gstPercentage: number = DEFAULT_GST_PERCENTAGE, // Default value for gstPercentage
 ): number {
   const orderTotal = calculateTotalOrderAmount(products, deliveryFee);
 
@@ -59,7 +59,7 @@ export function calculateOrderGrandTotal(
  */
 export const calculateGstCost = (
   amount: number,
-  gstPercentage: number = GST_PERCENTAGE,
+  gstPercentage: number = DEFAULT_GST_PERCENTAGE,
 ) => {
   return amount * (gstPercentage / (1 + gstPercentage));
 };
