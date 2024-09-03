@@ -345,8 +345,8 @@ const OrderProductFooter = ({
           </DrawerHeader>
           <DrawerDescription>
             <div className="p-4">
-              <Table>
-                <TableHeader>
+              <Table className="max-h-[80vh]">
+                <TableHeader className="sticky top-0 bg-zinc-100">
                   <TableRow>
                     <TableHead className="w-[100px] font-semibold">
                       Item
@@ -381,7 +381,7 @@ const OrderProductFooter = ({
                     </TableRow>
                   ))}
                 </TableBody>
-                <TableFooter>
+                <TableFooter className="sticky bottom-0 bg-zinc-100">
                   <TableRow>
                     <TableCell colSpan={3} className="text-right text-primary">
                       <Label className="font-semibold">Cart Total:</Label>

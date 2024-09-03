@@ -65,6 +65,7 @@ import {
   calculateGstCost,
   calculateOrderGrandTotal,
   calculateTotalOrderAmount,
+  DEFAULT_GST_PERCENTAGE,
 } from "~/lib/orderUtils";
 
 const CreateOrdersPage: NextPageWithLayout = () => {
@@ -261,7 +262,6 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   );
 };
 
-const GST_PERCENTAGE = 0.09;
 const OrderProductFooter = ({
   form,
 }: {
@@ -271,6 +271,7 @@ const OrderProductFooter = ({
   const excludeGst = form.watch("excludeGst");
   const orderProducts = useOrderForm((store) => store.orderProducts);
 
+  // Calculate prices for order
   const orderAmount = calculateTotalOrderAmount(orderProducts, deliveryFee);
   const gstPrice = calculateGstCost(orderAmount);
   const finalPrice = calculateOrderGrandTotal(
@@ -363,7 +364,9 @@ const OrderProductFooter = ({
                   </TableRow>
                   {form.watch("excludeGst") && (
                     <TableRow>
-                      <TableCell className="italic">Exclude GST</TableCell>
+                      <TableCell className="italic">
+                        Exclude GST ({DEFAULT_GST_PERCENTAGE * 100}%)
+                      </TableCell>
                       <TableCell className="text-center">1</TableCell>
                       <TableCell className="text-center">
                         -${gstPrice.toFixed(2)}
@@ -374,7 +377,7 @@ const OrderProductFooter = ({
                     </TableRow>
                   )}
                 </TableBody>
-                <TableFooter>
+                <TableFooter className="sticky bottom-0 bg-zinc-100">
                   <TableRow>
                     <TableCell colSpan={3} className="text-right text-primary">
                       <Label className="font-semibold">Grand Total:</Label>
