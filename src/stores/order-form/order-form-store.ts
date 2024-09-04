@@ -41,7 +41,7 @@ export const defaultInitState: OrderFormState = {
   },
   orderStatus: {
     // Set to id of default orderStatus: "Pending"
-    id: "6",
+    id: "11",
     name: "Pending",
   },
   paymentMethod: {
