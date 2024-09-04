@@ -5,7 +5,7 @@ import {
   useThemeParams,
   useViewport,
 } from "@tma.js/sdk-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { NextPageWithLayout } from "~/pages/_app";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,12 +46,41 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 
 const CreateOrdersPage: NextPageWithLayout = () => {
   const router = useRouter();
+  const queryClient = api.useUtils();
   const tmaMainButton = useMainButton();
   const tmaBackButton = useBackButton();
   const tmaPostEvent = usePostEvent();
   const tmaThemeParams = useThemeParams();
   const tmaViewport = useViewport();
   const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
+
+  // Prefetch and populate default order status for the next page
+  useEffect(() => {
+    const preFetchDefaultOrderStatus = async () => {
+      try {
+        const {
+          data: {
+            attributes: {
+              order_status: { data },
+            },
+          },
+        } = await queryClient.orderStatus.getDefaultOrderStatus.ensureData();
+
+        if (data) {
+          updateOrderForm({
+            orderStatus: {
+              id: data.id.toString(),
+              name: data.attributes.orderStatus,
+            },
+          });
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    preFetchDefaultOrderStatus();
+  }, []);
 
   const form = useForm<z.infer<typeof orderFormStep1Schema>>({
     resolver: zodResolver(orderFormStep1Schema),

@@ -62,7 +62,6 @@ import { useSearchParams } from "next/navigation";
 
 const CreateOrdersPage: NextPageWithLayout = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const tmaMainButton = useMainButton();
   const tmaBackButton = useBackButton();
   const tmaPostEvent = usePostEvent();
