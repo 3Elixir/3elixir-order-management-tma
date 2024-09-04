@@ -1,8 +1,8 @@
 import type { NextPageWithLayout } from "~/pages/_app";
-import { Button } from "~/components/ui/button";
+import { Button, buttonVariants } from "~/components/ui/button";
 import MainLayout from "~/components/layouts/MainLayout";
 import { api } from "~/utils/api";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { inferRouterOutputs, type inferRouterInputs } from "@trpc/server";
 import { AppRouter } from "~/server/api/root";
 import { match } from "ts-pattern";
@@ -47,6 +47,7 @@ import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { useRouter } from "next/router";
 import { useSearchParams } from "next/navigation";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import Link from "next/link";
 
 type FilterOptionsType =
   inferRouterInputs<AppRouter>["order"]["getFilteredOrders"]["filters"];
@@ -448,13 +449,24 @@ const OrderCard = ({
             </p>
           )}
         </div>
-        <Button
+        <Link
+          href={`/orders/${orderId}`}
+          className={cn(
+            buttonVariants({
+              variant: "outline",
+              size: "icon",
+            }),
+          )}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Link>
+        {/* <Button
           size="icon"
           variant="outline"
           onClick={() => router.push(`/orders/${orderId}`)}
         >
           <ChevronRight className="h-4 w-4" />
-        </Button>
+        </Button> */}
       </div>
     </li>
   );
