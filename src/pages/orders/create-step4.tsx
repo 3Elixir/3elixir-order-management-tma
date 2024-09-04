@@ -10,11 +10,15 @@ import {
 import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
 import { type PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
 import { useEffect } from "react";
-import { TmaSDKLoader } from "@components/layouts/TmaSdkLoader";
 import { NextPageWithLayout } from "~/pages/_app";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SubmitErrorHandler, SubmitHandler, useForm } from "react-hook-form";
+import {
+  SubmitErrorHandler,
+  SubmitHandler,
+  useForm,
+  UseFormReturn,
+} from "react-hook-form";
 import {
   Form,
   FormControl,
@@ -23,7 +27,10 @@ import {
   FormItem,
   FormLabel,
 } from "@components/ui/form";
-import { orderFormStep4Schema } from "../../types/order-schema";
+import {
+  orderFormStep3Schema,
+  orderFormStep4Schema,
+} from "../../types/order-schema";
 import { useRouter } from "next/router";
 import MainLayout from "@components/layouts/MainLayout";
 import OrderFormLayout from "@components/layouts/OrderFormLayout";
@@ -31,8 +38,35 @@ import { Textarea } from "~/components/ui/textarea";
 import { useOrderForm } from "@stores/order-form/useOrderForm";
 import { api } from "~/utils/api";
 import { flushSync } from "react-dom";
-import { Input } from "~/components/ui/input";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { Label } from "~/components/ui/label";
+import { Input } from "~/components/ui/input";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "~/components/ui/drawer";
+import { Button } from "~/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
+import { Switch } from "~/components/ui/switch";
+import {
+  calculateGstCost,
+  calculateOrderGrandTotal,
+  calculateTotalOrderAmount,
+  DEFAULT_GST_PERCENTAGE,
+} from "~/lib/orderUtils";
 
 const CreateOrdersPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -52,6 +86,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
     defaultValues: {
       remarks: orderFormState.remarks,
       deliveryFee: orderFormState.deliveryFee,
+      excludeGst: orderFormState.excludeGst,
     },
   });
 
@@ -111,6 +146,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
         ...orderFormState,
         remarks: form.getValues("remarks"),
         deliveryFee: form.getValues("deliveryFee"),
+        excludeGst: form.getValues("excludeGst"),
         chatId: tmaInitData.user.id,
       };
       const response = await orderCreationMutation.mutateAsync(payload);
@@ -164,62 +200,202 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={(e) => e.preventDefault()}>
-        <div className="space-y-6 p-6 pb-10 pt-4">
-          {/* Delivery Fee */}
-          <FormField
-            control={form.control}
-            name="deliveryFee"
-            render={({ field: { onChange, ...field } }) => (
-              <FormItem>
-                <FormLabel>Delivery Fee ($)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="Enter the delivery fee"
-                    min={0}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      onChange(value);
-                    }}
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Enter the delivery fee for the order. Leave it as $0 if there
-                  is no delivery fee.
-                </FormDescription>
-              </FormItem>
-            )}
-          />
+    <>
+      <Form {...form}>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div className="space-y-6 p-6 pb-10 pt-4">
+            {/* Delivery Fee */}
+            <FormField
+              control={form.control}
+              name="deliveryFee"
+              render={({ field: { onChange, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Delivery Fee ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="Enter the delivery fee"
+                      min={0}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        onChange(value);
+                      }}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Enter the delivery fee for the order. Leave it as $0 if
+                    there is no delivery fee.
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
 
-          {/* Remarks */}
-          <FormField
-            control={form.control}
-            name="remarks"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Remarks</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter any additional information here"
-                    className="resize-none text-base"
-                    rows={4}
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Include any addtional information such as delivery
-                  instructions, special requests, etc.
-                </FormDescription>
-              </FormItem>
-            )}
-          />
-        </div>
-      </form>
-    </Form>
+            {/* Remarks */}
+            <FormField
+              control={form.control}
+              name="remarks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Remarks</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Enter any additional information here"
+                      className="resize-none text-base"
+                      rows={4}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Include any addtional information such as delivery
+                    instructions, special requests, etc.
+                  </FormDescription>
+                </FormItem>
+              )}
+            />
+          </div>
+        </form>
+      </Form>
+      <OrderSummaryFooter form={form} />
+    </>
+  );
+};
+
+const OrderSummaryFooter = ({
+  form,
+}: {
+  form: UseFormReturn<z.infer<typeof orderFormStep4Schema>>;
+}) => {
+  const deliveryFee = form.watch("deliveryFee");
+  const excludeGst = form.watch("excludeGst");
+  const orderProducts = useOrderForm((store) => store.orderProducts);
+
+  // Calculate prices for order
+  const orderAmount = calculateTotalOrderAmount(orderProducts, deliveryFee);
+  const gstPrice = calculateGstCost(orderAmount);
+  const finalPrice = calculateOrderGrandTotal(
+    orderProducts,
+    deliveryFee,
+    excludeGst,
+  );
+
+  return (
+    <div className="sticky bottom-0 flex justify-between border-t bg-white px-4 py-3 shadow">
+      <Form {...form}>
+        <FormField
+          control={form.control}
+          name="excludeGst"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  aria-label="exclude-gst"
+                />
+              </FormControl>
+              <FormLabel>Exclude GST</FormLabel>
+            </FormItem>
+          )}
+        />
+      </Form>
+
+      <Drawer>
+        <DrawerTrigger asChild>
+          <Button type="button">
+            <Label>Grand Total:</Label>
+            <p className="ml-1 font-semibold underline">
+              ${finalPrice.toFixed(2)}
+            </p>
+          </Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Order Summary</DrawerTitle>
+            <DrawerClose />
+          </DrawerHeader>
+          <DrawerDescription>
+            <div className="p-4">
+              <Table className="max-h-[80vh]">
+                <TableHeader className="sticky top-0 bg-zinc-100">
+                  <TableRow>
+                    <TableHead className="w-[100px] font-semibold">
+                      Item
+                    </TableHead>
+                    <TableHead className="w-[100px] font-semibold">
+                      No (x)
+                    </TableHead>
+                    <TableHead className="w-[100px] font-semibold">
+                      Price ($)
+                    </TableHead>
+                    <TableHead className="w-[100px] text-right font-semibold">
+                      Total ($)
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orderProducts.map((orderProduct, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{orderProduct.sku}</TableCell>
+                      <TableCell className="text-center">
+                        {orderProduct.quantity}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        ${orderProduct.price.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        $
+                        {(orderProduct.quantity * orderProduct.price).toFixed(
+                          2,
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell className="italic">Delivery Fee</TableCell>
+                    <TableCell className="text-center">1</TableCell>
+                    <TableCell className="text-center">
+                      ${deliveryFee.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ${deliveryFee.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                  {form.watch("excludeGst") && (
+                    <TableRow>
+                      <TableCell className="italic">
+                        Exclude GST ({DEFAULT_GST_PERCENTAGE * 100}%)
+                      </TableCell>
+                      <TableCell className="text-center">1</TableCell>
+                      <TableCell className="text-center">
+                        -${gstPrice.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        -${gstPrice.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+                <TableFooter className="sticky bottom-0 bg-zinc-100">
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-right text-primary">
+                      <Label className="font-semibold">Grand Total:</Label>
+                    </TableCell>
+                    <TableCell
+                      className="text-right font-semibold text-primary underline"
+                      colSpan={1}
+                    >
+                      ${finalPrice.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          </DrawerDescription>
+        </DrawerContent>
+      </Drawer>
+    </div>
   );
 };
 

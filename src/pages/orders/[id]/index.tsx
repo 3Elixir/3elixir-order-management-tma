@@ -1,7 +1,6 @@
 import MainLayout from "~/components/layouts/MainLayout";
 import { NextPageWithLayout } from "~/pages/_app";
 import { useParams } from "next/navigation";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import { useBackButton, usePopup, useInitData } from "@tma.js/sdk-react";
 import { on as onTmaEvent, off as offTmaEvent } from "@tma.js/sdk";
 import { useRouter } from "next/router";
@@ -20,7 +19,7 @@ import { api } from "~/utils/api";
 import { match } from "ts-pattern";
 import { Skeleton } from "~/components/ui/skeleton";
 import { inferRouterOutputs } from "@trpc/server";
-import { AppRouter } from "~/server/api/root";
+import { appRouter, AppRouter } from "~/server/api/root";
 import { format } from "date-fns";
 import { Dot } from "lucide-react";
 import { Textarea } from "~/components/ui/textarea";
@@ -28,6 +27,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -45,20 +45,30 @@ import { cn } from "~/lib/utils";
 import { Badge } from "~/components/ui/badge";
 import { useOrderForm } from "@stores/order-form/useOrderForm";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import {
+  calculateGstCost,
+  calculateOrderGrandTotal,
+  calculateTotalOrderAmount,
+  DEFAULT_GST_PERCENTAGE,
+} from "~/lib/orderUtils";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "~/components/ui/drawer";
 
 const ViewOrderPage: NextPageWithLayout = () => {
   const params = useParams() as { id: string } | null;
   const tmaBackButton = useBackButton();
   const router = useRouter();
 
-  const orderDetailsQuery = api.order.getOrderDetails.useQuery(
-    {
-      orderId: params?.id ?? "",
-    },
-    {
-      enabled: !!params?.id,
-    },
-  );
+  const orderDetailsQuery = api.order.getOrderDetails.useQuery({
+    orderId: params?.id ?? "0",
+  });
 
   // Show the back button to navigate back to the previous page
   useEffect(() => {
@@ -111,11 +121,18 @@ const ViewOrderPage: NextPageWithLayout = () => {
 };
 
 const OrderDetailsMain = ({
-  details: {
+  details,
+  orderDetailsFetching,
+}: {
+  details: inferRouterOutputs<AppRouter>["order"]["getOrderDetails"]["data"];
+  orderDetailsFetching: boolean;
+}) => {
+  const {
     id: orderId,
     attributes: {
       createdAt,
       customerName,
+      attentionTo,
       customerContact,
       customerAddress,
       payment_method: paymentMethod,
@@ -131,12 +148,8 @@ const OrderDetailsMain = ({
       deliveryFee,
       updatedAt,
     },
-  },
-  orderDetailsFetching,
-}: {
-  details: inferRouterOutputs<AppRouter>["order"]["getOrderDetails"]["data"];
-  orderDetailsFetching: boolean;
-}) => {
+  } = details;
+
   const queryContext = api.useUtils();
   const tmaPopup = usePopup();
   const tmaInitData = useInitData();
@@ -154,8 +167,12 @@ const OrderDetailsMain = ({
     api.telegram.sendOrderStatusUpdateMessage.useMutation();
   const updateOrderStatusMutation = api.order.updateOrderStatus.useMutation({
     onSuccess: ({ data }) => {
-      // Send a telegram update message to the channel only for cancelled orders (id: 4)
-      if (data.data.attributes.order_status.data.id === 4) {
+      // Send a telegram update message to the channel only for cancelled orders
+      if (
+        data.data.attributes.order_status.data.attributes.orderStatus
+          .trim()
+          .toLowerCase() === "cancelled"
+      ) {
         sendStatusCancelledMutation.mutate({
           ...data,
           prevStatusName:
@@ -340,6 +357,13 @@ const OrderDetailsMain = ({
         {/* Customer information */}
         <CardContent className="py-4">
           <div className="flex flex-col space-y-0.5">
+            {attentionTo && (
+              <p className="flex flex-wrap items-center text-sm">
+                <strong className="font-medium">📢 Attention To</strong>
+                <Dot className="h-3.5 w-3.5" />
+                <strong className="font-light">{attentionTo}</strong>
+              </p>
+            )}
             <p className="flex flex-wrap items-center text-sm">
               <strong className="font-medium">👤 Customer Name</strong>
               <Dot className="h-3.5 w-3.5" />
@@ -677,6 +701,122 @@ const OrderDetailsSkeleton = () => {
   );
 };
 
+const OrderSummary = ({
+  details,
+}: {
+  details: inferRouterOutputs<AppRouter>["order"]["getOrderDetails"]["data"];
+}) => {
+  const {
+    attributes: { deliveryFee, excludeGst, orderProducts },
+  } = details;
+
+  // Calculate prices for order
+  const orderAmount = calculateTotalOrderAmount(
+    orderProducts,
+    deliveryFee ?? 0,
+  );
+  const gstPrice = calculateGstCost(orderAmount);
+  const finalPrice = calculateOrderGrandTotal(
+    orderProducts,
+    deliveryFee ?? 0,
+    excludeGst,
+  );
+
+  return (
+    <Drawer>
+      <DrawerTrigger asChild>
+        <Button variant="ghost">
+          <Label>Grand Total:</Label>
+          <p className="ml-1 font-semibold underline">
+            ${finalPrice.toFixed(2)}
+          </p>
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Order Summary</DrawerTitle>
+          <DrawerClose />
+        </DrawerHeader>
+        <DrawerDescription>
+          <div className="p-4">
+            <Table className="max-h-[80vh]">
+              <TableHeader className="sticky top-0 bg-zinc-100">
+                <TableRow>
+                  <TableHead className="w-[100px] font-semibold">
+                    Item
+                  </TableHead>
+                  <TableHead className="w-[100px] font-semibold">
+                    No (x)
+                  </TableHead>
+                  <TableHead className="w-[100px] font-semibold">
+                    Price ($)
+                  </TableHead>
+                  <TableHead className="w-[100px] text-right font-semibold">
+                    Total ($)
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {orderProducts.map((orderProduct, index) => (
+                  <TableRow key={index}>
+                    <TableCell>{orderProduct.sku}</TableCell>
+                    <TableCell className="text-center">
+                      {orderProduct.quantity}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      ${orderProduct.price.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ${(orderProduct.quantity * orderProduct.price).toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                <TableRow>
+                  <TableCell className="italic">Delivery Fee</TableCell>
+                  <TableCell className="text-center">1</TableCell>
+                  <TableCell className="text-center">
+                    ${deliveryFee?.toFixed(2) ?? "0.00"}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    ${deliveryFee?.toFixed(2) ?? "0.00"}
+                  </TableCell>
+                </TableRow>
+                {excludeGst && (
+                  <TableRow>
+                    <TableCell className="italic">
+                      Exclude GST ({DEFAULT_GST_PERCENTAGE * 100}%)
+                    </TableCell>
+                    <TableCell className="text-center">1</TableCell>
+                    <TableCell className="text-center">
+                      -${gstPrice.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      -${gstPrice.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+              <TableFooter className="sticky bottom-0 bg-zinc-100">
+                <TableRow>
+                  <TableCell colSpan={3} className="text-right text-primary">
+                    <Label className="font-semibold">Grand Total:</Label>
+                  </TableCell>
+                  <TableCell
+                    className="text-right font-semibold text-primary underline"
+                    colSpan={1}
+                  >
+                    ${finalPrice.toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
+          </div>
+        </DrawerDescription>
+      </DrawerContent>
+    </Drawer>
+  );
+};
+
 const OrderFooter = ({
   details,
 }: {
@@ -687,6 +827,7 @@ const OrderFooter = ({
     id: orderId,
     attributes: {
       customerName,
+      attentionTo,
       customerContact,
       customerAddress,
       fulfilmentStart,
@@ -701,22 +842,12 @@ const OrderFooter = ({
       orderProducts,
       deliveryFee,
       remarks,
+      excludeGst,
     },
   } = details;
 
   const tmaPopup = usePopup();
   const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
-
-  const calculateOrderPrice = (
-    products: typeof orderProducts,
-    deliveryFee: number,
-  ) => {
-    const productCost = products.reduce(
-      (accum, curr) => accum + curr.price * curr.quantity,
-      0,
-    );
-    return productCost + deliveryFee;
-  };
 
   const onCopyOrder = () => {
     const fulfilmentDatetimeString = fulfilmentStart
@@ -728,7 +859,7 @@ Order #${orderId}
 Last updated: ${format(new Date(updatedAt), "dd/MM/yyyy - h:mm a")}
 
 1. Customer Information
-- Name: ${customerName}
+- Name: ${customerName}${attentionTo ? `\n- Attn: ${attentionTo.trim()}` : ""}
 - Contact: ${customerContact}
 - Address: ${customerAddress}
 - Payment: ${paymentMethod.data?.attributes.paymentMethod ?? "no payment method"}
@@ -755,7 +886,7 @@ ${orderProducts
   .join("\n")
   .trim()}
 
-Total price*: ${calculateOrderPrice(orderProducts, deliveryFee ?? 0).toFixed(2)}
+Total price*: ${calculateOrderGrandTotal(orderProducts, deliveryFee ?? 0, excludeGst).toFixed(2)}
 
 Payment details
 🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!
@@ -777,6 +908,8 @@ Payment details
     // Set order form state values via store to prefill the form
     updateOrderForm({
       customerName: details.attributes.customerName,
+      hasAttentionTo: !!details.attributes.attentionTo,
+      attentionTo: details.attributes.attentionTo ?? "",
       customerAddress: details.attributes.customerAddress,
       customerContact: details.attributes.customerContact,
       paymentMethod: {
@@ -830,17 +963,21 @@ Payment details
       ),
       deliveryFee: details.attributes.deliveryFee ?? 0,
       remarks: details.attributes.remarks,
+      excludeGst: details.attributes.excludeGst,
     });
 
     router.push(`/orders/${orderId}/edit`);
   };
 
   return (
-    <footer className="sticky bottom-0 flex items-center justify-end gap-2 border-t bg-white p-3">
-      <Button onClick={() => onEditOrder()}>Edit</Button>
-      <Button variant="outline" onClick={() => onCopyOrder()}>
-        Copy
-      </Button>
+    <footer className="sticky bottom-0 flex items-center justify-between gap-2 border-t bg-white p-3">
+      <OrderSummary details={details} />
+      <div className="flext items-center space-x-2">
+        <Button variant="outline" onClick={() => onCopyOrder()}>
+          Copy
+        </Button>
+        <Button onClick={() => onEditOrder()}>Edit</Button>
+      </div>
     </footer>
   );
 };

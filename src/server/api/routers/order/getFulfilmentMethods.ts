@@ -8,7 +8,7 @@ const outputSchema = z.object({
     z.object({
       id: z.number(),
       attributes: z.object({
-        fulfilmentMethod: z.string(), // TODO: Change to fulfilmentMethod when the API is updated
+        fulfilmentMethod: z.string(),
         createdAt: z.string(),
         updatedAt: z.string(),
         publishedAt: z.string(),
@@ -31,7 +31,7 @@ export const getFulfilmentMethods = publicProcedure
     // Fetch products from Strapi API
     try {
       const response = await fetch(
-        `${env.STRAPI_API_URL}/api/delivery-methods`, // TODO: Change to fulfilment-methods when the API is updated
+        `${env.STRAPI_API_URL}/api/delivery-methods`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -40,7 +40,6 @@ export const getFulfilmentMethods = publicProcedure
         },
       );
       const data = await response.json();
-      console.log(data);
       if (response.ok) return data;
       if (response.status === 404)
         throw new TRPCError({ code: "NOT_FOUND", message: data.error.message });

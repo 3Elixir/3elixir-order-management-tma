@@ -11,6 +11,9 @@ export type OrderFormActions = {
 export type OrderFormStore = OrderFormState & OrderFormActions;
 
 export const defaultInitState: OrderFormState = {
+  hasAttentionTo: false,
+  attentionTo: "",
+  customerId: null,
   customerName: "",
   customerContact: "",
   customerAddress: "",
@@ -37,8 +40,8 @@ export const defaultInitState: OrderFormState = {
     })(),
   },
   orderStatus: {
-    // Set to
-    id: "1",
+    // Set to id of default orderStatus: "Pending"
+    id: "6",
     name: "Pending",
   },
   paymentMethod: {
@@ -57,6 +60,7 @@ export const defaultInitState: OrderFormState = {
   orderProducts: [],
   remarks: "",
   deliveryFee: 0,
+  excludeGst: false,
 };
 
 export const createOrderFormStore = (

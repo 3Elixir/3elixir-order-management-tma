@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Button, buttonVariants } from "~/components/ui/button";
-import { api } from "~/utils/api";
+import { buttonVariants } from "~/components/ui/button";
 
 export default function Home() {
   return (
@@ -12,6 +11,38 @@ export default function Home() {
         })}
       >
         orders
+      </Link>
+      <Link
+        href="/orders/create-step1"
+        className={buttonVariants({
+          variant: "link",
+        })}
+      >
+        Create order
+      </Link>
+      <Link
+        href="/products"
+        className={buttonVariants({
+          variant: "link",
+        })}
+      >
+        products
+      </Link>
+      <Link
+        href="/customers"
+        className={buttonVariants({
+          variant: "link",
+        })}
+      >
+        customers
+      </Link>
+      <Link
+        href="/customers/create"
+        className={buttonVariants({
+          variant: "link",
+        })}
+      >
+        Create customer
       </Link>
     </main>
   );

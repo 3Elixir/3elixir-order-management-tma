@@ -1,9 +1,8 @@
 import type { NextPageWithLayout } from "~/pages/_app";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
-import { Button } from "~/components/ui/button";
+import { Button, buttonVariants } from "~/components/ui/button";
 import MainLayout from "~/components/layouts/MainLayout";
 import { api } from "~/utils/api";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { inferRouterOutputs, type inferRouterInputs } from "@trpc/server";
 import { AppRouter } from "~/server/api/root";
 import { match } from "ts-pattern";
@@ -48,6 +47,8 @@ import { RadioGroup, RadioGroupItem } from "~/components/ui/radio-group";
 import { useRouter } from "next/router";
 import { useSearchParams } from "next/navigation";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import Link from "next/link";
+import { useInView } from "react-intersection-observer";
 
 type FilterOptionsType =
   inferRouterInputs<AppRouter>["order"]["getFilteredOrders"]["filters"];
@@ -59,7 +60,6 @@ type SortOptionsType =
 const OrdersPage: NextPageWithLayout = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   // Derive states for ordersQuery from URL params
   const pagination: PaginationOptionsType = {
@@ -137,7 +137,6 @@ const OrdersPage: NextPageWithLayout = () => {
       </div>
 
       <section className="h-full overflow-y-auto bg-stone-100 px-3 pt-3">
-        <div ref={scrollRef} />
         {match(ordersQuery)
           .with({ status: "success" }, ({ data: { data: filteredOrders } }) =>
             filteredOrders.length > 0 ? (
@@ -262,11 +261,19 @@ const OrderCard = ({
     },
   } = order;
 
-  const router = useRouter();
-  const queryContext = api.useUtils();
-
   const [statusId, setStatusId] = useState(orderStatus.data?.id ?? 0);
 
+  // Trigger prefetching of order details upon order card coming into view
+  const { ref } = useInView({
+    onChange: (inView) =>
+      inView &&
+      queryClient.order.getOrderDetails.prefetch({
+        orderId: orderId.toString(),
+      }),
+    triggerOnce: true,
+  });
+
+  const queryClient = api.useUtils();
   const orderStatusQuery = api.orderStatus.getOrderStatuses.useQuery();
   const sendStatusCancelledMessageMutation =
     api.telegram.sendOrderCancelledUpdateMessage.useMutation();
@@ -275,8 +282,12 @@ const OrderCard = ({
 
   const updateOrderStatusMutation = api.order.updateOrderStatus.useMutation({
     onSuccess: ({ data }) => {
-      // Send a telegram update message to the channel only for cancelled orders (id: 4)
-      if (data.data.attributes.order_status.data.id === 4) {
+      // Send a telegram update message to the channel only for cancelled orders
+      if (
+        data.data.attributes.order_status.data.attributes.orderStatus
+          .trim()
+          .toLowerCase() === "cancelled"
+      ) {
         sendStatusCancelledMessageMutation.mutate({
           ...data,
           prevStatusName:
@@ -288,10 +299,10 @@ const OrderCard = ({
     },
     onSettled: () => {
       // Refetch the orders list and order details after the status update
-      queryContext.order.getFilteredOrders
+      queryClient.order.getFilteredOrders
         .refetch()
         .then(() => updateOrderStatusMutation.reset());
-      queryContext.order.getOrderDetails.refetch({
+      queryClient.order.getOrderDetails.refetch({
         orderId: orderId.toString(),
       });
     },
@@ -447,13 +458,18 @@ const OrderCard = ({
             </p>
           )}
         </div>
-        <Button
-          size="icon"
-          variant="outline"
-          onClick={() => router.push(`/orders/${orderId}`)}
+        <Link
+          ref={ref}
+          href={`/orders/${orderId}`}
+          className={cn(
+            buttonVariants({
+              variant: "outline",
+              size: "icon",
+            }),
+          )}
         >
           <ChevronRight className="h-4 w-4" />
-        </Button>
+        </Link>
       </div>
     </li>
   );
@@ -859,7 +875,6 @@ const FilterToggleButton = ({
   );
 };
 
-// Pagination for the orders list
 const OrdersQueryFooter = ({
   pagination,
   isQueryLoading,

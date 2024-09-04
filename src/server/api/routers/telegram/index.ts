@@ -6,6 +6,7 @@ import { sendOrderStatusUpdateMessage } from "./sendOrderStatusUpdateMessage";
 import { sendOrderDetailsUpdateMessage } from "./sendOrderDetailsUpdateMessage";
 import { sendProductCreationMessage } from "./sendProductCreationMessage";
 import { sendOrderCancelledUpdateMessage } from "./sendOrderCancelledUpdateMessage";
+import { sendCustomerCreationMessage } from "./sendCustomerCreationMessage";
 
 export const telegramRouter = createTRPCRouter({
   sendOrderDetailsMessage,
@@ -15,4 +16,5 @@ export const telegramRouter = createTRPCRouter({
   sendOrderCancelledUpdateMessage,
   sendOrderDetailsUpdateMessage,
   sendProductCreationMessage,
+  sendCustomerCreationMessage,
 });

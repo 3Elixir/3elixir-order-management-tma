@@ -11,7 +11,7 @@ import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
 import { inferRouterOutputs } from "@trpc/server";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   type UseFormReturn,
   type SubmitHandler,
@@ -22,7 +22,6 @@ import {
 import { match } from "ts-pattern";
 import { z } from "zod";
 import MainLayout from "~/components/layouts/MainLayout";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import {
   Card,
   CardContent,
@@ -79,6 +78,7 @@ import {
   TableHeader,
   TableRow,
   Table,
+  TableFooter,
 } from "~/components/ui/table";
 import { Label } from "~/components/ui/label";
 import { useOrderForm } from "@stores/order-form/useOrderForm";
@@ -86,6 +86,21 @@ import { Textarea } from "~/components/ui/textarea";
 import { DropDown } from "~/components/ui/dropdown";
 import { Switch } from "~/components/ui/switch";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import {
+  calculateGstCost,
+  calculateOrderGrandTotal,
+  calculateTotalOrderAmount,
+  DEFAULT_GST_PERCENTAGE,
+} from "~/lib/orderUtils";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "~/components/ui/drawer";
 
 const EditOrderPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -116,7 +131,7 @@ const EditOrderPage: NextPageWithLayout = () => {
   }, []);
 
   return (
-    <section className="p-3">
+    <section>
       {match(orderDetailsQuery)
         .with(
           {
@@ -124,7 +139,7 @@ const EditOrderPage: NextPageWithLayout = () => {
           },
           ({ data: { data: orderDetails } }) => (
             <div className="flex h-full flex-col">
-              <Card>
+              <Card className="mx-3 mt-3">
                 <CardHeader>
                   <CardTitle>Editing Order #{orderDetails.id}</CardTitle>
                   <CardDescription>
@@ -175,12 +190,15 @@ const OrderEditForm = ({
     api.telegram.sendOrderDetailsUpdateMessage.useMutation();
   const sendOrderCancelledUpdateMessageMutation =
     api.telegram.sendOrderCancelledUpdateMessage.useMutation();
-  const sendStatusUpdateMessageMutation =
-    api.telegram.sendOrderStatusUpdateMessage.useMutation();
 
   const orderUpdateMutation = api.order.updateOrderDetails.useMutation({
     onSuccess: ({ data }) => {
-      if (data.data.attributes.order_status.data.id === 4) {
+      // Send a telegram update message to the channel only for cancelled orders
+      if (
+        data.data.attributes.order_status.data.attributes.orderStatus
+          .trim()
+          .toLowerCase() === "cancelled"
+      ) {
         sendOrderCancelledUpdateMessageMutation.mutate({
           ...data,
           prevStatusName:
@@ -301,8 +319,6 @@ const OrderEditForm = ({
         },
       ],
     });
-
-    console.info(formValues);
   };
 
   const onErrors: SubmitErrorHandler<z.infer<typeof orderFormSchema>> = (
@@ -331,16 +347,19 @@ const OrderEditForm = ({
   }, [form.formState.isValid]);
 
   return (
-    <Form {...form}>
-      <form onSubmit={(e) => e.preventDefault()}>
-        <div className="space-y-6 p-2 pb-10 pt-4">
-          <OrderFormCustomerFields form={form} />
-          <OrderFormDetailFields form={form} />
-          <OrderFormProductFields form={form} />
-          <OrderFormSummaryFields form={form} />
-        </div>
-      </form>
-    </Form>
+    <>
+      <Form {...form}>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div className="space-y-6 p-2 px-5 pb-10 pt-4">
+            <OrderFormCustomerFields form={form} />
+            <OrderFormDetailFields form={form} />
+            <OrderFormProductFields form={form} />
+            <OrderFormSummaryFields form={form} />
+          </div>
+        </form>
+      </Form>
+      <OrderSummaryFooter form={form} />
+    </>
   );
 };
 
@@ -360,7 +379,26 @@ const OrderFormCustomerFields = ({
         name="customerName"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Customer Name</FormLabel>
+            <div className="flex items-center justify-between">
+              <FormLabel>Customer Name</FormLabel>
+              <div className="flex items-center space-x-2 rounded-md border p-1 ps-2.5 shadow">
+                <Label className="text-xs" htmlFor="attention-to">
+                  Attention To
+                </Label>
+                <Switch
+                  checked={form.watch("hasAttentionTo")}
+                  onCheckedChange={(checked) =>
+                    form.setValue("hasAttentionTo", checked, {
+                      shouldTouch: true,
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  id="attention-to"
+                  aria-label="Attention To"
+                />
+              </div>
+            </div>
             <FormControl>
               <Input className="text-base" placeholder="Bryan" {...field} />
             </FormControl>
@@ -370,6 +408,29 @@ const OrderFormCustomerFields = ({
           </FormItem>
         )}
       />
+
+      {/* Attention To */}
+      {form.watch("hasAttentionTo") && (
+        <FormField
+          control={form.control}
+          name="attentionTo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Attention To</FormLabel>
+              <FormControl>
+                <Input
+                  className="text-base"
+                  placeholder="Accounts Payable"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Intended recipient of the correspondence
+              </FormDescription>
+            </FormItem>
+          )}
+        />
+      )}
 
       {/* Customer Address */}
       <FormField
@@ -492,9 +553,9 @@ const OrderFormDetailFields = ({
   const fulfilmentMethodsQuery = api.order.getFulfilmentMethods.useQuery();
 
   // state to determine if sales agents input should be shown
-  const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map(c => c.toLowerCase().trim()).includes(
-    form.watch("salesChannel").name.toLowerCase().trim(),
-  );
+  const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map((c) =>
+    c.toLowerCase().trim(),
+  ).includes(form.watch("salesChannel").name.toLowerCase().trim());
 
   const {
     fields: salesAgentArray,
@@ -593,62 +654,6 @@ const OrderFormDetailFields = ({
                 })) ?? []
               }
             />
-            {/* <Select
-              onValueChange={(value) => {
-                const channel = salesChannelsQuery.data?.data.find(
-                  (channel) => channel.id.toString() === value,
-                );
-                field.onChange({
-                  id: channel?.id.toString() ?? "",
-                  name: channel?.attributes.salesChannel ?? "",
-                });
-              }}
-              defaultValue={field.value.id}
-            >
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      <span className="text-muted-foreground">
-                        Select sales channel
-                      </span>
-                    }
-                  />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {match(salesChannelsQuery)
-                  .with(
-                    { status: "success" },
-                    ({ data: { data: salesChannels } }) =>
-                      salesChannels.map((channel) => (
-                        <SelectItem
-                          key={channel.id}
-                          value={channel.id.toString()}
-                        >
-                          {channel.attributes.salesChannel}
-                        </SelectItem>
-                      )),
-                  )
-                  .with(
-                    {
-                      status: "pending",
-                    },
-                    () => <span className="px-2 text-sm">Loading...</span>,
-                  )
-                  .with(
-                    {
-                      status: "error",
-                    },
-                    () => (
-                      <span className="px-2 text-sm">
-                        Error loading sales channels
-                      </span>
-                    ),
-                  )
-                  .exhaustive()}
-              </SelectContent>
-            </Select> */}
             <FormDescription>
               Specify which sales channel the order came from.
             </FormDescription>
@@ -1006,60 +1011,6 @@ const OrderFormDetailFields = ({
             : "Please select the date and time for order Fulfilment."}
         </FormDescription>
       </div>
-
-      {/* Fulfilment datetime */}
-      {/* <FormField
-        control={form.control}
-        name="orderCollectionDateTime"
-        render={({ field }) => (
-          <FormItem className="flex flex-col pt-2">
-            <FormLabel>Fulfilment Datetime</FormLabel>
-            <Popover>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground",
-                    )}
-                  >
-                    {field.value ? (
-                      format(field.value, "PPP h:mm a")
-                    ) : (
-                      <span>Pick a date and time</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={field.value}
-                  onSelect={(date) => {
-                    const newDate = date ?? new Date();
-                    newDate.setHours(field.value.getHours());
-                    newDate.setMinutes(field.value.getMinutes());
-                    field.onChange(newDate);
-                  }}
-                  initialFocus
-                />
-                <div className="border-t border-border p-3">
-                  <TimePicker
-                    setDate={field.onChange}
-                    date={field.value || new Date()}
-                    hasSeconds={false}
-                  />
-                </div>
-              </PopoverContent>
-            </Popover>
-            <FormDescription>
-              Please select the date and time for order collection.
-            </FormDescription>
-          </FormItem>
-        )}
-      /> */}
     </>
   );
 };
@@ -1088,7 +1039,7 @@ const OrderFormProductFields = ({
 
   const onNavigateToProducts = () => {
     updateOrderForm(form.getValues());
-    router.push("/products?fromOrder=true");
+    router.push("/products?from=order");
   };
 
   return (
@@ -1187,7 +1138,7 @@ const OrderFormProductFields = ({
                   onClick={() => onNavigateToProducts()}
                 >
                   <PlusCircle className="h-4 w-4" />
-                  Add more products
+                  Add More Products
                 </Button>
               </CardFooter>
             </Card>
@@ -1289,6 +1240,143 @@ const OrderDetailsError = ({ errorMessage }: { errorMessage: string }) => {
       <span className="mt-2 text-center text-sm text-gray-500">
         {errorMessage}
       </span>
+    </div>
+  );
+};
+
+const OrderSummaryFooter = ({
+  form,
+}: {
+  form: UseFormReturn<z.infer<typeof orderFormSchema>>;
+}) => {
+  const deliveryFee = form.watch("deliveryFee");
+  const excludeGst = form.watch("excludeGst");
+  const orderProducts = useOrderForm((store) => store.orderProducts);
+
+  // Calculate prices for order
+  const orderAmount = calculateTotalOrderAmount(orderProducts, deliveryFee);
+  const gstPrice = calculateGstCost(orderAmount);
+  const finalPrice = calculateOrderGrandTotal(
+    orderProducts,
+    deliveryFee,
+    excludeGst,
+  );
+
+  return (
+    <div className="sticky bottom-0 flex justify-between border-t bg-white px-4 py-3 shadow">
+      <Form {...form}>
+        <FormField
+          control={form.control}
+          name="excludeGst"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  aria-label="exclude-gst"
+                />
+              </FormControl>
+              <FormLabel>Exclude GST</FormLabel>
+            </FormItem>
+          )}
+        />
+      </Form>
+
+      <Drawer>
+        <DrawerTrigger asChild>
+          <Button type="button">
+            <Label>Grand Total:</Label>
+            <p className="ml-1 font-semibold underline">
+              ${finalPrice.toFixed(2)}
+            </p>
+          </Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Order Summary</DrawerTitle>
+            <DrawerClose />
+          </DrawerHeader>
+          <DrawerDescription>
+            <div className="p-4">
+              <Table className="max-h-[80vh]">
+                <TableHeader className="sticky top-0 bg-zinc-100">
+                  <TableRow>
+                    <TableHead className="w-[100px] font-semibold">
+                      Item
+                    </TableHead>
+                    <TableHead className="w-[100px] font-semibold">
+                      No (x)
+                    </TableHead>
+                    <TableHead className="w-[100px] font-semibold">
+                      Price ($)
+                    </TableHead>
+                    <TableHead className="w-[100px] text-right font-semibold">
+                      Total ($)
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orderProducts.map((orderProduct, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{orderProduct.sku}</TableCell>
+                      <TableCell className="text-center">
+                        {orderProduct.quantity}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        ${orderProduct.price.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        $
+                        {(orderProduct.quantity * orderProduct.price).toFixed(
+                          2,
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell className="italic">Delivery Fee</TableCell>
+                    <TableCell className="text-center">1</TableCell>
+                    <TableCell className="text-center">
+                      ${deliveryFee.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ${deliveryFee.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                  {form.watch("excludeGst") && (
+                    <TableRow>
+                      <TableCell className="italic">
+                        Exclude GST ({DEFAULT_GST_PERCENTAGE * 100}%)
+                      </TableCell>
+                      <TableCell className="text-center">1</TableCell>
+                      <TableCell className="text-center">
+                        -${gstPrice.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        -${gstPrice.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+                <TableFooter className="sticky bottom-0 bg-zinc-100">
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-right text-primary">
+                      <Label className="font-semibold">Grand Total:</Label>
+                    </TableCell>
+                    <TableCell
+                      className="text-right font-semibold text-primary underline"
+                      colSpan={1}
+                    >
+                      ${finalPrice.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          </DrawerDescription>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };

@@ -1,29 +1,15 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  useClosingBehavior,
-  useInitData,
-  useMainButton,
-  useMiniApp,
-  usePopup,
-  usePostEvent,
-  useThemeParams,
-  useViewport,
-} from "@tma.js/sdk-react";
-import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
-import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
-import { useEffect } from "react";
-import { SubmitErrorHandler, SubmitHandler, useForm } from "react-hook-form";
-import { z } from "zod";
+import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { NextPageWithLayout } from "~/pages/_app";
 import MainLayout from "~/components/layouts/MainLayout";
+import { api } from "~/utils/api";
+import { TRPCError } from "@trpc/server";
 import {
   Card,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "~/components/ui/card";
-import { NextPageWithLayout } from "~/pages/_app";
-import { defaultInitState } from "~/stores/product-form/product-form-store";
-import { productFormSchema } from "~/types/product-schema";
+import { SubmitErrorHandler, SubmitHandler, useForm } from "react-hook-form";
 import {
   Form,
   FormControl,
@@ -42,28 +28,45 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { match } from "ts-pattern";
-import { api } from "~/utils/api";
-import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { z } from "zod";
+import { customerFormSchema } from "~/types/customer-schema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { defaultInitState as defaultCustomerFormState } from "~/stores/customer-form/customer-form-store";
+import {
+  useBackButton,
+  useClosingBehavior,
+  useInitData,
+  useMainButton,
+  useMiniApp,
+  usePopup,
+  usePostEvent,
+  useThemeParams,
+  useViewport,
+} from "@tma.js/sdk-react";
+import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
+import { useEffect } from "react";
+import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
 
-const CreateProductPage: NextPageWithLayout = () => {
+const CreateCustomerPage: NextPageWithLayout = () => {
   return (
     <div className="flex h-full flex-col pt-4">
       <Card className="mx-4">
         <CardHeader>
-          <CardTitle>New Product</CardTitle>
+          <CardTitle>New Customer</CardTitle>
           <CardDescription>
-            Fill in the required product details below
+            Fill in the required customer details below
           </CardDescription>
         </CardHeader>
       </Card>
-      <ProductForm />
+      <CustomerForm />
     </div>
   );
 };
 
-const ProductForm = () => {
+const CustomerForm = () => {
   const tmaClosingBehavior = useClosingBehavior();
   const tmaMainButton = useMainButton();
+  const tmaBackButton = useBackButton();
   const tmaPostEvent = usePostEvent();
   const tmaThemeParams = useThemeParams();
   const tmaViewport = useViewport();
@@ -71,10 +74,15 @@ const ProductForm = () => {
   const tmaInitData = useInitData();
   const tma = useMiniApp();
 
+  const customerCreationMutation = api.customer.createCustomer.useMutation();
+  const sendCustomerCreationMessageMutation =
+    api.telegram.sendCustomerCreationMessage.useMutation();
+  const salesChannelsQuery = api.salesChannel.getSalesChannels.useQuery();
+
   // Step up tma main button to act as a submit button
   useEffect(() => {
     tmaMainButton.setParams({
-      text: "Create Product 🚀",
+      text: "Create Customer 🚀",
       backgroundColor: "#16a34a",
       isLoaderVisible: false,
       isEnabled: true,
@@ -96,11 +104,8 @@ const ProductForm = () => {
   // Hide the back button and expand the viewport
   useEffect(() => {
     tmaViewport.expand();
+    tmaBackButton.hide();
   }, []);
-
-  const productCreationMutation = api.product.createProduct.useMutation();
-  const sendProductCreationMessageMutation =
-    api.telegram.sendProductCreationMessage.useMutation();
 
   // Register pop up confirmation on form submission to confirm product creation
   useEffect(() => {
@@ -119,25 +124,30 @@ const ProductForm = () => {
         isEnabled: false,
       });
 
-      // Submit the order
+      // Submit the customer creation request
       const payload = form.getValues();
-      const response = await productCreationMutation.mutateAsync(payload);
-      if (!response.success) {
+      try {
+        const customer = await customerCreationMutation.mutateAsync(payload);
+        await sendCustomerCreationMessageMutation.mutateAsync({
+          chatId: tmaInitData.user.id,
+          customerId: customer.data.id,
+          customerName: customer.data.attributes.customerName,
+        });
+      } catch (error) {
         tmaMainButton.setParams({
           isLoaderVisible: false,
           isEnabled: true,
         });
+
         return tmaPopup.open({
           title: "Error",
-          message: response.message,
+          message:
+            error instanceof TRPCError
+              ? error.message
+              : "Something went wrong, try again later.",
           buttons: [{ type: "ok" }],
         });
       }
-
-      await sendProductCreationMessageMutation.mutateAsync({
-        chatId: tmaInitData.user.id,
-        sku: response.data?.data.attributes.sku ?? "",
-      });
 
       tmaMainButton.setParams({
         isLoaderVisible: false,
@@ -155,15 +165,12 @@ const ProductForm = () => {
     };
   }, []);
 
-  const productBrandsQuery = api.product.getBrands.useQuery();
-  const productCategoriesQuery = api.product.getCategories.useQuery();
-
-  const form = useForm<z.infer<typeof productFormSchema>>({
-    resolver: zodResolver(productFormSchema),
-    defaultValues: defaultInitState,
+  const form = useForm<z.infer<typeof customerFormSchema>>({
+    resolver: zodResolver(customerFormSchema),
+    defaultValues: defaultCustomerFormState,
   });
 
-  const onSubmit: SubmitHandler<z.infer<typeof productFormSchema>> = (
+  const onSubmit: SubmitHandler<z.infer<typeof customerFormSchema>> = (
     _formValues,
   ) => {
     tmaPostEvent("web_app_trigger_haptic_feedback", {
@@ -172,8 +179,8 @@ const ProductForm = () => {
     });
 
     tmaPopup.open({
-      title: "Create Product",
-      message: "Are you sure you want to create this product?",
+      title: "Create Customer",
+      message: "Are you sure you want to create this customer?",
       buttons: [
         {
           type: "ok",
@@ -187,7 +194,7 @@ const ProductForm = () => {
     });
   };
 
-  const onErrors: SubmitErrorHandler<z.infer<typeof productFormSchema>> = (
+  const onErrors: SubmitErrorHandler<z.infer<typeof customerFormSchema>> = (
     errors,
   ) => {
     console.error(errors);
@@ -214,15 +221,36 @@ const ProductForm = () => {
     <div className="flex flex-grow flex-col">
       <Form {...form}>
         <div className="space-y-6 p-5 pb-10 pt-4">
-          {/* Product SKU */}
+          {/* Customer name */}
           <FormField
             control={form.control}
-            name="sku"
+            name="customerName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center justify-between">
                   <div>
-                    <span>Product SKU</span>
+                    <span>Customer Name</span>
+                    <span className="ml-1 text-red-500">*</span>
+                  </div>
+                  <FormMessage />
+                </FormLabel>
+                <FormControl>
+                  <Input className="text-base" placeholder="Bryan" {...field} />
+                </FormControl>
+                <FormDescription>Name of customer</FormDescription>
+              </FormItem>
+            )}
+          />
+
+          {/* Customer contact */}
+          <FormField
+            control={form.control}
+            name="customerContact"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center justify-between">
+                  <div>
+                    <span>Customer Contact</span>
                     <span className="ml-1 text-red-500">*</span>
                   </div>
                   <FormMessage />
@@ -230,64 +258,62 @@ const ProductForm = () => {
                 <FormControl>
                   <Input
                     className="text-base"
-                    placeholder="HK-1234"
+                    placeholder="89011231"
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>
-                  The unique identifier for the product
-                </FormDescription>
+                <FormDescription>Phone contact of customer</FormDescription>
               </FormItem>
             )}
           />
 
-          {/* Product Name */}
+          {/* Customer address */}
           <FormField
             control={form.control}
-            name="name"
+            name="customerAddress"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center justify-between">
                   <div>
-                    <span>Product Name</span>
-                    <span className="ml-1 text-red-500">*</span>
+                    <span>Customer Address</span>
                   </div>
                   <FormMessage />
                 </FormLabel>
                 <FormControl>
                   <Input
                     className="text-base"
-                    placeholder="Product Name"
+                    placeholder="Sembawang Drive 489b ..."
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>The name of the product</FormDescription>
+                <FormDescription>Preferred mailing address</FormDescription>
               </FormItem>
             )}
           />
 
-          {/* Product Brand */}
+          {/* Sales channel */}
           <FormField
             control={form.control}
-            name="brand"
+            name="salesChannel"
             render={({ field, formState }) => (
               <FormItem>
                 <FormLabel className="flex items-center justify-between">
                   <div>
-                    <span>Brand</span>
+                    <span>Sales Channel</span>
+                    <span className="ml-1 text-red-500">*</span>
                   </div>
                   <FormMessage>
-                    {formState.errors.brand?.id?.message}
+                    {formState.errors.salesChannel?.id?.message}
                   </FormMessage>
                 </FormLabel>
                 <Select
                   onValueChange={(value) => {
-                    const brand = productBrandsQuery.data?.data.find(
-                      (brand) => brand.id.toString() === value,
+                    const channel = salesChannelsQuery.data?.data.find(
+                      (channel) => channel.id.toString() === value,
                     );
                     field.onChange({
-                      id: brand?.id.toString() ?? "",
-                      name: brand?.attributes.brand ?? "",
+                      id: channel?.id.toString() ?? "",
+                      name: channel?.attributes.salesChannel ?? "",
                     });
                   }}
                   defaultValue={field.value.id}
@@ -297,24 +323,23 @@ const ProductForm = () => {
                       <SelectValue
                         placeholder={
                           <span className="text-muted-foreground">
-                            Select brand
+                            Select sales channel
                           </span>
                         }
                       />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="No Brand">No Brand</SelectItem>
-                    {match(productBrandsQuery)
+                    {match(salesChannelsQuery)
                       .with(
                         { status: "success" },
-                        ({ data: { data: brands } }) =>
-                          brands.map((brand) => (
+                        ({ data: { data: channels } }) =>
+                          channels.map((channel) => (
                             <SelectItem
-                              key={brand.id}
-                              value={brand.id.toString()}
+                              key={channel.id}
+                              value={channel.id.toString()}
                             >
-                              {brand.attributes.brand}
+                              {channel.attributes.salesChannel}
                             </SelectItem>
                           )),
                       )
@@ -330,7 +355,7 @@ const ProductForm = () => {
                         },
                         () => (
                           <span className="px-2 text-sm">
-                            Error loading brands
+                            Error loading channels
                           </span>
                         ),
                       )
@@ -338,85 +363,7 @@ const ProductForm = () => {
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Specify which brand the product belongs to.
-                </FormDescription>
-              </FormItem>
-            )}
-          />
-
-          {/* Product Category */}
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field, formState }) => (
-              <FormItem>
-                <FormLabel className="flex items-center justify-between">
-                  <div>
-                    <span>Category</span>
-                    <span className="ml-1 text-red-500">*</span>
-                  </div>
-                  <FormMessage>
-                    {formState.errors.category?.id?.message}
-                  </FormMessage>
-                </FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    const category = productCategoriesQuery.data?.data.find(
-                      (category) => category.id.toString() === value,
-                    );
-                    field.onChange({
-                      id: category?.id.toString() ?? "",
-                      name: category?.attributes.category ?? "",
-                    });
-                  }}
-                  defaultValue={field.value.id}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          <span className="text-muted-foreground">
-                            Select category
-                          </span>
-                        }
-                      />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {match(productCategoriesQuery)
-                      .with(
-                        { status: "success" },
-                        ({ data: { data: categories } }) =>
-                          categories.map((category) => (
-                            <SelectItem
-                              key={category.id}
-                              value={category.id.toString()}
-                            >
-                              {category.attributes.category}
-                            </SelectItem>
-                          )),
-                      )
-                      .with(
-                        {
-                          status: "pending",
-                        },
-                        () => <span className="px-2 text-sm">Loading...</span>,
-                      )
-                      .with(
-                        {
-                          status: "error",
-                        },
-                        () => (
-                          <span className="px-2 text-sm">
-                            Error loading categories
-                          </span>
-                        ),
-                      )
-                      .exhaustive()}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Specify which category the product belongs to.
+                  Default sales channel of the customer
                 </FormDescription>
               </FormItem>
             )}
@@ -427,12 +374,12 @@ const ProductForm = () => {
   );
 };
 
-CreateProductPage.getLayout = (page) => {
+CreateCustomerPage.getLayout = (page) => {
   return (
     <AuthGuard>
-      <MainLayout title="📝 Create Product">{page}</MainLayout>
+      <MainLayout title="📝 Create Customer">{page}</MainLayout>
     </AuthGuard>
   );
 };
 
-export default CreateProductPage;
+export default CreateCustomerPage;

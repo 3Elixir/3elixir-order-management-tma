@@ -40,7 +40,6 @@ export const getPaymentStatuses = publicProcedure
         },
       );
       const data = await response.json();
-      console.log(data);
       if (response.ok) return data;
       if (response.status === 404)
         throw new TRPCError({ code: "NOT_FOUND", message: data.error.message });

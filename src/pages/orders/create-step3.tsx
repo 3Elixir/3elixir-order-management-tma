@@ -154,7 +154,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
             name="orderProducts"
             render={() => (
               <FormItem>
-                <FormLabel>Products</FormLabel>
+                <FormLabel>Product Cart</FormLabel>
                 {orderProducts.length ? (
                   <OrderProductList form={form} />
                 ) : (
@@ -185,7 +185,7 @@ const EmptyOrderProduct = () => {
       <Button
         type="button"
         className="mt-6"
-        onClick={() => router.push("/products?fromOrder=true")}
+        onClick={() => router.push("/products?from=order")}
       >
         <SquareArrowOutUpRight
           className="-ml-0.5 mr-1.5 h-5 w-5"
@@ -220,7 +220,7 @@ const OrderProductList = ({
 
   const onNavigateToProducts = () => {
     updateOrderForm(form.getValues());
-    router.push("/products?fromOrder=true");
+    router.push("/products?from=order");
   };
 
   return (
@@ -305,7 +305,7 @@ const OrderProductList = ({
           onClick={() => onNavigateToProducts()}
         >
           <PlusCircle className="h-4 w-4" />
-          Add more products
+          Add More Products
         </Button>
       </CardFooter>
     </Card>
@@ -329,24 +329,24 @@ const OrderProductFooter = ({
 
   return (
     <div className="sticky bottom-0 flex justify-between border-t bg-white px-4 py-3 shadow">
-      <div className="text-md flex items-center">
-        <Label>Total:</Label>
-        <p className="ml-1 font-semibold">${totalOrderPrice}</p>
-      </div>
-
       <Drawer>
         <DrawerTrigger asChild>
-          <Button type="button">Details</Button>
+          <Button type="button" className="ml-auto">
+            <Label>Cart Total:</Label>
+            <p className="ml-1 font-semibold underline underline-offset-2">
+              ${totalOrderPrice}
+            </p>
+          </Button>
         </DrawerTrigger>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Order Summary</DrawerTitle>
+            <DrawerTitle>Cart Summary</DrawerTitle>
             <DrawerClose />
           </DrawerHeader>
           <DrawerDescription>
             <div className="p-4">
-              <Table>
-                <TableHeader>
+              <Table className="max-h-[80vh]">
+                <TableHeader className="sticky top-0 bg-zinc-100">
                   <TableRow>
                     <TableHead className="w-[100px] font-semibold">
                       Item
@@ -381,10 +381,10 @@ const OrderProductFooter = ({
                     </TableRow>
                   ))}
                 </TableBody>
-                <TableFooter>
+                <TableFooter className="sticky bottom-0 bg-zinc-100">
                   <TableRow>
                     <TableCell colSpan={3} className="text-right text-primary">
-                      <Label className="font-semibold">Grand Total:</Label>
+                      <Label className="font-semibold">Cart Total:</Label>
                     </TableCell>
                     <TableCell
                       className="text-right font-semibold text-primary underline"

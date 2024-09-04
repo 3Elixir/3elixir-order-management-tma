@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { env } from "~/env";
 import { publicProcedure } from "~/server/api/trpc";
-import { db } from "~/server/db";
-import { createCaller } from "../../root";
 import {
   SALES_CHANNELS_WITH_SALES_AGENTS,
   orderFormSchema,
@@ -18,6 +16,7 @@ export const outputSchema = z.object({
     id: z.number(),
     attributes: z.object({
       customerName: z.string(),
+      attentionTo: z.string().nullable(),
       customerContact: z.string(),
       customerAddress: z.string(),
       orderProducts: z.array(
@@ -40,6 +39,7 @@ export const outputSchema = z.object({
       fulfilmentStart: z.string().nullable(),
       fulfilmentEnd: z.string().nullable(),
       deliveryFee: z.number().nullable(),
+      excludeGst: z.boolean(),
       telegramMessage: z
         .object({ chat_id: z.number(), message_id: z.number() })
         .nullable(),
@@ -92,6 +92,8 @@ export const updateOrderDetails = publicProcedure
     const {
       orderId,
       customerName,
+      hasAttentionTo,
+      attentionTo,
       customerAddress,
       customerContact,
       fulfilmentMethod,
@@ -104,11 +106,15 @@ export const updateOrderDetails = publicProcedure
       orderProducts,
       deliveryFee,
       remarks,
+      excludeGst,
     } = input;
+
+    const cleanedAttentionTo = attentionTo.trim() ?? null;
 
     const payload = {
       data: {
         customerName,
+        attentionTo: hasAttentionTo ? cleanedAttentionTo : null,
         customerAddress,
         customerContact,
         fulfilmentStart,
@@ -116,6 +122,7 @@ export const updateOrderDetails = publicProcedure
         deliveryFee,
         remarks,
         orderProducts,
+        excludeGst,
         payment_method: {
           set: [parseInt(paymentMethod.id)],
         },
@@ -138,9 +145,9 @@ export const updateOrderDetails = publicProcedure
     };
 
     // Only set sales agents if sales channel allows it
-    const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map(c => c.toLowerCase().trim()).includes(
-      salesChannel.name.toLowerCase().trim(),
-    );
+    const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map((c) =>
+      c.toLowerCase().trim(),
+    ).includes(salesChannel.name.toLowerCase().trim());
     if (allowSalesAgents) {
       payload.data.sales_agents.set = salesAgents.map((salesAgent) =>
         parseInt(salesAgent.value.id),

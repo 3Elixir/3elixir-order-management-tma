@@ -17,6 +17,7 @@ const outputSchema = z.object({
     id: z.number(),
     attributes: z.object({
       customerName: z.string(),
+      attentionTo: z.string().nullable(),
       customerContact: z.string(),
       customerAddress: z.string(),
       orderProducts: z.array(
@@ -36,6 +37,7 @@ const outputSchema = z.object({
       createdAt: z.string(),
       updatedAt: z.string(),
       publishedAt: z.string(),
+      excludeGst: z.boolean(),
     }),
   }),
   meta: z.object({}),
@@ -47,6 +49,8 @@ export const createOrder = publicProcedure
     const {
       chatId,
       customerName,
+      hasAttentionTo,
+      attentionTo,
       customerAddress,
       customerContact,
       orderCollectionDateTime,
@@ -60,15 +64,21 @@ export const createOrder = publicProcedure
       orderProducts,
       deliveryFee,
       remarks,
+      excludeGst,
     } = input;
+
+    // Clean conditional field - attentionTo
+    const cleanedAttentionTo = attentionTo.trim() ?? null;
 
     const payload = {
       data: {
         customerName,
+        attentionTo: hasAttentionTo ? cleanedAttentionTo : null,
         customerContact,
         customerAddress,
         orderCollectionDateTime,
         remarks,
+        excludeGst,
         orderProducts,
         deliveryFee,
         fulfilmentStart,
@@ -95,9 +105,9 @@ export const createOrder = publicProcedure
     };
 
     // Only set sales agents if sales channel allows it
-    const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map(c => c.toLowerCase().trim()).includes(
-      salesChannel.name.toLowerCase().trim(),
-    );
+    const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map((c) =>
+      c.toLowerCase().trim(),
+    ).includes(salesChannel.name.toLowerCase().trim());
     if (allowSalesAgents) {
       payload.data.sales_agents.connect = salesAgents.map((salesAgent) =>
         parseInt(salesAgent.value.id),

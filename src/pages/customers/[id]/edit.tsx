@@ -1,27 +1,34 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useBackButton,
   useClosingBehavior,
+  useInitData,
   useMainButton,
+  useMiniApp,
   usePopup,
   usePostEvent,
   useThemeParams,
   useViewport,
 } from "@tma.js/sdk-react";
 import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
+import { TRPCError } from "@trpc/server";
+import { useParams } from "next/navigation";
+import { useRouter } from "next/router";
 import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
 import { useEffect } from "react";
 import { SubmitErrorHandler, SubmitHandler, useForm } from "react-hook-form";
-import { z } from "zod";
 import MainLayout from "~/components/layouts/MainLayout";
 import {
   Card,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "~/components/ui/card";
+import { AuthGuard } from "~/lib/contexts/AuthProvider";
 import { NextPageWithLayout } from "~/pages/_app";
-import { productFormSchema } from "~/types/product-schema";
+import { api } from "~/utils/api";
+import { z } from "zod";
+import { customerFormSchema } from "~/types/customer-schema";
+import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
@@ -31,22 +38,18 @@ import {
   FormLabel,
   FormMessage,
 } from "~/components/ui/form";
-import { Input } from "~/components/ui/input";
 import {
   Select,
-  SelectContent,
-  SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectContent,
+  SelectItem,
 } from "~/components/ui/select";
+import { Input } from "~/components/ui/input";
 import { match } from "ts-pattern";
-import { api } from "~/utils/api";
-import { useRouter } from "next/router";
-import { useParams } from "next/navigation";
-import { useProductForm } from "~/stores/product-form/useProductForm";
-import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { useCustomerForm } from "~/stores/customer-form/useCustomerForm";
 
-const EditProductPage: NextPageWithLayout = () => {
+const EditCustomerPage: NextPageWithLayout = () => {
   const router = useRouter();
   const tmaBackButton = useBackButton();
   const params = useParams<{ id: string }>();
@@ -75,29 +78,31 @@ const EditProductPage: NextPageWithLayout = () => {
           </CardDescription>
         </CardHeader>
       </Card>
-      <ProductForm />
+      <CustomerForm />
     </div>
   );
 };
 
-const ProductForm = () => {
+const CustomerForm = () => {
   const router = useRouter();
   const params = useParams<{ id: string }>();
 
+  const tmaClosingBehavior = useClosingBehavior();
   const tmaMainButton = useMainButton();
+  const tmaBackButton = useBackButton();
   const tmaPostEvent = usePostEvent();
   const tmaThemeParams = useThemeParams();
   const tmaViewport = useViewport();
   const tmaPopup = usePopup();
+  const tma = useMiniApp();
 
-  const { updateProductForm, ...productFormState } = useProductForm(
+  const { updateCustomerForm, ...customerFormState } = useCustomerForm(
     (state) => state,
   );
 
-  const productBrandsQuery = api.product.getBrands.useQuery();
-  const productCategoriesQuery = api.product.getCategories.useQuery();
-
-  const productUpdateMutation = api.product.updateProductDetails.useMutation();
+  const salesChannelsQuery = api.salesChannel.getSalesChannels.useQuery();
+  const customerUpdateMutation =
+    api.customer.updateCustomerDetails.useMutation();
 
   // Step up tma main button to act as a submit button
   useEffect(() => {
@@ -108,7 +113,9 @@ const ProductForm = () => {
     });
 
     // Subscribe to the button click event
-    const onButtonClick = () => form.handleSubmit(onSubmit, onErrors)();
+    const onButtonClick = () => {
+      form.handleSubmit(onSubmit, onErrors)();
+    };
     tmaMainButton.on("click", onButtonClick);
     tmaMainButton.show();
 
@@ -123,7 +130,7 @@ const ProductForm = () => {
     tmaViewport.expand();
   }, []);
 
-  // Register pop up confirmation on form submission to confirm product update
+  // Register pop up confirmation on form submission to confirm customer update
   useEffect(() => {
     const onSubmission = async (event: PopupClosedPayload) => {
       if (event.button_id !== "ok") return;
@@ -138,17 +145,22 @@ const ProductForm = () => {
         isEnabled: false,
       });
 
-      // Submit the updated product details
-      const payload = { ...form.getValues(), productId: parseInt(params.id) };
-      const response = await productUpdateMutation.mutateAsync(payload);
-      if (!response.success) {
+      // Submit the customer creation request
+      const payload = { ...form.getValues(), customerId: parseInt(params.id) };
+      try {
+        const customer = await customerUpdateMutation.mutateAsync(payload);
+      } catch (error) {
         tmaMainButton.setParams({
           isLoaderVisible: false,
           isEnabled: true,
         });
+
         return tmaPopup.open({
           title: "Error",
-          message: response.message,
+          message:
+            error instanceof TRPCError
+              ? error.message
+              : "Something went wrong, try again later.",
           buttons: [{ type: "ok" }],
         });
       }
@@ -168,12 +180,12 @@ const ProductForm = () => {
     };
   }, []);
 
-  const form = useForm<z.infer<typeof productFormSchema>>({
-    resolver: zodResolver(productFormSchema),
-    defaultValues: productFormState,
+  const form = useForm<z.infer<typeof customerFormSchema>>({
+    resolver: zodResolver(customerFormSchema),
+    defaultValues: customerFormState,
   });
 
-  const onSubmit: SubmitHandler<z.infer<typeof productFormSchema>> = (
+  const onSubmit: SubmitHandler<z.infer<typeof customerFormSchema>> = (
     _formValues,
   ) => {
     tmaPostEvent("web_app_trigger_haptic_feedback", {
@@ -197,7 +209,7 @@ const ProductForm = () => {
     });
   };
 
-  const onErrors: SubmitErrorHandler<z.infer<typeof productFormSchema>> = (
+  const onErrors: SubmitErrorHandler<z.infer<typeof customerFormSchema>> = (
     errors,
   ) => {
     console.error(errors);
@@ -224,15 +236,36 @@ const ProductForm = () => {
     <div className="flex flex-grow flex-col">
       <Form {...form}>
         <div className="space-y-6 p-5 pb-10 pt-4">
-          {/* Product SKU */}
+          {/* Customer name */}
           <FormField
             control={form.control}
-            name="sku"
+            name="customerName"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center justify-between">
                   <div>
-                    <span>Product SKU</span>
+                    <span>Customer Name</span>
+                    <span className="ml-1 text-red-500">*</span>
+                  </div>
+                  <FormMessage />
+                </FormLabel>
+                <FormControl>
+                  <Input className="text-base" placeholder="Bryan" {...field} />
+                </FormControl>
+                <FormDescription>Name of customer</FormDescription>
+              </FormItem>
+            )}
+          />
+
+          {/* Customer contact */}
+          <FormField
+            control={form.control}
+            name="customerContact"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center justify-between">
+                  <div>
+                    <span>Customer Contact</span>
                     <span className="ml-1 text-red-500">*</span>
                   </div>
                   <FormMessage />
@@ -240,64 +273,62 @@ const ProductForm = () => {
                 <FormControl>
                   <Input
                     className="text-base"
-                    placeholder="HK-1234"
+                    placeholder="89011231"
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>
-                  The unique identifier for the product
-                </FormDescription>
+                <FormDescription>Phone contact of customer</FormDescription>
               </FormItem>
             )}
           />
 
-          {/* Product Name */}
+          {/* Customer address */}
           <FormField
             control={form.control}
-            name="name"
+            name="customerAddress"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="flex items-center justify-between">
                   <div>
-                    <span>Product Name</span>
-                    <span className="ml-1 text-red-500">*</span>
+                    <span>Customer Address</span>
                   </div>
                   <FormMessage />
                 </FormLabel>
                 <FormControl>
                   <Input
                     className="text-base"
-                    placeholder="Product Name"
+                    placeholder="Sembawang Drive 489b ..."
                     {...field}
                   />
                 </FormControl>
-                <FormDescription>The name of the product</FormDescription>
+                <FormDescription>Preferred mailing address</FormDescription>
               </FormItem>
             )}
           />
 
-          {/* Product Brand */}
+          {/* Sales channel */}
           <FormField
             control={form.control}
-            name="brand"
+            name="salesChannel"
             render={({ field, formState }) => (
               <FormItem>
                 <FormLabel className="flex items-center justify-between">
                   <div>
-                    <span>Brand</span>
+                    <span>Sales Channel</span>
+                    <span className="ml-1 text-red-500">*</span>
                   </div>
                   <FormMessage>
-                    {formState.errors.brand?.id?.message}
+                    {formState.errors.salesChannel?.id?.message}
                   </FormMessage>
                 </FormLabel>
                 <Select
                   onValueChange={(value) => {
-                    const brand = productBrandsQuery.data?.data.find(
-                      (brand) => brand.id.toString() === value,
+                    const channel = salesChannelsQuery.data?.data.find(
+                      (channel) => channel.id.toString() === value,
                     );
                     field.onChange({
-                      id: brand?.id.toString() ?? "",
-                      name: brand?.attributes.brand ?? "",
+                      id: channel?.id.toString() ?? "",
+                      name: channel?.attributes.salesChannel ?? "",
                     });
                   }}
                   defaultValue={field.value.id}
@@ -307,103 +338,23 @@ const ProductForm = () => {
                       <SelectValue
                         placeholder={
                           <span className="text-muted-foreground">
-                            Select brand
+                            Select sales channel
                           </span>
                         }
                       />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="No Brand">No Brand</SelectItem>
-                    {match(productBrandsQuery)
+                    {match(salesChannelsQuery)
                       .with(
                         { status: "success" },
-                        ({ data: { data: brands } }) => [
-                          ...brands.map((brand) => (
+                        ({ data: { data: channels } }) =>
+                          channels.map((channel) => (
                             <SelectItem
-                              key={brand.id}
-                              value={brand.id.toString()}
+                              key={channel.id}
+                              value={channel.id.toString()}
                             >
-                              {brand.attributes.brand}
-                            </SelectItem>
-                          )),
-                        ],
-                      )
-                      .with(
-                        {
-                          status: "pending",
-                        },
-                        () => <span className="px-2 text-sm">Loading...</span>,
-                      )
-                      .with(
-                        {
-                          status: "error",
-                        },
-                        () => (
-                          <span className="px-2 text-sm">
-                            Error loading brands
-                          </span>
-                        ),
-                      )
-                      .exhaustive()}
-                  </SelectContent>
-                </Select>
-                <FormDescription>
-                  Specify which brand the product belongs to.
-                </FormDescription>
-              </FormItem>
-            )}
-          />
-
-          {/* Product Category */}
-          <FormField
-            control={form.control}
-            name="category"
-            render={({ field, formState }) => (
-              <FormItem>
-                <FormLabel className="flex items-center justify-between">
-                  <div>
-                    <span>Category</span>
-                    <span className="ml-1 text-red-500">*</span>
-                  </div>
-                  <FormMessage>
-                    {formState.errors.category?.id?.message}
-                  </FormMessage>
-                </FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    const category = productCategoriesQuery.data?.data.find(
-                      (category) => category.id.toString() === value,
-                    );
-                    field.onChange({
-                      id: category?.id.toString() ?? "",
-                      name: category?.attributes.category ?? "",
-                    });
-                  }}
-                  defaultValue={field.value.id}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          <span className="text-muted-foreground">
-                            Select category
-                          </span>
-                        }
-                      />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {match(productCategoriesQuery)
-                      .with(
-                        { status: "success" },
-                        ({ data: { data: categories } }) =>
-                          categories.map((category) => (
-                            <SelectItem
-                              key={category.id}
-                              value={category.id.toString()}
-                            >
-                              {category.attributes.category}
+                              {channel.attributes.salesChannel}
                             </SelectItem>
                           )),
                       )
@@ -419,7 +370,7 @@ const ProductForm = () => {
                         },
                         () => (
                           <span className="px-2 text-sm">
-                            Error loading categories
+                            Error loading channels
                           </span>
                         ),
                       )
@@ -427,7 +378,7 @@ const ProductForm = () => {
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  Specify which category the product belongs to.
+                  Default sales channel of the customer
                 </FormDescription>
               </FormItem>
             )}
@@ -438,7 +389,7 @@ const ProductForm = () => {
   );
 };
 
-EditProductPage.getLayout = (page) => {
+EditCustomerPage.getLayout = (page) => {
   return (
     <AuthGuard>
       <MainLayout title="📝 Edit Product">{page}</MainLayout>
@@ -446,4 +397,4 @@ EditProductPage.getLayout = (page) => {
   );
 };
 
-export default EditProductPage;
+export default EditCustomerPage;

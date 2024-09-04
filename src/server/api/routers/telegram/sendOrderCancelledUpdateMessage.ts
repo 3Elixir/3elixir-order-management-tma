@@ -5,6 +5,7 @@ import { escapeSpecialChars } from "~/lib/utils";
 import { publicProcedure } from "~/server/api/trpc";
 import { outputSchema } from "~/server/api/routers/order/updateOrderStatus";
 import { formatInTimeZone } from "date-fns-tz";
+import { calculateOrderGrandTotal } from "~/lib/orderUtils";
 
 const inputSchema = outputSchema.extend({
   prevStatusName: z.string(),
@@ -19,6 +20,7 @@ export const sendOrderCancelledUpdateMessage = publicProcedure
         id: orderId,
         attributes: {
           customerName,
+          attentionTo,
           customerContact,
           customerAddress,
           fulfilment_method: fulfilmentMethod,
@@ -34,6 +36,7 @@ export const sendOrderCancelledUpdateMessage = publicProcedure
           remarks,
           updatedAt,
           telegramMessage,
+          excludeGst,
         },
       },
     } = input;
@@ -44,17 +47,6 @@ export const sendOrderCancelledUpdateMessage = publicProcedure
     const fulfilmentDatetimeString = fulfilmentStart
       ? `${formatInTimeZone(fulfilmentStart, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}${fulfilmentEnd ? `\nto ${formatInTimeZone(fulfilmentEnd, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}` : ""}`
       : "N/A";
-
-    const calculateOrderPrice = (
-      products: typeof orderProducts,
-      deliveryFee: number,
-    ) => {
-      const productCost = products.reduce(
-        (accum, curr) => accum + curr.price * curr.quantity,
-        0,
-      );
-      return productCost + deliveryFee;
-    };
 
     // Construct the order details message
     const orderDetailsMessage = `
@@ -79,13 +71,17 @@ ${orderProducts
   .trim()}
 
 ~\\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2))}~
-
+${excludeGst ? "~\\- GST excluded~" : ""}
 ~*Total price*: __$${escapeSpecialChars(
-      calculateOrderPrice(orderProducts, deliveryFee ?? 0).toFixed(2),
+      calculateOrderGrandTotal(
+        orderProducts,
+        deliveryFee ?? 0,
+        excludeGst,
+      ).toFixed(2),
     )}__~
 
 ~__*2\\. Order details*__~
-~\\- Customer name: ${escapeSpecialChars(customerName)}~
+~\\- Customer name: ${escapeSpecialChars(customerName)}~${attentionTo ? `\n~\\- Attn: ${escapeSpecialChars(attentionTo.trim())}~` : ""}
 ~\\- Customer contact: ${escapeSpecialChars(customerContact)}~
 ~\\- Customer Address: ${escapeSpecialChars(customerAddress)}~
 ~\\- Payment method: ${escapeSpecialChars(paymentMethod.data.attributes.paymentMethod)}~

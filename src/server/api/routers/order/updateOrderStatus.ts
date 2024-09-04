@@ -16,6 +16,7 @@ export const outputSchema = z.object({
     id: z.number(),
     attributes: z.object({
       customerName: z.string(),
+      attentionTo: z.string().nullable(),
       customerContact: z.string(),
       customerAddress: z.string(),
       orderProducts: z.array(
@@ -32,6 +33,7 @@ export const outputSchema = z.object({
       remarks: z.string(),
       orderCollectionDateTime: z.string(),
       orderId: z.string().nullable(),
+      excludeGst: z.boolean(),
       createdAt: z.string(),
       updatedAt: z.string(),
       publishedAt: z.string(),
