@@ -476,24 +476,26 @@ const ProductCardOrder = ({
                 {product.brand}
               </span>
             </p>
-            <Dot className="h-3.5 w-3.5" />
-            {/* Render price editing sheet based on query */}
-            {match(customerProductPriceQuery)
-              .with({ status: "success" }, ({ data }) => (
-                <Badge
-                  variant={"outline"}
-                  className={cn(!data?.attributes.price && "shadow")}
-                >
-                  {data?.attributes.price
-                    ? `$${data.attributes.price.toFixed(2)}`
-                    : "No price"}
-                </Badge>
-              ))
-              .with({ status: "pending" }, () => (
-                <Skeleton className="h-5 w-16" />
-              ))
-              .with({ status: "error" }, () => <>Error fetching price</>)
-              .exhaustive()}
+
+            {/* Only render pricing if a saved customer is selected */}
+            {customerId && <Dot className="h-3.5 w-3.5" />}
+            {customerId &&
+              match(customerProductPriceQuery)
+                .with({ status: "success" }, ({ data }) => (
+                  <Badge
+                    variant={"outline"}
+                    className={cn(!data?.attributes.price && "shadow")}
+                  >
+                    {data?.attributes.price
+                      ? `$${data.attributes.price.toFixed(2)}`
+                      : "No price"}
+                  </Badge>
+                ))
+                .with({ status: "pending" }, () => (
+                  <Skeleton className="h-5 w-16" />
+                ))
+                .with({ status: "error" }, () => <>Error fetching price</>)
+                .exhaustive()}
           </div>
         </div>
 
@@ -507,7 +509,14 @@ const ProductCardOrder = ({
             <X className="h-4 w-4" />
           </Button>
         ) : (
-          <Button size="icon" variant="outline" onClick={() => onAddToOrder()}>
+          <Button
+            disabled={
+              customerProductPriceQuery.isPending && customerId !== null
+            }
+            size="icon"
+            variant="outline"
+            onClick={() => onAddToOrder()}
+          >
             <Plus className="h-4 w-4" />
           </Button>
         )}
