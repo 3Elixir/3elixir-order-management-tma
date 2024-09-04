@@ -60,45 +60,14 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "~/components/ui/drawer";
-import { GetServerSideProps, InferGetServerSidePropsType } from "next";
-import { createServerSideHelpers } from "@trpc/react-query/server";
-import { db } from "~/server/db";
-import superjson from "superjson";
 
-export const getServerSideProps = (async (ctx) => {
-  // Retrieve url params i.e /orders/[id]
-  const { id } = ctx.params as { id: string };
-
-  // Create trpc helper to make server side calls
-  const helpers = createServerSideHelpers({
-    router: appRouter,
-    ctx: {
-      db,
-    },
-    transformer: superjson,
-  });
-
-  // Prefetch order details based on id to ensure data is ready upon render
-  await helpers.order.getOrderDetails.prefetch({
-    orderId: id,
-  });
-
-  return {
-    props: {
-      trpcState: helpers.dehydrate(),
-      id,
-    },
-  };
-}) satisfies GetServerSideProps<{ id: string }>;
-
-const ViewOrderPage: NextPageWithLayout<
-  InferGetServerSidePropsType<typeof getServerSideProps>
-> = ({ id: orderId }) => {
+const ViewOrderPage: NextPageWithLayout = () => {
+  const params = useParams() as { id: string } | null;
   const tmaBackButton = useBackButton();
   const router = useRouter();
 
   const orderDetailsQuery = api.order.getOrderDetails.useQuery({
-    orderId,
+    orderId: params?.id ?? "0",
   });
 
   // Show the back button to navigate back to the previous page

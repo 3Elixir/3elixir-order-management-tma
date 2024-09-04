@@ -48,6 +48,7 @@ import { useRouter } from "next/router";
 import { useSearchParams } from "next/navigation";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
 import Link from "next/link";
+import { useInView } from "react-intersection-observer";
 
 type FilterOptionsType =
   inferRouterInputs<AppRouter>["order"]["getFilteredOrders"]["filters"];
@@ -260,11 +261,19 @@ const OrderCard = ({
     },
   } = order;
 
-  const router = useRouter();
-  const queryContext = api.useUtils();
-
   const [statusId, setStatusId] = useState(orderStatus.data?.id ?? 0);
 
+  // Trigger prefetching of order details upon order card coming into view
+  const { ref } = useInView({
+    onChange: (inView) =>
+      inView &&
+      queryClient.order.getOrderDetails.prefetch({
+        orderId: orderId.toString(),
+      }),
+    triggerOnce: true,
+  });
+
+  const queryClient = api.useUtils();
   const orderStatusQuery = api.orderStatus.getOrderStatuses.useQuery();
   const sendStatusCancelledMessageMutation =
     api.telegram.sendOrderCancelledUpdateMessage.useMutation();
@@ -290,10 +299,10 @@ const OrderCard = ({
     },
     onSettled: () => {
       // Refetch the orders list and order details after the status update
-      queryContext.order.getFilteredOrders
+      queryClient.order.getFilteredOrders
         .refetch()
         .then(() => updateOrderStatusMutation.reset());
-      queryContext.order.getOrderDetails.refetch({
+      queryClient.order.getOrderDetails.refetch({
         orderId: orderId.toString(),
       });
     },
@@ -450,6 +459,7 @@ const OrderCard = ({
           )}
         </div>
         <Link
+          ref={ref}
           href={`/orders/${orderId}`}
           className={cn(
             buttonVariants({
@@ -460,13 +470,6 @@ const OrderCard = ({
         >
           <ChevronRight className="h-4 w-4" />
         </Link>
-        {/* <Button
-          size="icon"
-          variant="outline"
-          onClick={() => router.push(`/orders/${orderId}`)}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button> */}
       </div>
     </li>
   );
