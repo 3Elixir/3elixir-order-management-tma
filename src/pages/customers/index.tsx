@@ -62,8 +62,8 @@ const CustomersPage: NextPageWithLayout = () => {
     pageSize: parseInt(searchParams.get("pageSize") ?? "10"),
   };
   const sort: GetFilteredCustomersInput["sort"] = {
-    field: searchParams.get("sortField") ?? "createdAt",
-    direction: (searchParams.get("sortDirection") ?? "desc") as "asc" | "desc",
+    field: searchParams.get("sortField") ?? "customerName",
+    direction: (searchParams.get("sortDirection") ?? "asc") as "asc" | "desc",
   };
 
   const customersQuery = api.customer.getFilteredCustomers.useQuery({
