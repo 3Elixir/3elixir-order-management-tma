@@ -352,7 +352,7 @@ const CustomersQueryFooter = ({
           Showing <span className="font-semibold">{currentPageStart}</span>
           <span> - </span>
           <span className="font-semibold">{currentPageEnd}</span> of{" "}
-          <span className="font-semibold">{totalItems}</span> orders
+          <span className="font-semibold">{totalItems}</span> customers
         </p>
       )}
       <Button
