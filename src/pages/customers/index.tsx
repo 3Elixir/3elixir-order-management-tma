@@ -182,7 +182,7 @@ const CustomersQueryList = ({
       <div className="flex flex-col gap-1 p-2 pt-4 text-muted-foreground">
         <p className="text-center text-sm font-medium">End of page</p>
         <p className="text-center text-xs">
-          View another page to see more orders
+          View another page to see more customers
         </p>
       </div>
     </ul>
