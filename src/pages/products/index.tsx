@@ -605,7 +605,8 @@ const ProductCardOrder = ({
           category: product.category,
           name: product.name,
           sku: product.sku,
-          price: customerProductPriceQuery.data?.attributes.price ?? 10, // TODO: Replace with default product price when implemented
+          price:
+            customerProductPriceQuery.data?.attributes.price ?? product.price,
           quantity: 1,
         },
       ],
@@ -651,19 +652,18 @@ const ProductCardOrder = ({
                 {product.brand}
               </span>
             </p>
+            <Dot className="h-3.5 w-3.5" />
 
-            {/* Only render pricing if a saved customer is selected */}
-            {customerId && <Dot className="h-3.5 w-3.5" />}
+            {/* Render pricing based on customer selected */}
             {customerId &&
               match(customerProductPriceQuery)
                 .with({ status: "success" }, ({ data }) => (
                   <Badge
-                    variant={"outline"}
-                    className={cn(!data?.attributes.price && "shadow")}
+                    variant={data?.attributes.price ? "outline" : "secondary"}
                   >
                     {data?.attributes.price
                       ? `$${data.attributes.price.toFixed(2)}`
-                      : "No price"}
+                      : `$${product.price}`}
                   </Badge>
                 ))
                 .with({ status: "pending" }, () => (
@@ -671,6 +671,9 @@ const ProductCardOrder = ({
                 ))
                 .with({ status: "error" }, () => <>Error fetching price</>)
                 .exhaustive()}
+
+            {/* Render default prices */}
+            {!customerId && <Badge variant={"outline"}>${product.price}</Badge>}
           </div>
         </div>
 
