@@ -20,12 +20,13 @@ const outputSchema = z.object({
 export const createProduct = publicProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
-    const { sku, name, brand, category } = input;
+    const { sku, name, brand, category, defaultPrice } = input;
 
     const payload = {
       data: {
         sku,
         name,
+        defaultPrice,
         brand: {
           connect: isNaN(parseInt(brand.id)) ? [] : [parseInt(brand.id)],
         },
