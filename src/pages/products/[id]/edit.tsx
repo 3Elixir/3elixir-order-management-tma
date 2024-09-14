@@ -355,6 +355,36 @@ const ProductForm = () => {
             )}
           />
 
+          {/* Product Default Price */}
+          <FormField
+            control={form.control}
+            name="defaultPrice"
+            render={({ field: { onChange, ...field } }) => (
+              <FormItem>
+                <FormLabel className="flex items-center justify-between">
+                  <div>
+                    <span>Default Price ($)</span>
+                  </div>
+                  <FormMessage />
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="Default Price"
+                    min={0}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      onChange(value);
+                    }}
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>Default price for the product</FormDescription>
+              </FormItem>
+            )}
+          />
+
           {/* Product Category */}
           <FormField
             control={form.control}

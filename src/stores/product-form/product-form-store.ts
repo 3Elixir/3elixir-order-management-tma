@@ -13,7 +13,7 @@ export type ProductFormStore = ProductFormState & ProductFormActions;
 export const defaultInitState: ProductFormState = {
   sku: "",
   name: "",
-  defaultPrice: 0,
+  defaultPrice: undefined,
   brand: {
     id: "",
     name: "",

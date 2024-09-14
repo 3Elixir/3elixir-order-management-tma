@@ -414,7 +414,7 @@ const ProductCardDefault = ({
     const priceInFloat = parseFloat(data.defaultPrice);
     updateProductDefaultPriceMutation.mutate({
       productId: product.id,
-      defaultPrice: isNaN(priceInFloat) ? null : priceInFloat,
+      defaultPrice: isNaN(priceInFloat) ? undefined : priceInFloat,
     });
   };
 

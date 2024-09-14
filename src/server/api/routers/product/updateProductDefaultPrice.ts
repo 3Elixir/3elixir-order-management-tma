@@ -35,7 +35,7 @@ export const updateProductDefaultPrice = publicProcedure
 
     const payload = {
       data: {
-        defaultPrice,
+        defaultPrice: defaultPrice ?? null,
       },
     };
 
