@@ -8,6 +8,7 @@ import { updateOrderDetails } from "./updateOrderDetails";
 import { getPaymentMethods } from "./getPaymentMethods";
 import { getPaymentStatuses } from "./getPaymentStatuses";
 import { getFulfilmentMethods } from "./getFulfilmentMethods";
+import { getGstPercentage } from "./getGstPercentage";
 
 export const orderRouter = createTRPCRouter({
   getFilteredOrders,
@@ -19,4 +20,5 @@ export const orderRouter = createTRPCRouter({
   deleteOrder,
   updateOrderStatus,
   updateOrderDetails,
+  getGstPercentage,
 });

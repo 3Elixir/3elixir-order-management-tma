@@ -2,7 +2,11 @@ import { formatInTimeZone } from "date-fns-tz";
 import { Telegram, TelegramError } from "telegraf";
 import { z } from "zod";
 import { env } from "~/env";
-import { calculateOrderGrandTotal } from "~/lib/orderUtils";
+import {
+  calculateGstCost,
+  calculateOrderGrandTotal,
+  calculateTotalOrderAmount,
+} from "~/lib/orderUtils";
 import { escapeSpecialChars } from "~/lib/utils";
 import { publicProcedure } from "~/server/api/trpc";
 import { orderFormSchema } from "~/types/order-schema";
@@ -32,6 +36,13 @@ export const sendOrderDetailsMessage = publicProcedure
       excludeGst,
     } = input;
 
+    // Calculate gst amount
+    const orderTotal = calculateTotalOrderAmount(
+      orderProducts,
+      deliveryFee ?? 0,
+    );
+    const gstCost = calculateGstCost(orderTotal);
+
     const markdownMessage = `
 *📦Order \\#${orderId} \\(created\\)\\!📦*
 
@@ -47,7 +58,7 @@ ${orderProducts
   .trim()}
 
 \\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2))}
-${excludeGst ? "\\- GST excluded" : ""}
+${excludeGst ? "\\- GST excluded" : `\\- GST included \\($${gstCost}\\)`}
 *Total price*: __$${escapeSpecialChars(
       calculateOrderGrandTotal(orderProducts, deliveryFee, excludeGst).toFixed(
         2,

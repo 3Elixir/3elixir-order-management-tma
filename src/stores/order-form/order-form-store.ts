@@ -59,7 +59,7 @@ export const defaultInitState: OrderFormState = {
   orderProducts: [],
   remarks: "",
   deliveryFee: 0,
-  excludeGst: false,
+  excludeGst: true,
 };
 
 export const createOrderFormStore = (

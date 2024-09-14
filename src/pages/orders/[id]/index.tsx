@@ -781,17 +781,17 @@ const OrderSummary = ({
                     ${deliveryFee?.toFixed(2) ?? "0.00"}
                   </TableCell>
                 </TableRow>
-                {excludeGst && (
+                {!excludeGst && (
                   <TableRow>
                     <TableCell className="italic">
-                      Exclude GST ({DEFAULT_GST_PERCENTAGE * 100}%)
+                      GST ({DEFAULT_GST_PERCENTAGE * 100}%)
                     </TableCell>
                     <TableCell className="text-center">1</TableCell>
                     <TableCell className="text-center">
-                      -${gstPrice.toFixed(2)}
+                      ${gstPrice.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
-                      -${gstPrice.toFixed(2)}
+                      ${gstPrice.toFixed(2)}
                     </TableCell>
                   </TableRow>
                 )}

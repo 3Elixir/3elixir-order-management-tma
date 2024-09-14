@@ -5,7 +5,11 @@ import { escapeSpecialChars } from "~/lib/utils";
 import { publicProcedure } from "~/server/api/trpc";
 import { outputSchema } from "~/server/api/routers/order/updateOrderStatus";
 import { formatInTimeZone } from "date-fns-tz";
-import { calculateOrderGrandTotal } from "~/lib/orderUtils";
+import {
+  calculateGstCost,
+  calculateOrderGrandTotal,
+  calculateTotalOrderAmount,
+} from "~/lib/orderUtils";
 
 const inputSchema = outputSchema;
 
@@ -45,6 +49,13 @@ export const sendOrderStatusUpdateMessage = publicProcedure
       ? `${formatInTimeZone(fulfilmentStart, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}${fulfilmentEnd ? `\nto ${formatInTimeZone(fulfilmentEnd, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}` : ""}`
       : "N/A";
 
+    // Calculate gst amount
+    const orderTotal = calculateTotalOrderAmount(
+      orderProducts,
+      deliveryFee ?? 0,
+    );
+    const gstCost = calculateGstCost(orderTotal);
+
     // Construct the order details message
     const orderDetailsMessage = `
 *📦Order \\#${orderId} \\(updated\\)\\!📦*
@@ -68,7 +79,7 @@ ${orderProducts
   .trim()}
 
 \\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2))}
-${excludeGst ? "\\- GST excluded" : ""}
+${excludeGst ? "\\- GST excluded" : `\\- GST included \\($${gstCost}\\)`}
 *Total price*: __$${escapeSpecialChars(
       calculateOrderGrandTotal(
         orderProducts,
