@@ -1272,12 +1272,12 @@ const OrderSummaryFooter = ({
             <FormItem className="flex items-center space-x-2 space-y-0">
               <FormControl>
                 <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
+                  checked={!field.value}
+                  onCheckedChange={(checked) => field.onChange(!checked)}
                   aria-label="exclude-gst"
                 />
               </FormControl>
-              <FormLabel>Exclude GST</FormLabel>
+              <FormLabel>Add GST</FormLabel>
             </FormItem>
           )}
         />
@@ -1344,17 +1344,17 @@ const OrderSummaryFooter = ({
                       ${deliveryFee.toFixed(2)}
                     </TableCell>
                   </TableRow>
-                  {form.watch("excludeGst") && (
+                  {!form.watch("excludeGst") && (
                     <TableRow>
                       <TableCell className="italic">
-                        Exclude GST ({DEFAULT_GST_PERCENTAGE * 100}%)
+                        GST ({DEFAULT_GST_PERCENTAGE * 100}%)
                       </TableCell>
                       <TableCell className="text-center">1</TableCell>
                       <TableCell className="text-center">
-                        -${gstPrice.toFixed(2)}
+                        ${gstPrice.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
-                        -${gstPrice.toFixed(2)}
+                        ${gstPrice.toFixed(2)}
                       </TableCell>
                     </TableRow>
                   )}

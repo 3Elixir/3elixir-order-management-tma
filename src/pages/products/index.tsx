@@ -58,6 +58,10 @@ import {
   FormMessage,
 } from "~/components/ui/form";
 import toast from "react-hot-toast";
+import { productFormSchema } from "~/types/product-schema";
+
+type GetFilteredProductsOutput =
+  inferRouterOutputs<AppRouter>["product"]["getFilteredProducts"];
 
 type FilterOptionsType =
   inferRouterOutputs<AppRouter>["product"]["getFilterOptions"];
@@ -304,13 +308,14 @@ const ProductsQueryList = ({
           "Uncategorized",
         brand: product.attributes.brand.data?.attributes.brand ?? "No Brand",
         quantity: 0,
-        price: 0,
+        price: product.attributes.defaultPrice ?? 0,
       }));
     }
   }, [products, isOnlyAddedProducts, orderProducts]);
 
   return (
     <ul className="space-y-2 pb-4">
+      {/* Render when viewing products from order creation with customer selected */}
       {customerId && (
         <p className="ml-1 text-sm text-gray-500">
           Showing{" "}
@@ -318,6 +323,8 @@ const ProductsQueryList = ({
           product prices
         </p>
       )}
+
+      {/* Render when viewing products from order creation */}
       {isOnlyAddedProducts && parsedProducts.length === 0 && (
         <div className="flex flex-col items-center justify-center p-8">
           <span className="text-5xl">🤷‍♂️</span>
@@ -329,18 +336,22 @@ const ProductsQueryList = ({
           </span>
         </div>
       )}
-      {parsedProducts.map((product) =>
-        match(fromStatus)
-          .with("order", () => (
+      {match(fromStatus)
+        .with("order", () =>
+          parsedProducts.map((product) => (
             <ProductCardOrder key={product.productId} product={product} />
-          ))
-          .with("customer", () => (
-            <ProductCardCustomer key={product.productId} product={product} />
-          ))
-          .otherwise(() => (
-            <ProductCardDefault key={product.productId} product={product} />
           )),
-      )}
+        )
+        .with("customer", () =>
+          parsedProducts.map((product) => (
+            <ProductCardCustomer key={product.productId} product={product} />
+          )),
+        )
+        .otherwise(() =>
+          products.map((product) => (
+            <ProductCardDefault key={product.id} product={product} />
+          )),
+        )}
       <div className="flex flex-col gap-1 p-2 pt-4 text-muted-foreground">
         <p className="text-center text-sm font-medium ">End of page</p>
         <p className="text-center text-xs">
@@ -351,43 +362,207 @@ const ProductsQueryList = ({
   );
 };
 
+const productPricingFormDefaultSchema = z.object({
+  id: z.number(),
+  defaultPrice: z.string(),
+});
+
 const ProductCardDefault = ({
   product,
 }: {
-  product: z.infer<typeof orderFormSchema>["orderProducts"][0];
+  product: GetFilteredProductsOutput["data"][0];
 }) => {
   const router = useRouter();
+  const queryContext = api.useUtils();
+
+  const form = useForm<z.infer<typeof productPricingFormDefaultSchema>>({
+    resolver: zodResolver(productPricingFormDefaultSchema),
+    defaultValues: {
+      id: product.id,
+      defaultPrice:
+        product.attributes.defaultPrice === null
+          ? ""
+          : product.attributes.defaultPrice.toString(),
+    },
+  });
+
+  const updateProductDefaultPriceMutation =
+    api.product.updateProductDefaultPrice.useMutation({
+      onSuccess: ({ data }) => {
+        toast.success(
+          data.attributes.defaultPrice !== null
+            ? `Set price to $${data.attributes.defaultPrice.toFixed(2)}`
+            : "Removed price",
+          {
+            position: "top-right",
+          },
+        );
+        queryContext.product.getFilteredProducts.invalidate();
+        form.reset({
+          id: data.id,
+          defaultPrice:
+            data.attributes.defaultPrice !== null
+              ? data.attributes.defaultPrice.toString()
+              : "",
+        });
+      },
+    });
+
+  const onSubmit: SubmitHandler<
+    z.infer<typeof productPricingFormDefaultSchema>
+  > = (data) => {
+    const priceInFloat = parseFloat(data.defaultPrice);
+    updateProductDefaultPriceMutation.mutate({
+      productId: product.id,
+      defaultPrice: isNaN(priceInFloat) ? undefined : priceInFloat,
+    });
+  };
+
+  const onError: SubmitErrorHandler<
+    z.infer<typeof productPricingFormDefaultSchema>
+  > = (error) => {
+    console.error(error);
+  };
 
   return (
     <li
-      key={product.productId}
+      key={product.id}
       className="flex flex-col rounded border bg-white shadow-sm"
     >
       <div className="flex w-full justify-between px-3 py-2 text-sm">
         <span className="flex items-center font-medium text-gray-600">
           <Hash className="h-3 w-3" />
-          {product.sku}
+          {product.attributes.sku}
         </span>
-        <Badge>{product.category}</Badge>
+        <Badge>
+          {product.attributes.category.data?.attributes.category ??
+            "No category"}
+        </Badge>
       </div>
       <Separator />
       <div className="mt-1 flex w-full items-center px-3 pb-2 pt-1 text-sm">
         <div className="flex-grow">
           <p className="w-72 truncate text-base font-semibold">
-            {product.name}
+            {product.attributes.name}
           </p>
-          <p className="flex items-center text-sm">
+
+          <div className="flex items-center">
             <span>By</span>
             <Dot className="h-3.5 w-3.5" />
-            <span className="font-medium text-indigo-700">{product.brand}</span>
-          </p>
+            <p className="flex items-center text-sm">
+              <span className="font-medium text-indigo-700">
+                {product.attributes.brand.data?.attributes.brand ?? "No brand"}
+              </span>
+            </p>
+            <Dot className="h-3.5 w-3.5" />
+            <div className="mt-0.5 flex items-center text-sm">
+              <Sheet
+                onOpenChange={(open) => {
+                  open && form.reset();
+                }}
+              >
+                {updateProductDefaultPriceMutation.isPending ? (
+                  <Skeleton className="h-5 w-16" />
+                ) : (
+                  <SheetTrigger
+                    disabled={updateProductDefaultPriceMutation.isPending}
+                  >
+                    {
+                      <Badge variant={"outline"} className="shadow">
+                        {product.attributes.defaultPrice === null
+                          ? "Set price"
+                          : `$${product.attributes.defaultPrice.toFixed(2)}`}
+                      </Badge>
+                    }
+                  </SheetTrigger>
+                )}
+
+                <SheetContent side="top">
+                  <SheetHeader>
+                    <SheetTitle>Product Default Pricing</SheetTitle>
+                    <SheetDescription>
+                      Set a default price for this product that will
+                      automatically apply to orders
+                    </SheetDescription>
+                  </SheetHeader>
+                  {/* Product preview */}
+                  <div className="mt-4 flex flex-col rounded border bg-white shadow">
+                    <div className="flex w-full justify-between px-3 py-2 text-sm">
+                      <span className="flex items-center font-medium text-gray-600">
+                        <Hash className="h-3 w-3" />
+                        {product.attributes.sku}
+                      </span>
+                      <Badge>
+                        {product.attributes.category.data?.attributes
+                          .category ?? "No category"}
+                      </Badge>
+                    </div>
+                    <Separator />
+                    <div className="mt-1 flex w-full items-center px-3 pb-2 pt-1 text-sm">
+                      <div className="flex-grow">
+                        <p className="w-72 truncate text-base font-semibold">
+                          {product.attributes.name}
+                        </p>
+                        <p className="flex items-center text-sm">
+                          <span>By</span>
+                          <Dot className="h-3.5 w-3.5" />
+                          <span className="font-medium text-indigo-700">
+                            {product.attributes.brand.data?.attributes.brand ??
+                              "No brand"}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <Form {...form}>
+                    <div className="grid gap-4 py-4">
+                      <FormField
+                        control={form.control}
+                        name="defaultPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                              <FormLabel className="text-right">
+                                Price ($)
+                              </FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="col-span-3"
+                                  type="number"
+                                  inputMode="decimal"
+                                  placeholder="Enter a price"
+                                  min={0}
+                                  {...field}
+                                />
+                              </FormControl>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </Form>
+                  <SheetFooter>
+                    <SheetClose asChild>
+                      <Button
+                        onClick={() => {
+                          form.handleSubmit(onSubmit, () => onError)();
+                        }}
+                      >
+                        Save price
+                      </Button>
+                    </SheetClose>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
         </div>
 
         <Button
           size="icon"
           variant="outline"
           onClick={() => {
-            router.push(`/products/${product.productId}`);
+            router.push(`/products/${product.id}`);
           }}
         >
           <ChevronRight className="h-4 w-4" />
@@ -430,7 +605,8 @@ const ProductCardOrder = ({
           category: product.category,
           name: product.name,
           sku: product.sku,
-          price: customerProductPriceQuery.data?.attributes.price ?? 10, // TODO: Replace with default product price when implemented
+          price:
+            customerProductPriceQuery.data?.attributes.price ?? product.price,
           quantity: 1,
         },
       ],
@@ -476,19 +652,18 @@ const ProductCardOrder = ({
                 {product.brand}
               </span>
             </p>
+            <Dot className="h-3.5 w-3.5" />
 
-            {/* Only render pricing if a saved customer is selected */}
-            {customerId && <Dot className="h-3.5 w-3.5" />}
+            {/* Render pricing based on customer selected */}
             {customerId &&
               match(customerProductPriceQuery)
                 .with({ status: "success" }, ({ data }) => (
                   <Badge
-                    variant={"outline"}
-                    className={cn(!data?.attributes.price && "shadow")}
+                    variant={data?.attributes.price ? "outline" : "secondary"}
                   >
                     {data?.attributes.price
                       ? `$${data.attributes.price.toFixed(2)}`
-                      : "No price"}
+                      : `$${product.price}`}
                   </Badge>
                 ))
                 .with({ status: "pending" }, () => (
@@ -496,6 +671,9 @@ const ProductCardOrder = ({
                 ))
                 .with({ status: "error" }, () => <>Error fetching price</>)
                 .exhaustive()}
+
+            {/* Render default prices */}
+            {!customerId && <Badge variant={"outline"}>${product.price}</Badge>}
           </div>
         </div>
 

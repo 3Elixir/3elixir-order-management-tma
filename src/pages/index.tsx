@@ -29,6 +29,14 @@ export default function Home() {
         products
       </Link>
       <Link
+        href="/products/create"
+        className={buttonVariants({
+          variant: "link",
+        })}
+      >
+        Create product
+      </Link>
+      <Link
         href="/customers"
         className={buttonVariants({
           variant: "link",

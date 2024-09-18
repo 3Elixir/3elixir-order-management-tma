@@ -95,6 +95,7 @@ const ProductDetailsMain = ({
       sku,
       name: productName,
       brand: productBrand,
+      defaultPrice: productDefaultPrice,
       category: productCategory,
       createdAt,
       updatedAt,
@@ -192,6 +193,11 @@ const ProductDetailsMain = ({
               <strong className="font-medium">🏷️ Product Name</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">{productName}</strong>
+            </p>
+            <p className="flex flex-wrap items-center text-sm">
+              <strong className="font-medium">💵 Product Price</strong>
+              <Dot className="h-3.5 w-3.5" />
+              <strong className="font-light">${productDefaultPrice}</strong>
             </p>
             <p className="flex flex-wrap items-center text-sm">
               <strong className="font-medium">🥃 Brand</strong>
@@ -292,6 +298,7 @@ const ProductDetailsFooter = ({
     updateProductForm({
       sku: details.attributes.sku,
       name: details.attributes.name,
+      defaultPrice: details.attributes.defaultPrice ?? undefined,
       brand: {
         id: details.attributes.brand.data?.id.toString() ?? "0",
         name: details.attributes.brand.data?.attributes.brand ?? "no brand",

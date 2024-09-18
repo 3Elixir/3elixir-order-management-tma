@@ -39,6 +39,7 @@ const outputSchema = z.object({
         createdAt: z.string(),
         updatedAt: z.string(),
         publishedAt: z.string(),
+        defaultPrice: z.number().nullable(),
         category: z.object({
           data: z
             .object({

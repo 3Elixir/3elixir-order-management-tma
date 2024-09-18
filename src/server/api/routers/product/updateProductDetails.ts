@@ -10,12 +10,13 @@ const inputSchema = productFormSchema.extend({
 export const updateProductDetails = publicProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
-    const { productId, name, sku, brand, category } = input;
+    const { productId, name, sku, brand, category, defaultPrice } = input;
 
     const payload = {
       data: {
         name,
         sku,
+        defaultPrice,
         brand: {
           set: isNaN(parseInt(brand.id)) ? [] : [parseInt(brand.id)],
         },

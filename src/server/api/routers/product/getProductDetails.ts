@@ -13,6 +13,7 @@ const outputSchema = z.object({
     attributes: z.object({
       sku: z.string(),
       name: z.string(),
+      defaultPrice: z.number().nullable(),
       brand: z.object({
         data: z
           .object({

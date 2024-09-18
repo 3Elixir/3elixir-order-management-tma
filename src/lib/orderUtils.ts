@@ -36,10 +36,10 @@ export function calculateOrderGrandTotal(
   const orderTotal = calculateTotalOrderAmount(products, deliveryFee);
 
   if (excludeGst) {
-    return orderTotal - calculateGstCost(orderTotal, gstPercentage);
+    return orderTotal;
   }
 
-  return orderTotal;
+  return orderTotal + calculateGstCost(orderTotal, gstPercentage);
 }
 
 /**
@@ -55,13 +55,13 @@ export function calculateOrderGrandTotal(
  * const gstPercentage = 0.09;
  *
  * const gstCost = calculateGstCost(amount, gstPercentage);
- * // gstCost will be 8.26
+ * // gstCost will be 9
  */
 export const calculateGstCost = (
   amount: number,
   gstPercentage: number = DEFAULT_GST_PERCENTAGE,
 ) => {
-  return amount * (gstPercentage / (1 + gstPercentage));
+  return amount * gstPercentage;
 };
 
 /**

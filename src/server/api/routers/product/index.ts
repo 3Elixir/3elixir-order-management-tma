@@ -7,6 +7,7 @@ import { createProduct } from "./createProduct";
 import { deleteProduct } from "./deleteProduct";
 import { getProductDetails } from "./getProductDetails";
 import { updateProductDetails } from "./updateProductDetails";
+import { updateProductDefaultPrice } from "./updateProductDefaultPrice";
 
 export const productRouter = createTRPCRouter({
   getFilteredProducts,
@@ -17,4 +18,5 @@ export const productRouter = createTRPCRouter({
   createProduct,
   deleteProduct,
   updateProductDetails,
+  updateProductDefaultPrice,
 });
