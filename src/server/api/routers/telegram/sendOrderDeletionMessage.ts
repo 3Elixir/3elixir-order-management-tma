@@ -79,7 +79,7 @@ ${orderProducts
   .trim()}
 
 ~\\- Delivery fee: $${escapeSpecialChars((deliveryFee ?? 0).toFixed(2))}~
-${excludeGst ? "~\\- GST excluded~" : `~\\- GST included \\($${gstCost}\\)~`}
+${excludeGst ? "~\\- GST excluded~" : `~\\- GST included \\($${escapeSpecialChars(gstCost.toFixed(2))}\\)~`}
 ~*Total price*: __$${escapeSpecialChars(
       calculateOrderGrandTotal(
         orderProducts,
