@@ -316,6 +316,7 @@ const CustomerDetailsFooter = ({
     //Set customer form state values via the store to pre-fill the form
     updateCustomerForm({
       customerName: details.attributes.customerName,
+      attentionTo: details.attributes.attentionTo ?? "",
       customerContact: details.attributes.customerContact,
       customerAddress: details.attributes.customerAddress,
       salesChannel: {
