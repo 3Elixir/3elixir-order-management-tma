@@ -57,6 +57,7 @@ import { type PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridg
 import { Button } from "~/components/ui/button";
 import {
   CalendarIcon,
+  CopyPlus,
   PlusCircle,
   SquareArrowOutUpRight,
   Trash2,
@@ -1023,7 +1024,11 @@ const OrderFormProductFields = ({
   const router = useRouter();
 
   const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
-  const { fields: orderProducts, remove: removeOrderProduct } = useFieldArray({
+  const {
+    fields: orderProducts,
+    remove: removeOrderProduct,
+    insert: insertOrderProduct,
+  } = useFieldArray({
     control: form.control,
     name: "orderProducts",
   });
@@ -1034,6 +1039,22 @@ const OrderFormProductFields = ({
       orderProducts: orderProducts.filter(
         (orderProduct) => orderProduct.productId !== productId,
       ),
+    });
+  };
+
+  const onDuplicateOrderProduct = (index: number) => {
+    const orderProduct = orderProducts[index];
+    if (!orderProduct) return;
+
+    // Create a new order product with the same values
+    const newOrderProduct = {
+      ...orderProduct,
+      quantity: 1, // Reset quantity to 1 for the duplicated product
+    };
+
+    insertOrderProduct(index + 1, newOrderProduct);
+    updateOrderForm({
+      orderProducts: [...orderProducts, newOrderProduct],
     });
   };
 
@@ -1065,7 +1086,7 @@ const OrderFormProductFields = ({
                   </TableHeader>
                   <TableBody>
                     {orderProducts.map((orderProduct, index) => (
-                      <TableRow key={orderProduct.productId}>
+                      <TableRow key={`${orderProduct.productId}-${index}`}>
                         <TableCell className="font-semibold">
                           {orderProduct.name}
                         </TableCell>
@@ -1111,19 +1132,34 @@ const OrderFormProductFields = ({
                           />
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="gap-1"
-                            onClick={() =>
-                              onRemoveOrderProduct(
-                                index,
-                                orderProduct.productId,
-                              )
-                            }
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="flex justify-center gap-x-2">
+                            {/* Delete button */}
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              className="gap-1"
+                              onClick={() =>
+                                onRemoveOrderProduct(
+                                  index,
+                                  orderProduct.productId,
+                                )
+                              }
+                              type="button"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+
+                            {/* Duplciate button */}
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => onDuplicateOrderProduct(index)}
+                              type="button"
+                            >
+                              <CopyPlus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1189,6 +1225,7 @@ const OrderFormSummaryFields = ({
                 type="number"
                 placeholder="Enter the delivery fee"
                 min={0}
+                inputMode="decimal"
                 onChange={(e) => {
                   const value = parseFloat(e.target.value);
                   onChange(value);
