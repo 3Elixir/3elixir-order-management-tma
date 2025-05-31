@@ -192,6 +192,13 @@ const CustomerDetailsMain = ({
               </strong>
             </p>
             <p className="flex flex-wrap items-center text-sm">
+              <strong className="font-medium">💁 Attention To</strong>
+              <Dot className="h-3.5 w-3.5" />
+              <strong className="font-light">
+                {details.attributes.attentionTo || "N/A"}
+              </strong>
+            </p>
+            <p className="flex flex-wrap items-center text-sm">
               <strong className="font-medium">📞 Customer Contact</strong>
               <Dot className="h-3.5 w-3.5" />
               <strong className="font-light">
