@@ -907,6 +907,7 @@ Payment details
   const onEditOrder = () => {
     // Set order form state values via store to prefill the form
     updateOrderForm({
+      customerId: details.attributes.customer.data?.id,
       customerName: details.attributes.customerName,
       hasAttentionTo: !!details.attributes.attentionTo,
       attentionTo: details.attributes.attentionTo ?? "",
