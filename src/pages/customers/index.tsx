@@ -232,6 +232,8 @@ const CustomerCard = ({
     // Prefill order form with selected customer's details
     updateOrderForm({
       customerId: customer.id,
+      attentionTo: customer.attributes.attentionTo ?? "",
+      hasAttentionTo: !!customer.attributes.attentionTo,
       customerName: customer.attributes.customerName,
       customerContact: customer.attributes.customerContact,
       customerAddress: customer.attributes.customerAddress,
