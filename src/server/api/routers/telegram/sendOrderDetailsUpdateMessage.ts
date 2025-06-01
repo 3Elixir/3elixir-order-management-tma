@@ -9,13 +9,17 @@ import {
   calculateOrderGrandTotal,
   calculateTotalOrderAmount,
 } from "~/lib/orderUtils";
+import { z } from "zod";
 
-const inputSchema = updateOrderDetailsResponseSchema;
+const inputSchema = updateOrderDetailsResponseSchema.extend({
+  tmaUserName: z.string()
+});
 
 export const sendOrderDetailsUpdateMessage = publicProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
     const {
+      tmaUserName,
       data: {
         id: orderId,
         attributes: {
@@ -65,6 +69,7 @@ _Last updated: ${escapeSpecialChars(
         "dd/MM/yyyy - h:mm:ss a",
       ),
     )}_
+_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace('@', ''))})_
 
 __*1\\. Products included*__
 ${orderProducts
@@ -106,8 +111,9 @@ ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 
     // Construct the bump message
     const bumpMessage = `
 🚨📦*Order \\#${orderId} updated\\!*📦🚨
-
 ☝️View updated details☝️
+
+_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace('@', ''))})_
 `;
 
     // Try to update the main order details message in the channel

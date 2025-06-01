@@ -6,6 +6,7 @@ import {
   usePostEvent,
   usePopup,
   useClosingBehavior,
+  useInitData,
 } from "@tma.js/sdk-react";
 import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
 import { inferRouterOutputs } from "@trpc/server";
@@ -57,6 +58,7 @@ import { type PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridg
 import { Button } from "~/components/ui/button";
 import {
   CalendarIcon,
+  CopyPlus,
   PlusCircle,
   SquareArrowOutUpRight,
   Trash2,
@@ -85,7 +87,7 @@ import { useOrderForm } from "@stores/order-form/useOrderForm";
 import { Textarea } from "~/components/ui/textarea";
 import { DropDown } from "~/components/ui/dropdown";
 import { Switch } from "~/components/ui/switch";
-import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { AuthGuard, useAuth } from "~/lib/contexts/AuthProvider";
 import {
   calculateGstCost,
   calculateOrderGrandTotal,
@@ -184,6 +186,7 @@ const OrderEditForm = ({
   const tmaThemeParams = useThemeParams();
   const tmaPopup = usePopup();
   const tmaClosingBehavior = useClosingBehavior();
+  const { user: tmaUser } = useInitData() ?? {};
 
   const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
   const sendOrderDetailsUpdateMessageMutation =
@@ -206,7 +209,10 @@ const OrderEditForm = ({
             "no order status",
         });
       } else {
-        sendOrderDetailsUpdateMessageMutation.mutate(data);
+        sendOrderDetailsUpdateMessageMutation.mutate({
+          ...data,
+          tmaUserName: tmaUser?.username ?? "Unknown User",
+        });
       }
     },
     onSettled: () => {
@@ -1023,7 +1029,11 @@ const OrderFormProductFields = ({
   const router = useRouter();
 
   const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
-  const { fields: orderProducts, remove: removeOrderProduct } = useFieldArray({
+  const {
+    fields: orderProducts,
+    remove: removeOrderProduct,
+    insert: insertOrderProduct,
+  } = useFieldArray({
     control: form.control,
     name: "orderProducts",
   });
@@ -1034,6 +1044,22 @@ const OrderFormProductFields = ({
       orderProducts: orderProducts.filter(
         (orderProduct) => orderProduct.productId !== productId,
       ),
+    });
+  };
+
+  const onDuplicateOrderProduct = (index: number) => {
+    const orderProduct = orderProducts[index];
+    if (!orderProduct) return;
+
+    // Create a new order product with the same values
+    const newOrderProduct = {
+      ...orderProduct,
+      quantity: 1, // Reset quantity to 1 for the duplicated product
+    };
+
+    insertOrderProduct(index + 1, newOrderProduct);
+    updateOrderForm({
+      orderProducts: [...orderProducts, newOrderProduct],
     });
   };
 
@@ -1058,14 +1084,12 @@ const OrderFormProductFields = ({
                       <TableHead className="w-[100px]">Item</TableHead>
                       <TableHead className="w-[80px]">No (x)</TableHead>
                       <TableHead>Price ($)</TableHead>
-                      <TableHead>
-                        <p className="text-center">...</p>
-                      </TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {orderProducts.map((orderProduct, index) => (
-                      <TableRow key={orderProduct.productId}>
+                      <TableRow key={`${orderProduct.productId}-${index}`}>
                         <TableCell className="font-semibold">
                           {orderProduct.name}
                         </TableCell>
@@ -1078,7 +1102,7 @@ const OrderFormProductFields = ({
                                 <Label className="sr-only">Quantity</Label>
                                 <Input
                                   type="number"
-                                  className="text-base"
+                                  className="text-center text-base"
                                   inputMode="numeric"
                                   pattern="[0-9]*"
                                   onChange={(e) =>
@@ -1099,7 +1123,7 @@ const OrderFormProductFields = ({
                                 <Label className="sr-only">Price</Label>
                                 <Input
                                   type="number"
-                                  className="text-base"
+                                  className="text-center text-base"
                                   inputMode="decimal"
                                   onChange={(e) =>
                                     onChange(parseFloat(e.target.value))
@@ -1111,19 +1135,34 @@ const OrderFormProductFields = ({
                           />
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="gap-1"
-                            onClick={() =>
-                              onRemoveOrderProduct(
-                                index,
-                                orderProduct.productId,
-                              )
-                            }
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="flex justify-center gap-x-2">
+                            {/* Delete button */}
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              className="gap-1"
+                              onClick={() =>
+                                onRemoveOrderProduct(
+                                  index,
+                                  orderProduct.productId,
+                                )
+                              }
+                              type="button"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+
+                            {/* Duplciate button */}
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => onDuplicateOrderProduct(index)}
+                              type="button"
+                            >
+                              <CopyPlus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -1189,6 +1228,7 @@ const OrderFormSummaryFields = ({
                 type="number"
                 placeholder="Enter the delivery fee"
                 min={0}
+                inputMode="decimal"
                 onChange={(e) => {
                   const value = parseFloat(e.target.value);
                   onChange(value);

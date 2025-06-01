@@ -46,6 +46,8 @@ import {
 import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
 import { useEffect } from "react";
 import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
+import { Label } from "~/components/ui/label";
+import { Switch } from "~/components/ui/switch";
 
 const CreateCustomerPage: NextPageWithLayout = () => {
   return (
@@ -238,6 +240,30 @@ const CustomerForm = () => {
                   <Input className="text-base" placeholder="Bryan" {...field} />
                 </FormControl>
                 <FormDescription>Name of customer</FormDescription>
+              </FormItem>
+            )}
+          />
+          
+          {/* Attention to */}
+          <FormField
+            control={form.control}
+            name="attentionTo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center justify-between">
+                  <span>Attention To</span>
+                  <FormMessage />
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    className="text-base"
+                    placeholder="Accounts Payable"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Intended recipient of the correspondence
+                </FormDescription>
               </FormItem>
             )}
           />

@@ -257,6 +257,30 @@ const CustomerForm = () => {
             )}
           />
 
+          {/* Attention to */}
+          <FormField
+            control={form.control}
+            name="attentionTo"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="flex items-center justify-between">
+                  <span>Attention To</span>
+                  <FormMessage />
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    className="text-base"
+                    placeholder="Accounts Payable"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Intended recipient of the correspondence
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+
           {/* Customer contact */}
           <FormField
             control={form.control}

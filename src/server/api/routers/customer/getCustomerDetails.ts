@@ -13,6 +13,7 @@ const outputSchema = z.object({
     id: z.number(),
     attributes: z.object({
       customerName: z.string(),
+      attentionTo: z.string().nullable(),
       customerContact: z.string(),
       customerAddress: z.string(),
       createdAt: z.string(),
