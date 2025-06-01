@@ -6,6 +6,7 @@ import {
   usePostEvent,
   usePopup,
   useClosingBehavior,
+  useInitData,
 } from "@tma.js/sdk-react";
 import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
 import { inferRouterOutputs } from "@trpc/server";
@@ -86,7 +87,7 @@ import { useOrderForm } from "@stores/order-form/useOrderForm";
 import { Textarea } from "~/components/ui/textarea";
 import { DropDown } from "~/components/ui/dropdown";
 import { Switch } from "~/components/ui/switch";
-import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { AuthGuard, useAuth } from "~/lib/contexts/AuthProvider";
 import {
   calculateGstCost,
   calculateOrderGrandTotal,
@@ -185,6 +186,7 @@ const OrderEditForm = ({
   const tmaThemeParams = useThemeParams();
   const tmaPopup = usePopup();
   const tmaClosingBehavior = useClosingBehavior();
+  const { user: tmaUser } = useInitData() ?? {};
 
   const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
   const sendOrderDetailsUpdateMessageMutation =
@@ -207,7 +209,10 @@ const OrderEditForm = ({
             "no order status",
         });
       } else {
-        sendOrderDetailsUpdateMessageMutation.mutate(data);
+        sendOrderDetailsUpdateMessageMutation.mutate({
+          ...data,
+          tmaUserName: tmaUser?.username ?? "Unknown User",
+        });
       }
     },
     onSettled: () => {
@@ -1079,9 +1084,7 @@ const OrderFormProductFields = ({
                       <TableHead className="w-[100px]">Item</TableHead>
                       <TableHead className="w-[80px]">No (x)</TableHead>
                       <TableHead>Price ($)</TableHead>
-                      <TableHead>
-                        <p className="text-center">...</p>
-                      </TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1099,7 +1102,7 @@ const OrderFormProductFields = ({
                                 <Label className="sr-only">Quantity</Label>
                                 <Input
                                   type="number"
-                                  className="text-base"
+                                  className="text-center text-base"
                                   inputMode="numeric"
                                   pattern="[0-9]*"
                                   onChange={(e) =>
@@ -1120,7 +1123,7 @@ const OrderFormProductFields = ({
                                 <Label className="sr-only">Price</Label>
                                 <Input
                                   type="number"
-                                  className="text-base"
+                                  className="text-center text-base"
                                   inputMode="decimal"
                                   onChange={(e) =>
                                     onChange(parseFloat(e.target.value))
