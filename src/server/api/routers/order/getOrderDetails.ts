@@ -6,7 +6,7 @@ import { publicProcedure } from "~/server/api/trpc";
 const inputSchema = z.object({
   orderId: z.string(),
 });
-const outputSchema = z.object({
+export const outputSchema = z.object({
   data: z.object({
     id: z.number(),
     attributes: z.object({

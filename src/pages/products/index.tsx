@@ -688,9 +688,7 @@ const ProductCardOrder = ({
           </Button>
         ) : (
           <Button
-            disabled={
-              customerProductPriceQuery.isPending && customerId !== null
-            }
+            disabled={customerProductPriceQuery.isLoading}
             size="icon"
             variant="outline"
             onClick={() => onAddToOrder()}

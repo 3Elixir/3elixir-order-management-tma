@@ -211,6 +211,7 @@ const OrderEditForm = ({
       } else {
         sendOrderDetailsUpdateMessageMutation.mutate({
           ...data,
+          prevData: orderDetails,
           tmaUserName: tmaUser?.username ?? "Unknown User",
         });
       }
@@ -1081,9 +1082,9 @@ const OrderFormProductFields = ({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[100px]">Item</TableHead>
-                      <TableHead className="w-[80px]">No (x)</TableHead>
-                      <TableHead>Price ($)</TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead className="min-w-16">No (x)</TableHead>
+                      <TableHead className="min-w-24">Price ($)</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1135,7 +1136,7 @@ const OrderFormProductFields = ({
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="flex justify-center gap-x-2">
+                          <div className="flex justify-center gap-x-1">
                             {/* Delete button */}
                             <Button
                               size="icon"

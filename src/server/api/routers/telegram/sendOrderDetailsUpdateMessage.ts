@@ -1,5 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
-import { Telegram, TelegramError } from "telegraf";
+import { Markup, Telegram, TelegramError } from "telegraf";
 import { env } from "~/env";
 import { escapeSpecialChars } from "~/lib/utils";
 import { publicProcedure } from "~/server/api/trpc";
@@ -10,9 +10,16 @@ import {
   calculateTotalOrderAmount,
 } from "~/lib/orderUtils";
 import { z } from "zod";
+import { outputSchema as getOrderDetailsResponseSchema } from "~/server/api/routers/order/getOrderDetails";
+import {
+  getOrderDifferenceMessage,
+  getOrderDifferences,
+} from "../../../../lib/orderDiff";
+import { ReplyParameters } from "node_modules/telegraf/typings/core/types/typegram";
 
 const inputSchema = updateOrderDetailsResponseSchema.extend({
-  tmaUserName: z.string()
+  tmaUserName: z.string(),
+  prevData: getOrderDetailsResponseSchema.shape.data,
 });
 
 export const sendOrderDetailsUpdateMessage = publicProcedure
@@ -20,6 +27,7 @@ export const sendOrderDetailsUpdateMessage = publicProcedure
   .mutation(async ({ input }) => {
     const {
       tmaUserName,
+      prevData,
       data: {
         id: orderId,
         attributes: {
@@ -69,7 +77,7 @@ _Last updated: ${escapeSpecialChars(
         "dd/MM/yyyy - h:mm:ss a",
       ),
     )}_
-_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace('@', ''))})_
+_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace("@", ""))})_
 
 __*1\\. Products included*__
 ${orderProducts
@@ -108,12 +116,21 @@ __*Payment details*__
 ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}
 `;
 
+    const orderDifferences = getOrderDifferences(
+      prevData.attributes,
+      input.data.attributes,
+      ["updatedAt", "telegramMessage", "customer"],
+    );
+    const orderDifferenceMessage = getOrderDifferenceMessage(orderDifferences);
+
     // Construct the bump message
     const bumpMessage = `
 🚨📦*Order \\#${orderId} updated\\!*📦🚨
 ☝️View updated details☝️
 
-_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace('@', ''))})_
+_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace("@", ""))})_
+
+${orderDifferenceMessage ? orderDifferenceMessage : ""}
 `;
 
     // Try to update the main order details message in the channel
@@ -139,17 +156,29 @@ _Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialCh
 
     // Send a message bumping the order to notify the channel that the order has been updated
     try {
-      const reply_parameters = telegramMessage
+      const reply_parameters: ReplyParameters | undefined = telegramMessage
         ? {
             message_id: telegramMessage.message_id,
           }
         : undefined;
+
+      const miniAppUrl = new URL("https://t.me/threeelixirdevbot");
+      miniAppUrl.searchParams.set("startapp", btoa(`/orders/${orderId}`));
+
+      const { reply_markup } = Markup.inlineKeyboard([
+        Markup.button.url("View Order in TMA", miniAppUrl.toString()),
+      ]);
+
       const message = await telegram.sendMessage(
         env.TELEGRAM_CHANNEL_ID,
         editMessageSuccess ? bumpMessage : orderDetailsMessage, // Send full order details if edit message failed
         {
           reply_parameters: editMessageSuccess ? reply_parameters : undefined, // Only reply to original message if edit message succeeded
           parse_mode: "MarkdownV2",
+          link_preview_options: {
+            is_disabled: true, // Disable link previews for the message
+          },
+          reply_markup,
         },
       );
 

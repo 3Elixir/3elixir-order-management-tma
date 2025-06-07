@@ -249,9 +249,9 @@ const OrderProductList = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">Item</TableHead>
-              <TableHead className="w-[80px]">No (x)</TableHead>
-              <TableHead>Price ($)</TableHead>
+              <TableHead>Item</TableHead>
+              <TableHead className="min-w-16">No (x)</TableHead>
+              <TableHead className="min-w-24">Price ($)</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -300,7 +300,7 @@ const OrderProductList = ({
                   />
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-1">
                     {/* Delete button */}
                     <Button
                       size="icon"
