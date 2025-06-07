@@ -1,5 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
-import { Telegram, TelegramError } from "telegraf";
+import { Markup, Telegram, TelegramError } from "telegraf";
 import { env } from "~/env";
 import { escapeSpecialChars } from "~/lib/utils";
 import { publicProcedure } from "~/server/api/trpc";
@@ -11,7 +11,11 @@ import {
 } from "~/lib/orderUtils";
 import { z } from "zod";
 import { outputSchema as getOrderDetailsResponseSchema } from "~/server/api/routers/order/getOrderDetails";
-import { getOrderDifferenceMessage, getOrderDifferences } from "../../../../lib/orderDiff";
+import {
+  getOrderDifferenceMessage,
+  getOrderDifferences,
+} from "../../../../lib/orderDiff";
+import { ReplyParameters } from "node_modules/telegraf/typings/core/types/typegram";
 
 const inputSchema = updateOrderDetailsResponseSchema.extend({
   tmaUserName: z.string(),
@@ -152,11 +156,19 @@ ${orderDifferenceMessage ? orderDifferenceMessage : ""}
 
     // Send a message bumping the order to notify the channel that the order has been updated
     try {
-      const reply_parameters = telegramMessage
+      const reply_parameters: ReplyParameters | undefined = telegramMessage
         ? {
             message_id: telegramMessage.message_id,
           }
         : undefined;
+
+      const miniAppUrl = new URL("https://t.me/threeelixirdevbot");
+      miniAppUrl.searchParams.set("startapp", btoa(`/orders/${orderId}`));
+
+      const { reply_markup } = Markup.inlineKeyboard([
+        Markup.button.url("View Order in TMA", miniAppUrl.toString()),
+      ]);
+
       const message = await telegram.sendMessage(
         env.TELEGRAM_CHANNEL_ID,
         editMessageSuccess ? bumpMessage : orderDetailsMessage, // Send full order details if edit message failed
@@ -166,6 +178,7 @@ ${orderDifferenceMessage ? orderDifferenceMessage : ""}
           link_preview_options: {
             is_disabled: true, // Disable link previews for the message
           },
+          reply_markup,
         },
       );
 
