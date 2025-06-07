@@ -204,6 +204,7 @@ const OrderEditForm = ({
       ) {
         sendOrderCancelledUpdateMessageMutation.mutate({
           ...data,
+          tmaUserName: tmaUser?.username ?? "Unknown User",
           prevStatusName:
             orderDetails.attributes.order_status.data?.attributes.orderStatus ??
             "no order status",

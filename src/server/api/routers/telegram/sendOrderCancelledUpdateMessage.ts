@@ -12,6 +12,7 @@ import {
 } from "~/lib/orderUtils";
 
 const inputSchema = outputSchema.extend({
+  tmaUserName: z.string(),
   prevStatusName: z.string(),
 });
 
@@ -19,6 +20,7 @@ export const sendOrderCancelledUpdateMessage = publicProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
     const {
+      tmaUserName,
       prevStatusName,
       data: {
         id: orderId,
@@ -69,7 +71,8 @@ _Last updated: ${escapeSpecialChars(
         "dd/MM/yyyy - h:mm:ss a",
       ),
     )}_
-
+_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace("@", ""))})_
+  
 ~__*1\\. Products included*__~
 ${orderProducts
   .map(

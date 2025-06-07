@@ -177,6 +177,7 @@ const OrderDetailsMain = ({
       ) {
         sendStatusCancelledMutation.mutate({
           ...data,
+          tmaUserName: tmaInitData?.user?.username ?? "unknown",
           prevStatusName:
             orderStatus.data?.attributes.orderStatus ?? "no order status",
         });
