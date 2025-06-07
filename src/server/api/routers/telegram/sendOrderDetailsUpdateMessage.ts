@@ -154,6 +154,9 @@ ${orderDifferenceMessage ? orderDifferenceMessage : ""}
         orderDetailsMessage,
         {
           parse_mode: "MarkdownV2",
+          link_preview_options: {
+            is_disabled: true, // Disable link previews for the message
+          },
         },
       );
       editMessageSuccess = true;
