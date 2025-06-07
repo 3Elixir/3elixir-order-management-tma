@@ -110,7 +110,14 @@ __*2\\. Order details*__
 \\- Fulfilment datetime: 
 ${escapeSpecialChars(fulfilmentDatetimeString)}
 \\- Sales channel: ${escapeSpecialChars(salesChannel.data.attributes.salesChannel)}
-\\- Remarks: ${escapeSpecialChars(remarks)}
+\\- Sales agent(s): ${
+      salesAgents.data.length > 0
+        ? salesAgents.data
+            .map((agent) => escapeSpecialChars(agent.attributes.name))
+            .join(", ")
+        : "N/A"
+    }
+\\- Remarks: ${remarks.trim() ? escapeSpecialChars(remarks) : "N/A"}
 
 __*Payment details*__
 ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}
