@@ -199,6 +199,7 @@ const OrderDetailsMain = ({
     onSuccess: ({ data }) => {
       sendOrderDeletionMessageMutation.mutate({
         ...data,
+        tmaUserName: tmaInitData?.user?.username ?? "unknown",
         chatId: tmaInitData?.user?.id ?? 0,
         deletedOn: new Date(),
       });

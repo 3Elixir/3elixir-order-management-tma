@@ -134,6 +134,9 @@ ${excludeGst ? "~\\- GST excluded~" : `~\\- GST included \\($${escapeSpecialChar
         orderDetailsMessage,
         {
           parse_mode: "MarkdownV2",
+          link_preview_options: {
+            is_disabled: true, // Disable link previews for this message
+          },
         },
       );
       editMessageSuccess = true;

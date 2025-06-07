@@ -1,7 +1,10 @@
 import { inferRouterOutputs } from "@trpc/server";
 import { AppRouter } from "../server/api/root";
 import { escapeSpecialChars } from "~/lib/utils";
-import { compareOrderProducts, formatProductChanges } from "~/lib/orderProductsDiff";
+import {
+  compareOrderProducts,
+  formatProductChanges,
+} from "~/lib/orderProductsDiff";
 
 type GetOrderDetailsOutput =
   inferRouterOutputs<AppRouter>["order"]["getOrderDetails"]["data"]["attributes"];
@@ -205,6 +208,17 @@ const getOrderDifferenceMessage = (differences: GetOrderDifferenceOutput) => {
         const oldValue = value.oldValue === "true" ? "Yes" : "No";
         const newValue = value.newValue === "true" ? "Yes" : "No";
         return `*🔄 ${escapeSpecialChars(LABEL_MAP[key as keyof typeof LABEL_MAP])}*\n> ⏳ Old: ${oldValue}\n> ⭐ New: ${newValue}`;
+      }
+
+      // Special handling for attentionTo
+      if (key === "attentionTo") {
+        const oldValue = value.oldValue
+          ? `⏳ Old: ${escapeSpecialChars(value.oldValue)}`
+          : "⏳ Old: N/A";
+        const newValue = value.newValue
+          ? `⭐ New: ${escapeSpecialChars(value.newValue)}`
+          : "⭐ New: N/A";
+        return `*🔄 ${escapeSpecialChars(LABEL_MAP[key as keyof typeof LABEL_MAP])}*\n> ${oldValue}\n> ${newValue}`;
       }
 
       // Special handling for order products

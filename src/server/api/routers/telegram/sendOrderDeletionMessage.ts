@@ -13,6 +13,7 @@ import {
 
 const inputSchema = deleteOrderResponseSchema.extend({
   deletedOn: z.date(),
+  tmaUserName: z.string(),
   chatId: z.number(),
 });
 
@@ -22,6 +23,7 @@ export const sendOrderDeletionMessage = publicProcedure
     const {
       chatId,
       deletedOn,
+      tmaUserName,
       data: {
         id: orderId,
         attributes: {
@@ -64,6 +66,7 @@ export const sendOrderDeletionMessage = publicProcedure
 _Deleted on: ${escapeSpecialChars(
       formatInTimeZone(new Date(), "Asia/Singapore", "dd/MM/yyyy - h:mm:ss a"),
     )}_
+_Deleted by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace("@", ""))})_
 
 🗑️🗑️🗑️🗑️🗑️🗑️🗑️🗑️🗑️
 
@@ -98,7 +101,14 @@ ${excludeGst ? "~\\- GST excluded~" : `~\\- GST included \\($${escapeSpecialChar
 ~\\- Fulfilment datetime: ~
 ~${escapeSpecialChars(fulfilmentDatetimeString)}~
 ~\\- Sales channel: ${escapeSpecialChars(salesChannel.data.attributes.salesChannel)}~
-~\\- Remarks: ${escapeSpecialChars(remarks)}~
+~\\- Sales agent\\(s\\): ${
+      salesAgents.data.length > 0
+        ? salesAgents.data
+        .map((agent) => escapeSpecialChars(agent.attributes.name))
+        .join(", ")
+        : "N/A"
+    }~
+~\\- Remarks: ${escapeSpecialChars(remarks ?? "N/A")}~
 
 ~__*Payment details*__~
 ~${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}~
