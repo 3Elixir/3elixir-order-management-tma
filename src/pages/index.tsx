@@ -25,7 +25,7 @@ export default function Home() {
   // Use startParam to redirect if it exists, it should be a base64 encoded relative URL e.g. "/orders/1"
   if (startParam) {
     const parsedStartParam = atob(startParam);
-    router.replace(parsedStartParam);
+    router.replace(`${parsedStartParam}?launch=true`);
     return null;
   }
 
