@@ -169,11 +169,11 @@ ${orderDifferenceMessage ? orderDifferenceMessage : ""}
           }
         : undefined;
 
-      const miniAppUrl = new URL("https://t.me/threeelixirdevbot");
+      const miniAppUrl = new URL(env.NEXT_PUBLIC_TELEGRAM_MINI_APP_URL);
       miniAppUrl.searchParams.set("startapp", btoa(`/orders/${orderId}`));
 
       const { reply_markup } = Markup.inlineKeyboard([
-        Markup.button.url("View Order in TMA", miniAppUrl.toString()),
+        Markup.button.url("📝 View Order", miniAppUrl.toString()),
       ]);
 
       const message = await telegram.sendMessage(
