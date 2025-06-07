@@ -211,6 +211,7 @@ const OrderEditForm = ({
       } else {
         sendOrderDetailsUpdateMessageMutation.mutate({
           ...data,
+          prevData: orderDetails,
           tmaUserName: tmaUser?.username ?? "Unknown User",
         });
       }

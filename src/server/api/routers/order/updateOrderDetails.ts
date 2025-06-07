@@ -81,6 +81,14 @@ export const outputSchema = z.object({
           attributes: z.object({ fulfilmentMethod: z.string() }),
         }),
       }),
+      customer: z.object({
+        data: z
+          .object({
+            id: z.number(),
+            attributes: z.object({}),
+          })
+          .nullable(),
+      }),
     }),
   }),
   meta: z.object({}),
@@ -173,6 +181,9 @@ export const updateOrderDetails = publicProcedure
         },
         order_status: {
           fields: ["orderStatus"],
+        },
+        customer: {
+          fields: ["id"],
         },
       },
     };

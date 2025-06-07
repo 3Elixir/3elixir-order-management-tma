@@ -10,9 +10,12 @@ import {
   calculateTotalOrderAmount,
 } from "~/lib/orderUtils";
 import { z } from "zod";
+import { outputSchema as getOrderDetailsResponseSchema } from "~/server/api/routers/order/getOrderDetails";
+import { getOrderDifferenceMessage, getOrderDifferences } from "../order/utils";
 
 const inputSchema = updateOrderDetailsResponseSchema.extend({
-  tmaUserName: z.string()
+  tmaUserName: z.string(),
+  prevData: getOrderDetailsResponseSchema.shape.data,
 });
 
 export const sendOrderDetailsUpdateMessage = publicProcedure
@@ -20,6 +23,7 @@ export const sendOrderDetailsUpdateMessage = publicProcedure
   .mutation(async ({ input }) => {
     const {
       tmaUserName,
+      prevData,
       data: {
         id: orderId,
         attributes: {
@@ -69,7 +73,7 @@ _Last updated: ${escapeSpecialChars(
         "dd/MM/yyyy - h:mm:ss a",
       ),
     )}_
-_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace('@', ''))})_
+_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace("@", ""))})_
 
 __*1\\. Products included*__
 ${orderProducts
@@ -108,12 +112,21 @@ __*Payment details*__
 ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}
 `;
 
+    const orderDifferences = getOrderDifferences(
+      prevData.attributes,
+      input.data.attributes,
+      ["updatedAt", "telegramMessage", "customer"],
+    );
+    const orderDifferenceMessage = getOrderDifferenceMessage(orderDifferences);
+
     // Construct the bump message
     const bumpMessage = `
 🚨📦*Order \\#${orderId} updated\\!*📦🚨
 ☝️View updated details☝️
 
-_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace('@', ''))})_
+_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace("@", ""))})_
+
+${orderDifferenceMessage ? orderDifferenceMessage : ""}
 `;
 
     // Try to update the main order details message in the channel
@@ -150,6 +163,9 @@ _Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialCh
         {
           reply_parameters: editMessageSuccess ? reply_parameters : undefined, // Only reply to original message if edit message succeeded
           parse_mode: "MarkdownV2",
+          link_preview_options: {
+            is_disabled: true, // Disable link previews for the message
+          },
         },
       );
 
