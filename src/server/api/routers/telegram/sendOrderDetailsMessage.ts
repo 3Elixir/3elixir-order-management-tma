@@ -78,7 +78,7 @@ ${escapeSpecialChars(
   formatInTimeZone(fulfilmentStart, "Asia/Singapore", "dd/MM/yyyy - h:mm a"),
 )}${hasEnd ? `\nto ${escapeSpecialChars(formatInTimeZone(fulfilmentEnd, "Asia/Singapore", "dd/MM/yyyy - h:mm a"))}` : ""}
 \\- Sales channel: ${escapeSpecialChars(salesChannel.name)}
-\\- Sales agent(s): ${
+\\- Sales agent\\(s\\): ${
       salesAgents.length > 0
         ? salesAgents
             .map((agent) => escapeSpecialChars(agent.value.name))

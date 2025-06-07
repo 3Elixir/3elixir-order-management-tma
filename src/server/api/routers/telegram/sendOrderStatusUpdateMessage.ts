@@ -98,7 +98,7 @@ __*2\\. Order details*__
 \\- Fulfilment datetime: 
 ${escapeSpecialChars(fulfilmentDatetimeString)}
 \\- Sales channel: ${escapeSpecialChars(salesChannel.data.attributes.salesChannel)}
-\\- Sales agent(s): ${
+\\- Sales agent\\(s\\): ${
       salesAgents.data.length > 0
         ? salesAgents.data
             .map((agent) => escapeSpecialChars(agent.attributes.name))
