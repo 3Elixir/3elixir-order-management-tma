@@ -1,6 +1,7 @@
 import { inferRouterOutputs } from "@trpc/server";
-import { AppRouter } from "../../root";
+import { AppRouter } from "../server/api/root";
 import { escapeSpecialChars } from "~/lib/utils";
+import { compareOrderProducts, formatProductChanges } from "~/lib/orderProductsDiff";
 
 type GetOrderDetailsOutput =
   inferRouterOutputs<AppRouter>["order"]["getOrderDetails"]["data"]["attributes"];
@@ -128,34 +129,61 @@ const getOrderDifferences = (
   currentData: UpdateOrderDetailsOutput,
   excludedKeys: Array<keyof GetOrderDetailsOutput> = [],
 ): GetOrderDifferenceOutput => {
-  // Initialize all keys with null
-  const initialDifferences = Object.fromEntries(
-    typedObjectKeys(prevData).map((key) => [key, null]),
-  ) as GetOrderDifferenceOutput;
+  try {
+    // Initialize all keys with null
+    const initialDifferences = Object.fromEntries(
+      typedObjectKeys(prevData).map((key) => [key, null]),
+    ) as GetOrderDifferenceOutput;
 
-  // Process and update only the keys that have differences
-  return typedObjectKeys(prevData)
-    .filter((key) => !excludedKeys.includes(key) && key !== "orderProducts")
-    .reduce((acc, key) => {
-      const prevValue = prevData[key];
-      const currentValue = currentData[key];
+    // Process all keys that are not excluded
+    const result = typedObjectKeys(prevData)
+      .filter((key) => !excludedKeys.includes(key))
+      .reduce((acc, key) => {
+        try {
+          // Special handling for orderProducts
+          if (key === "orderProducts") {
+            const orderProductsDifference = getOrderProductsDifference(
+              prevData.orderProducts,
+              currentData.orderProducts,
+            );
+            if (orderProductsDifference) {
+              acc[key] = orderProductsDifference;
+            }
+            return acc;
+          }
 
-      const difference =
-        compareSimpleValues(prevValue, currentValue) ||
-        compareNestedObjects(prevValue, currentValue, key);
+          // Standard handling for other fields
+          const prevValue = prevData[key];
+          const currentValue = currentData[key];
 
-      if (difference) {
-        acc[key] = difference;
-      }
+          const difference =
+            compareSimpleValues(prevValue, currentValue) ||
+            compareNestedObjects(prevValue, currentValue, key);
 
-      return acc;
-    }, initialDifferences);
+          if (difference) {
+            acc[key] = difference;
+          }
+        } catch (error) {
+          console.error(`Error comparing key ${String(key)}:`, error);
+          // Skip this field if there's an error processing it
+        }
+        return acc;
+      }, initialDifferences);
+
+    return result;
+  } catch (error) {
+    console.error("Error in getOrderDifferences:", error);
+    // Return an empty difference object in case of error
+    return {} as GetOrderDifferenceOutput;
+  }
 };
 
 const getOrderDifferenceMessage = (differences: GetOrderDifferenceOutput) => {
   return Object.entries(differences)
     .map(([key, value]) => {
       if (value === null) return null; // Skip null values
+
+      // Special handling for dates
       if (key === "fulfilmentStart" || key === "fulfilmentEnd") {
         const oldValue = value.oldValue
           ? `⏳ Old: ${new Date(value.oldValue).toLocaleString("en-SG", {
@@ -171,12 +199,44 @@ const getOrderDifferenceMessage = (differences: GetOrderDifferenceOutput) => {
           : "⭐ New: N/A";
         return `*🔄 ${escapeSpecialChars(LABEL_MAP[key as keyof typeof LABEL_MAP])}*\n> ${oldValue}\n> ${newValue}`;
       }
+
+      // Special handling for boolean values
       if (key === "excludeGst") {
         const oldValue = value.oldValue === "true" ? "Yes" : "No";
         const newValue = value.newValue === "true" ? "Yes" : "No";
         return `*🔄 ${escapeSpecialChars(LABEL_MAP[key as keyof typeof LABEL_MAP])}*\n> ⏳ Old: ${oldValue}\n> ⭐ New: ${newValue}`;
       }
 
+      // Special handling for order products
+      if (key === "orderProducts") {
+        let result = `*🔄 ${escapeSpecialChars(LABEL_MAP[key as keyof typeof LABEL_MAP])}*\n`;
+
+        try {
+          // With the new algorithm, we only use the newValue field for the consolidated changes
+          if (value.newValue !== null) {
+            if (typeof value.newValue === "string") {
+              value.newValue.split("\n").forEach((line) => {
+                if (line.trim()) {
+                  result += `> ${escapeSpecialChars(line)}\n`;
+                } else {
+                  result += `>\n`; // Keep empty lines for formatting
+                }
+              });
+            } else {
+              result += `> Error: Could not parse product changes\n`;
+            }
+          } else {
+            result += `> No product changes detected\n`;
+          }
+        } catch (error) {
+          console.error("Error formatting order products difference:", error);
+          result += `> Error parsing product differences. Please check order manually.\n`;
+        }
+
+        return result;
+      }
+
+      // Default handling for other fields
       return `*🔄 ${escapeSpecialChars(LABEL_MAP[key as keyof typeof LABEL_MAP])}*
 > ${value.oldValue !== null ? `⏳ Old: ${escapeSpecialChars(value.oldValue)}` : ""}
 > ${value.newValue !== null ? `⭐ New: ${escapeSpecialChars(value.newValue)}` : ""}
@@ -186,9 +246,50 @@ const getOrderDifferenceMessage = (differences: GetOrderDifferenceOutput) => {
     .join("\n");
 };
 
+const getOrderProductsDifference = (
+  prevProducts: GetOrderDetailsOutput["orderProducts"],
+  currentProducts: UpdateOrderDetailsOutput["orderProducts"],
+): OrderDifference => {
+  try {
+    // Ensure we have arrays to work with and handle null/undefined gracefully
+    const prev = Array.isArray(prevProducts) ? prevProducts : [];
+    const current = Array.isArray(currentProducts) ? currentProducts : [];
+
+    // If both arrays are empty, there's no difference
+    if (prev.length === 0 && current.length === 0) {
+      return null;
+    }
+
+    // Use the new algorithm to compare products
+    const productChanges = compareOrderProducts(prev, current);
+
+    // If no changes were detected, return null
+    if (productChanges.length === 0) {
+      return null;
+    }
+
+    // Format the changes using the helper function
+    const formattedChanges = formatProductChanges(productChanges);
+
+    // Use the formatted changes for both old and new value fields
+    // This is a slightly different approach from before, showing a unified diff view
+    return {
+      oldValue: null,
+      newValue: formattedChanges,
+    };
+  } catch (error) {
+    console.error("Error in getOrderProductsDifference:", error);
+    return {
+      oldValue: "Error calculating product differences",
+      newValue: "Please check order products manually",
+    };
+  }
+};
+
 export {
   getOrderDifferences,
   getOrderDifferenceMessage,
+  getOrderProductsDifference,
   type GetOrderDifferenceOutput,
   type OrderDifference,
 };

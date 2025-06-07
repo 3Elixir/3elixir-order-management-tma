@@ -11,7 +11,7 @@ import {
 } from "~/lib/orderUtils";
 import { z } from "zod";
 import { outputSchema as getOrderDetailsResponseSchema } from "~/server/api/routers/order/getOrderDetails";
-import { getOrderDifferenceMessage, getOrderDifferences } from "../order/utils";
+import { getOrderDifferenceMessage, getOrderDifferences } from "../../../../lib/orderDiff";
 
 const inputSchema = updateOrderDetailsResponseSchema.extend({
   tmaUserName: z.string(),
