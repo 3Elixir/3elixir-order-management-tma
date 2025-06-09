@@ -17,6 +17,7 @@ import {
   PlusCircle,
   ListFilter,
 } from "lucide-react";
+import { env } from "~/env";
 
 export default function Home() {
   const { startParam } = useLaunchParams();
@@ -87,7 +88,7 @@ export default function Home() {
   ];
 
   return (
-    <main className="min-h-screen p-6 bg-gray-50 dark:bg-gray-900">
+    <main className="min-h-screen bg-gray-50 p-6 dark:bg-gray-900">
       {/* Header */}
       <div className="mb-10 text-center">
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -98,48 +99,50 @@ export default function Home() {
         </p>
 
         {startParam && (
-          <div className="mt-4 inline-block rounded-md bg-gray-100 dark:bg-gray-800 px-3 py-1 text-sm text-muted-foreground">
+          <div className="mt-4 inline-block rounded-md bg-gray-100 px-3 py-1 text-sm text-muted-foreground dark:bg-gray-800">
             <span>Start param: {startParam}</span>
           </div>
         )}
       </div>
 
       {/* Navigation Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {navigationItems.map((item) => (
-          <Card
-            key={item.title}
-            className={`overflow-hidden border-t-4 border-t-primary shadow-md hover:shadow-lg transition-all ${item.color}`}
-          >
-            <CardHeader className="flex flex-row items-center gap-4">
-              <div className="rounded-full bg-primary p-2 text-white">
-                {item.icon}
-              </div>
-              <div>
-                <CardTitle>{item.title}</CardTitle>
-                <CardDescription>{item.description}</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {item.links.map((link) => (
-                  <Button
-                    key={link.href}
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                    asChild
-                  >
-                    <Link href={link.href}>
-                      {link.icon}
-                      {link.label}
-                    </Link>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {env.NEXT_PUBLIC_FEATURE_NAVIGATION && (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {navigationItems.map((item) => (
+            <Card
+              key={item.title}
+              className={`overflow-hidden border-t-4 border-t-primary shadow-md transition-all hover:shadow-lg ${item.color}`}
+            >
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="rounded-full bg-primary p-2 text-white">
+                  {item.icon}
+                </div>
+                <div>
+                  <CardTitle>{item.title}</CardTitle>
+                  <CardDescription>{item.description}</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {item.links.map((link) => (
+                    <Button
+                      key={link.href}
+                      variant="outline"
+                      className="w-full justify-start text-left"
+                      asChild
+                    >
+                      <Link href={link.href}>
+                        {link.icon}
+                        {link.label}
+                      </Link>
+                    </Button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

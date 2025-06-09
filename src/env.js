@@ -27,6 +27,7 @@ export const env = createEnv({
     // NEXT_PUBLIC_CLIENTVAR: z.string(),
     NEXT_PUBLIC_STRAPI_API_URL: z.string().url(),
     NEXT_PUBLIC_TELEGRAM_MINI_APP_URL: z.string().url(),
+    NEXT_PUBLIC_FEATURE_NAVIGATION: z.boolean().default(false),
   },
 
   /**
@@ -43,6 +44,7 @@ export const env = createEnv({
     DIRECT_URL: process.env.DIRECT_URL,
     NEXT_PUBLIC_STRAPI_API_URL: process.env.NEXT_PUBLIC_STRAPI_API_URL,
     NEXT_PUBLIC_TELEGRAM_MINI_APP_URL: process.env.NEXT_PUBLIC_TELEGRAM_MINI_APP_URL,
+    NEXT_PUBLIC_FEATURE_NAVIGATION: process.env.NEXT_PUBLIC_FEATURE_NAVIGATION,
 
     // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
   },
