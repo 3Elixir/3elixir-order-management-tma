@@ -65,6 +65,7 @@ export const createOrder = publicProcedure
       deliveryFee,
       remarks,
       excludeGst,
+      customerId,
     } = input;
 
     // Clean conditional field - attentionTo
@@ -101,6 +102,13 @@ export const createOrder = publicProcedure
         payment_status: {
           connect: [parseInt(paymentStatus.id)],
         },
+
+        // Connect customer if provided
+        ...(customerId && {
+          customer: {
+            connect: [customerId],
+          },
+        }),
       },
     };
 

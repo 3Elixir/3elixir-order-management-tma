@@ -31,6 +31,7 @@ export const createCustomer = publicProcedure
     const payload = {
       data: {
         customerName: input.customerName,
+        attentionTo: input.attentionTo,
         customerContact: input.customerContact,
         customerAddress: input.customerAddress,
         sales_channel: {

@@ -34,6 +34,7 @@ export const sendOrderDetailsMessage = publicProcedure
       deliveryFee,
       remarks,
       excludeGst,
+      salesAgents,
     } = input;
 
     // Calculate gst amount
@@ -68,7 +69,7 @@ ${excludeGst ? "\\- GST excluded" : `\\- GST included \\($${escapeSpecialChars(g
 __*2\\. Order details*__
 \\- Customer name: ${escapeSpecialChars(customerName)}${attentionTo ? `\n\\- Attn: ${escapeSpecialChars(attentionTo.trim())}` : ""}
 \\- Customer contact: ${escapeSpecialChars(customerContact)}
-\\- Customer Address: ${escapeSpecialChars(customerAddress)}
+\\- Customer address: ${escapeSpecialChars(customerAddress)}
 \\- Payment method: ${escapeSpecialChars(paymentMethod.name)}
 \\- Payment status: ${escapeSpecialChars(paymentStatus.name)}
 \\- Fulfilment method: ${escapeSpecialChars(fulfilmentMethod.name)}
@@ -77,7 +78,14 @@ ${escapeSpecialChars(
   formatInTimeZone(fulfilmentStart, "Asia/Singapore", "dd/MM/yyyy - h:mm a"),
 )}${hasEnd ? `\nto ${escapeSpecialChars(formatInTimeZone(fulfilmentEnd, "Asia/Singapore", "dd/MM/yyyy - h:mm a"))}` : ""}
 \\- Sales channel: ${escapeSpecialChars(salesChannel.name)}
-\\- Remarks: ${escapeSpecialChars(remarks)}
+\\- Sales agent\\(s\\): ${
+      salesAgents.length > 0
+        ? salesAgents
+            .map((agent) => escapeSpecialChars(agent.value.name))
+            .join(", ")
+        : "N/A"
+    }
+\\- Remarks: ${remarks.trim() ? escapeSpecialChars(remarks) : "N/A"}
 
 __*Payment details*__
 ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}

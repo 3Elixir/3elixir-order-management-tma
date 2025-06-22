@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const customerFormSchema = z.object({
+  attentionTo: z.string(),
   customerName: z.string().min(1, "Customer name is required"),
   customerContact: z.string().min(1, "Customer contact is required"),
   customerAddress: z.string(),

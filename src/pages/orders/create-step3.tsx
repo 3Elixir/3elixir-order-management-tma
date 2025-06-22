@@ -28,7 +28,13 @@ import { useRouter } from "next/router";
 import MainLayout from "@components/layouts/MainLayout";
 import OrderFormLayout from "@components/layouts/OrderFormLayout";
 import { useOrderForm } from "@stores/order-form/useOrderForm";
-import { PlusCircle, SquareArrowOutUpRight, X } from "lucide-react";
+import {
+  Copy,
+  CopyPlus,
+  PlusCircle,
+  SquareArrowOutUpRight,
+  X,
+} from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { Card, CardContent, CardFooter } from "~/components/ui/card";
@@ -204,7 +210,11 @@ const OrderProductList = ({
 }) => {
   const router = useRouter();
   const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
-  const { fields: orderProducts, remove: removeOrderProduct } = useFieldArray({
+  const {
+    fields: orderProducts,
+    remove: removeOrderProduct,
+    insert: insertOrderProduct,
+  } = useFieldArray({
     control: form.control,
     name: "orderProducts",
   });
@@ -223,23 +233,31 @@ const OrderProductList = ({
     router.push("/products?from=order");
   };
 
+  const onDuplicateOrderProduct = (index: number) => {
+    const orderProduct = orderProducts.at(index);
+    if (!orderProduct) return;
+
+    insertOrderProduct(index + 1, {
+      ...orderProduct,
+      quantity: 1, // Reset quantity for the new product
+    });
+  };
+
   return (
     <Card>
       <CardContent className="p-2">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">Item</TableHead>
-              <TableHead className="w-[80px]">No (x)</TableHead>
-              <TableHead>Price ($)</TableHead>
-              <TableHead>
-                <p className="text-center">...</p>
-              </TableHead>
+              <TableHead>Item</TableHead>
+              <TableHead className="min-w-16">No (x)</TableHead>
+              <TableHead className="min-w-24">Price ($)</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {orderProducts.map((orderProduct, index) => (
-              <TableRow key={orderProduct.productId}>
+              <TableRow key={`${orderProduct.productId}-${index}`}>
                 <TableCell className="font-semibold">
                   {orderProduct.name}
                 </TableCell>
@@ -252,8 +270,9 @@ const OrderProductList = ({
                         <Label className="sr-only">Quantity</Label>
                         <Input
                           type="number"
-                          className="text-base"
+                          className="text-center text-base"
                           inputMode="numeric"
+                          min={1}
                           pattern="[0-9]*"
                           onChange={(e) => onChange(parseInt(e.target.value))}
                           {...field}
@@ -271,7 +290,7 @@ const OrderProductList = ({
                         <Label className="sr-only">Price</Label>
                         <Input
                           type="number"
-                          className="text-base"
+                          className="text-center text-base"
                           inputMode="decimal"
                           onChange={(e) => onChange(parseFloat(e.target.value))}
                           {...field}
@@ -281,16 +300,29 @@ const OrderProductList = ({
                   />
                 </TableCell>
                 <TableCell>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="gap-1"
-                    onClick={() =>
-                      onRemoveOrderProduct(index, orderProduct.productId)
-                    }
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex items-center justify-end gap-1">
+                    {/* Delete button */}
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="gap-1"
+                      onClick={() =>
+                        onRemoveOrderProduct(index, orderProduct.productId)
+                      }
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+
+                    {/* Duplicate button */}
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="gap-1"
+                      onClick={() => onDuplicateOrderProduct(index)}
+                    >
+                      <CopyPlus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

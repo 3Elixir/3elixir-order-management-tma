@@ -6,7 +6,7 @@ import { publicProcedure } from "~/server/api/trpc";
 const inputSchema = z.object({
   orderId: z.string(),
 });
-const outputSchema = z.object({
+export const outputSchema = z.object({
   data: z.object({
     id: z.number(),
     attributes: z.object({
@@ -89,6 +89,14 @@ const outputSchema = z.object({
           })
           .nullable(),
       }),
+      customer: z.object({
+        data: z
+          .object({
+            id: z.number(),
+            attributes: z.object({}),
+          })
+          .nullable(),
+      }),
     }),
   }),
   meta: z.object({}),
@@ -120,6 +128,9 @@ export const getOrderDetails = publicProcedure
         },
         fulfilment_method: {
           fields: ["fulfilmentMethod"],
+        },
+        customer: {
+          fields: ["id"],
         },
       },
     };

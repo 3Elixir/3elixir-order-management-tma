@@ -91,14 +91,21 @@ ${excludeGst ? "\\- GST excluded" : `\\- GST included \\($${escapeSpecialChars(g
 __*2\\. Order details*__
 \\- Customer name: ${escapeSpecialChars(customerName)}${attentionTo ? `\n\\- Attn: ${escapeSpecialChars(attentionTo.trim())}` : ""}
 \\- Customer contact: ${escapeSpecialChars(customerContact)}
-\\- Customer Address: ${escapeSpecialChars(customerAddress)}
+\\- Customer address: ${escapeSpecialChars(customerAddress)}
 \\- Payment method: ${escapeSpecialChars(paymentMethod.data.attributes.paymentMethod)}
 \\- Payment status: ${escapeSpecialChars(paymentStatus.data.attributes.paymentStatus)}
 \\- Fulfilment method: ${escapeSpecialChars(fulfilmentMethod.data.attributes.fulfilmentMethod)}
 \\- Fulfilment datetime: 
 ${escapeSpecialChars(fulfilmentDatetimeString)}
 \\- Sales channel: ${escapeSpecialChars(salesChannel.data.attributes.salesChannel)}
-\\- Remarks: ${escapeSpecialChars(remarks)}
+\\- Sales agent\\(s\\): ${
+      salesAgents.data.length > 0
+        ? salesAgents.data
+            .map((agent) => escapeSpecialChars(agent.attributes.name))
+            .join(", ")
+        : "N/A"
+    }
+\\- Remarks: ${remarks.trim() ? escapeSpecialChars(remarks) : "N/A"}
 
 __*Payment details*__
 ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}

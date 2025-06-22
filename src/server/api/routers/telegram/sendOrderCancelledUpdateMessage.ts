@@ -12,6 +12,7 @@ import {
 } from "~/lib/orderUtils";
 
 const inputSchema = outputSchema.extend({
+  tmaUserName: z.string(),
   prevStatusName: z.string(),
 });
 
@@ -19,6 +20,7 @@ export const sendOrderCancelledUpdateMessage = publicProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
     const {
+      tmaUserName,
       prevStatusName,
       data: {
         id: orderId,
@@ -69,7 +71,8 @@ _Last updated: ${escapeSpecialChars(
         "dd/MM/yyyy - h:mm:ss a",
       ),
     )}_
-
+_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace("@", ""))})_
+  
 ~__*1\\. Products included*__~
 ${orderProducts
   .map(
@@ -94,14 +97,21 @@ ${excludeGst ? "~\\- GST excluded~" : `~\\- GST included \\($${escapeSpecialChar
 ~__*2\\. Order details*__~
 ~\\- Customer name: ${escapeSpecialChars(customerName)}~${attentionTo ? `\n~\\- Attn: ${escapeSpecialChars(attentionTo.trim())}~` : ""}
 ~\\- Customer contact: ${escapeSpecialChars(customerContact)}~
-~\\- Customer Address: ${escapeSpecialChars(customerAddress)}~
+~\\- Customer address: ${escapeSpecialChars(customerAddress)}~
 ~\\- Payment method: ${escapeSpecialChars(paymentMethod.data.attributes.paymentMethod)}~
 ~\\- Payment status: ${escapeSpecialChars(paymentStatus.data.attributes.paymentStatus)}~
 ~\\- Fulfilment method: ${escapeSpecialChars(fulfilmentMethod.data.attributes.fulfilmentMethod)}~
 ~\\- Fulfilment datetime: ~
 ~${escapeSpecialChars(fulfilmentDatetimeString)}~
 ~\\- Sales channel: ${escapeSpecialChars(salesChannel.data.attributes.salesChannel)}~
-~\\- Remarks: ${escapeSpecialChars(remarks)}~
+~\\- Sales agent\\(s\\): ${
+      salesAgents.data.length > 0
+        ? salesAgents.data
+            .map((agent) => escapeSpecialChars(agent.attributes.name))
+            .join(", ")
+        : "N/A"
+    }~
+~\\- Remarks: ${escapeSpecialChars(remarks ?? "N/A")}~
 
 ~__*Payment details*__~
 ~${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}~
@@ -124,6 +134,9 @@ ${excludeGst ? "~\\- GST excluded~" : `~\\- GST included \\($${escapeSpecialChar
         orderDetailsMessage,
         {
           parse_mode: "MarkdownV2",
+          link_preview_options: {
+            is_disabled: true, // Disable link previews for this message
+          },
         },
       );
       editMessageSuccess = true;

@@ -1,5 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
-import { Telegram, TelegramError } from "telegraf";
+import { Markup, Telegram, TelegramError } from "telegraf";
 import { env } from "~/env";
 import { escapeSpecialChars } from "~/lib/utils";
 import { publicProcedure } from "~/server/api/trpc";
@@ -9,13 +9,25 @@ import {
   calculateOrderGrandTotal,
   calculateTotalOrderAmount,
 } from "~/lib/orderUtils";
+import { z } from "zod";
+import { outputSchema as getOrderDetailsResponseSchema } from "~/server/api/routers/order/getOrderDetails";
+import {
+  getOrderDifferenceMessage,
+  getOrderDifferences,
+} from "../../../../lib/orderDiff";
+import { ReplyParameters } from "node_modules/telegraf/typings/core/types/typegram";
 
-const inputSchema = updateOrderDetailsResponseSchema;
+const inputSchema = updateOrderDetailsResponseSchema.extend({
+  tmaUserName: z.string(),
+  prevData: getOrderDetailsResponseSchema.shape.data,
+});
 
 export const sendOrderDetailsUpdateMessage = publicProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
     const {
+      tmaUserName,
+      prevData,
       data: {
         id: orderId,
         attributes: {
@@ -65,6 +77,7 @@ _Last updated: ${escapeSpecialChars(
         "dd/MM/yyyy - h:mm:ss a",
       ),
     )}_
+_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace("@", ""))})_
 
 __*1\\. Products included*__
 ${orderProducts
@@ -90,24 +103,41 @@ ${excludeGst ? "\\- GST excluded" : `\\- GST included \\($${escapeSpecialChars(g
 __*2\\. Order details*__
 \\- Customer name: ${escapeSpecialChars(customerName)}${attentionTo ? `\n\\- Attn: ${escapeSpecialChars(attentionTo.trim())}` : ""}
 \\- Customer contact: ${escapeSpecialChars(customerContact)}
-\\- Customer Address: ${escapeSpecialChars(customerAddress)}
+\\- Customer address: ${escapeSpecialChars(customerAddress)}
 \\- Payment method: ${escapeSpecialChars(paymentMethod.data.attributes.paymentMethod)}
 \\- Payment status: ${escapeSpecialChars(paymentStatus.data.attributes.paymentStatus)}
 \\- Fulfilment method: ${escapeSpecialChars(fulfilment_method.data.attributes.fulfilmentMethod)}
 \\- Fulfilment datetime: 
 ${escapeSpecialChars(fulfilmentDatetimeString)}
 \\- Sales channel: ${escapeSpecialChars(salesChannel.data.attributes.salesChannel)}
-\\- Remarks: ${escapeSpecialChars(remarks)}
+\\- Sales agent\\(s\\): ${
+      salesAgents.data.length > 0
+        ? salesAgents.data
+            .map((agent) => escapeSpecialChars(agent.attributes.name))
+            .join(", ")
+        : "N/A"
+    }
+\\- Remarks: ${remarks.trim() ? escapeSpecialChars(remarks) : "N/A"}
 
 __*Payment details*__
 ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 Elixir PTE LTD) indicating your Invoice Number under the reference/comment section. Thank you!")}
 `;
 
+    const orderDifferences = getOrderDifferences(
+      prevData.attributes,
+      input.data.attributes,
+      ["updatedAt", "telegramMessage", "customer"],
+    );
+    const orderDifferenceMessage = getOrderDifferenceMessage(orderDifferences);
+
     // Construct the bump message
     const bumpMessage = `
 🚨📦*Order \\#${orderId} updated\\!*📦🚨
-
 ☝️View updated details☝️
+
+_Updated by: [${escapeSpecialChars(tmaUserName)}](https://t.me/${escapeSpecialChars(tmaUserName.replace("@", ""))})_
+
+${orderDifferenceMessage ? orderDifferenceMessage : ""}
 `;
 
     // Try to update the main order details message in the channel
@@ -124,6 +154,9 @@ ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 
         orderDetailsMessage,
         {
           parse_mode: "MarkdownV2",
+          link_preview_options: {
+            is_disabled: true, // Disable link previews for the message
+          },
         },
       );
       editMessageSuccess = true;
@@ -133,17 +166,29 @@ ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 
 
     // Send a message bumping the order to notify the channel that the order has been updated
     try {
-      const reply_parameters = telegramMessage
+      const reply_parameters: ReplyParameters | undefined = telegramMessage
         ? {
             message_id: telegramMessage.message_id,
           }
         : undefined;
+
+      const miniAppUrl = new URL(env.NEXT_PUBLIC_TELEGRAM_MINI_APP_URL);
+      miniAppUrl.searchParams.set("startapp", btoa(`/orders/${orderId}`));
+
+      const { reply_markup } = Markup.inlineKeyboard([
+        Markup.button.url("📝 View Order", miniAppUrl.toString()),
+      ]);
+
       const message = await telegram.sendMessage(
         env.TELEGRAM_CHANNEL_ID,
         editMessageSuccess ? bumpMessage : orderDetailsMessage, // Send full order details if edit message failed
         {
           reply_parameters: editMessageSuccess ? reply_parameters : undefined, // Only reply to original message if edit message succeeded
           parse_mode: "MarkdownV2",
+          link_preview_options: {
+            is_disabled: true, // Disable link previews for the message
+          },
+          reply_markup,
         },
       );
 

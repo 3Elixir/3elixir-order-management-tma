@@ -1,6 +1,6 @@
 import MainLayout from "~/components/layouts/MainLayout";
 import { NextPageWithLayout } from "~/pages/_app";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useBackButton, usePopup, useInitData } from "@tma.js/sdk-react";
 import { on as onTmaEvent, off as offTmaEvent } from "@tma.js/sdk";
 import { useRouter } from "next/router";
@@ -62,6 +62,8 @@ import {
 } from "~/components/ui/drawer";
 
 const ViewOrderPage: NextPageWithLayout = () => {
+  const searchParams = useSearchParams();
+  const isLaunch = searchParams.get("launch") === "true";
   const params = useParams() as { id: string } | null;
   const tmaBackButton = useBackButton();
   const router = useRouter();
@@ -72,7 +74,7 @@ const ViewOrderPage: NextPageWithLayout = () => {
 
   // Show the back button to navigate back to the previous page
   useEffect(() => {
-    tmaBackButton.show();
+    !isLaunch && tmaBackButton.show();
     const onBackButtonPress = () => router.back();
     tmaBackButton.on("click", onBackButtonPress);
 
@@ -80,7 +82,7 @@ const ViewOrderPage: NextPageWithLayout = () => {
       tmaBackButton.off("click", onBackButtonPress);
       tmaBackButton.hide();
     };
-  }, []);
+  }, [isLaunch]);
 
   return (
     <div className="flex flex-grow flex-col">
@@ -175,6 +177,7 @@ const OrderDetailsMain = ({
       ) {
         sendStatusCancelledMutation.mutate({
           ...data,
+          tmaUserName: tmaInitData?.user?.username ?? "unknown",
           prevStatusName:
             orderStatus.data?.attributes.orderStatus ?? "no order status",
         });
@@ -196,6 +199,7 @@ const OrderDetailsMain = ({
     onSuccess: ({ data }) => {
       sendOrderDeletionMessageMutation.mutate({
         ...data,
+        tmaUserName: tmaInitData?.user?.username ?? "unknown",
         chatId: tmaInitData?.user?.id ?? 0,
         deletedOn: new Date(),
       });
@@ -907,6 +911,7 @@ Payment details
   const onEditOrder = () => {
     // Set order form state values via store to prefill the form
     updateOrderForm({
+      customerId: details.attributes.customer.data?.id,
       customerName: details.attributes.customerName,
       hasAttentionTo: !!details.attributes.attentionTo,
       attentionTo: details.attributes.attentionTo ?? "",

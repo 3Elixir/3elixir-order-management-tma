@@ -49,6 +49,7 @@ import { useSearchParams } from "next/navigation";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
 import Link from "next/link";
 import { useInView } from "react-intersection-observer";
+import { useInitData } from "@tma.js/sdk-react";
 
 type FilterOptionsType =
   inferRouterInputs<AppRouter>["order"]["getFilteredOrders"]["filters"];
@@ -262,6 +263,7 @@ const OrderCard = ({
   } = order;
 
   const [statusId, setStatusId] = useState(orderStatus.data?.id ?? 0);
+  const { user: tmaUser } = useInitData() ?? {};
 
   // Trigger prefetching of order details upon order card coming into view
   const { ref } = useInView({
@@ -290,6 +292,7 @@ const OrderCard = ({
       ) {
         sendStatusCancelledMessageMutation.mutate({
           ...data,
+          tmaUserName: tmaUser?.username ?? "Unknown User",
           prevStatusName:
             orderStatus.data?.attributes.orderStatus ?? "no order status",
         });

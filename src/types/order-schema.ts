@@ -99,7 +99,7 @@ export const orderFormStep4Schema = z.object({
 });
 
 export const orderFormMeta = z.object({
-  customerId: z.number().nullable(),
+  customerId: z.number().nullish(),
 });
 
 // Combine all schemas into one
