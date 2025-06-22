@@ -69,7 +69,7 @@ ${excludeGst ? "\\- GST excluded" : `\\- GST included \\($${escapeSpecialChars(g
 __*2\\. Order details*__
 \\- Customer name: ${escapeSpecialChars(customerName)}${attentionTo ? `\n\\- Attn: ${escapeSpecialChars(attentionTo.trim())}` : ""}
 \\- Customer contact: ${escapeSpecialChars(customerContact)}
-\\- Customer Address: ${escapeSpecialChars(customerAddress)}
+\\- Customer address: ${escapeSpecialChars(customerAddress)}
 \\- Payment method: ${escapeSpecialChars(paymentMethod.name)}
 \\- Payment status: ${escapeSpecialChars(paymentStatus.name)}
 \\- Fulfilment method: ${escapeSpecialChars(fulfilmentMethod.name)}
