@@ -106,43 +106,41 @@ export default function Home() {
       </div>
 
       {/* Navigation Cards */}
-      {env.NEXT_PUBLIC_FEATURE_NAVIGATION && (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {navigationItems.map((item) => (
-            <Card
-              key={item.title}
-              className={`overflow-hidden border-t-4 border-t-primary shadow-md transition-all hover:shadow-lg ${item.color}`}
-            >
-              <CardHeader className="flex flex-row items-center gap-4">
-                <div className="rounded-full bg-primary p-2 text-white">
-                  {item.icon}
-                </div>
-                <div>
-                  <CardTitle>{item.title}</CardTitle>
-                  <CardDescription>{item.description}</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {item.links.map((link) => (
-                    <Button
-                      key={link.href}
-                      variant="outline"
-                      className="w-full justify-start text-left"
-                      asChild
-                    >
-                      <Link href={link.href}>
-                        {link.icon}
-                        {link.label}
-                      </Link>
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {navigationItems.map((item) => (
+          <Card
+            key={item.title}
+            className={`overflow-hidden border-t-4 border-t-primary shadow-md transition-all hover:shadow-lg ${item.color}`}
+          >
+            <CardHeader className="flex flex-row items-center gap-4">
+              <div className="rounded-full bg-primary p-2 text-white">
+                {item.icon}
+              </div>
+              <div>
+                <CardTitle>{item.title}</CardTitle>
+                <CardDescription>{item.description}</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {item.links.map((link) => (
+                  <Button
+                    key={link.href}
+                    variant="outline"
+                    className="w-full justify-start text-left"
+                    asChild
+                  >
+                    <Link href={link.href}>
+                      {link.icon}
+                      {link.label}
+                    </Link>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </main>
   );
 }
