@@ -7,6 +7,7 @@ import { z } from "zod";
 import { env } from "~/env";
 import { createCaller } from "../../root";
 import { db } from "~/server/db";
+import { fromZonedTime } from "date-fns-tz";
 
 const inputSchema = orderFormSchema.extend({
   chatId: z.number(),
@@ -82,8 +83,10 @@ export const createOrder = publicProcedure
         excludeGst,
         orderProducts,
         deliveryFee,
-        fulfilmentStart,
-        fulfilmentEnd: hasEnd ? fulfilmentEnd : null,
+        fulfilmentStart: fromZonedTime(fulfilmentStart, "Asia/Singapore"),
+        fulfilmentEnd: hasEnd
+          ? fromZonedTime(fulfilmentEnd, "Asia/Singapore")
+          : null,
         order_status: {
           connect: [parseInt(orderStatus.id)],
         },
