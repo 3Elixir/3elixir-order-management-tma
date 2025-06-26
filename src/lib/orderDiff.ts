@@ -188,12 +188,19 @@ const getOrderDifferenceMessage = (differences: GetOrderDifferenceOutput) => {
       if (value === null) return null; // Skip null values
 
       // Special handling for dates
-      if (key === "fulfilmentStart" || key === "fulfilmentEnd" || key === "updatedAt" || key === "createdAt" || key === "publishedAt" || key === "orderCollectionDateTime") {
+      if (
+        key === "fulfilmentStart" ||
+        key === "fulfilmentEnd" ||
+        key === "updatedAt" ||
+        key === "createdAt" ||
+        key === "publishedAt" ||
+        key === "orderCollectionDateTime"
+      ) {
         const oldValue = value.oldValue
-          ? `⏳ Old: ${formatInTimeZone(value.oldValue, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}`
+          ? `⏳ Old: ${escapeSpecialChars(formatInTimeZone(value.oldValue, "Asia/Singapore", "dd/MM/yyyy - h:mm a"))}`
           : "⏳ Old: N/A";
         const newValue = value.newValue
-          ? `⭐ New: ${formatInTimeZone(value.newValue, "Asia/Singapore", "dd/MM/yyyy - h:mm a")}`
+          ? `⭐ New: ${escapeSpecialChars(formatInTimeZone(value.newValue, "Asia/Singapore", "dd/MM/yyyy - h:mm a"))}`
           : "⭐ New: N/A";
         return `*🔄 ${escapeSpecialChars(LABEL_MAP[key as keyof typeof LABEL_MAP])}*\n> ${oldValue}\n> ${newValue}`;
       }
