@@ -6,7 +6,6 @@ import {
   orderFormSchema,
 } from "~/types/order-schema";
 import qs from "qs";
-import { fromZonedTime } from "date-fns-tz";
 
 const inputSchema = orderFormSchema.extend({
   orderId: z.number(),
@@ -126,9 +125,9 @@ export const updateOrderDetails = publicProcedure
         attentionTo: hasAttentionTo ? cleanedAttentionTo : null,
         customerAddress,
         customerContact,
-        fulfilmentStart: fromZonedTime(fulfilmentStart, "Asia/Singapore"),
+        fulfilmentStart,
         fulfilmentEnd: hasEnd
-          ? fromZonedTime(fulfilmentEnd, "Asia/Singapore")
+          ? fulfilmentEnd
           : null,
         deliveryFee,
         remarks,
