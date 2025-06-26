@@ -150,7 +150,14 @@ const CreateOrdersPage: NextPageWithLayout = () => {
     });
 
     // Update the order form state and navigate to the next step
-    updateOrderForm(formValues);
+    updateOrderForm({
+      ...formValues,
+      fulfilmentDates: {
+        ...formValues.fulfilmentDates,
+        fulfilmentStart: createSingaporeDate(formValues.fulfilmentDates.fulfilmentStart),
+        fulfilmentEnd: createSingaporeDate(formValues.fulfilmentDates.fulfilmentEnd),
+      }
+    });
     router.push("/orders/create-step3");
   };
 
@@ -619,8 +626,8 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                             selected={field.value}
                             onSelect={(date) => {
                               const newDate = date
-                                ? createSingaporeDate(new Date(date))
-                                : createSingaporeDate(new Date());
+                                ? new Date(date)
+                                : new Date();
                               newDate.setHours(12, 0, 0, 0);
                               field.onChange(newDate);
                               form.setValue(
@@ -633,7 +640,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                           />
                           <div className="border-t border-border p-3">
                             <TimePicker
-                              setDate={(date) => field.onChange(date ? createSingaporeDate(date) : date)}
+                              setDate={(date) => field.onChange(date ? date : date)}
                               date={field.value}
                               hasSeconds={false}
                             />
@@ -681,8 +688,8 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                               selected={field.value}
                               onSelect={(date) => {
                                 const newDate = date
-                                  ? createSingaporeDate(new Date(date))
-                                  : createSingaporeDate(new Date());
+                                  ? new Date(date)
+                                  : new Date();
                                 newDate.setHours(12, 0, 0, 0);
                                 field.onChange(newDate);
                               }}
@@ -700,7 +707,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                             />
                             <div className="border-t border-border p-3">
                               <TimePicker
-                                setDate={(date) => field.onChange(date ? createSingaporeDate(date) : date)}
+                                setDate={(date) => field.onChange(date ? date : date)}
                                 date={field.value}
                                 hasSeconds={false}
                               />
