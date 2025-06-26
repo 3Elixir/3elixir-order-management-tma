@@ -1,5 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
-import { Telegram, TelegramError } from "telegraf";
+import { Markup, Telegram, TelegramError } from "telegraf";
 import { z } from "zod";
 import { env } from "~/env";
 import {
@@ -94,11 +94,23 @@ ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 
     // Send a message to the order channel
     try {
       const telegram = new Telegram(env.TELEGRAM_BOT_TOKEN);
+      
+      const miniAppUrl = new URL(env.NEXT_PUBLIC_TELEGRAM_MINI_APP_URL);
+      miniAppUrl.searchParams.set("startapp", btoa(`/orders/${orderId}`));
+
+      const { reply_markup } = Markup.inlineKeyboard([
+        Markup.button.url("📝 View Order", miniAppUrl.toString()),
+      ]);
+
       const message = await telegram.sendMessage(
         env.TELEGRAM_CHANNEL_ID,
         markdownMessage,
         {
           parse_mode: "MarkdownV2",
+          link_preview_options: {
+            is_disabled: true, // Disable link previews for the message
+          },
+          reply_markup,
         },
       );
 
