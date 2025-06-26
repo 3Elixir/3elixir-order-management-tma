@@ -917,7 +917,9 @@ const OrderFormDetailFields = ({
                         mode="single"
                         selected={field.value}
                         onSelect={(date) => {
-                          const newDate = date ? createSingaporeDate(new Date(date)) : createSingaporeDate(new Date());
+                          const newDate = date
+                            ? createSingaporeDate(new Date(date))
+                            : createSingaporeDate(new Date());
                           newDate.setHours(12, 0, 0, 0);
                           field.onChange(newDate);
                           form.setValue(
@@ -930,7 +932,11 @@ const OrderFormDetailFields = ({
                       />
                       <div className="border-t border-border p-3">
                         <TimePicker
-                          setDate={(date) => field.onChange(date ? createSingaporeDate(date) : date)}
+                          setDate={(date) =>
+                            field.onChange(
+                              date ? createSingaporeDate(date) : date,
+                            )
+                          }
                           date={field.value}
                           hasSeconds={false}
                         />
@@ -975,13 +981,17 @@ const OrderFormDetailFields = ({
                           mode="single"
                           selected={field.value}
                           onSelect={(date) => {
-                            const newDate = date ? createSingaporeDate(new Date(date)) : createSingaporeDate(new Date());
+                            const newDate = date
+                              ? createSingaporeDate(new Date(date))
+                              : createSingaporeDate(new Date());
                             newDate.setHours(12, 0, 0, 0);
                             field.onChange(newDate);
                           }}
                           disabled={(date) => {
                             // Disable dates that is before the start date
-                            const targetDate = createSingaporeDate(new Date(date));
+                            const targetDate = createSingaporeDate(
+                              new Date(date),
+                            );
                             targetDate.setHours(12, 0, 0, 0);
                             return isBefore(
                               targetDate,
@@ -993,7 +1003,11 @@ const OrderFormDetailFields = ({
                         />
                         <div className="border-t border-border p-3">
                           <TimePicker
-                            setDate={(date) => field.onChange(date ? createSingaporeDate(date) : date)}
+                            setDate={(date) =>
+                              field.onChange(
+                                date ? createSingaporeDate(date) : date,
+                              )
+                            }
                             date={field.value}
                             hasSeconds={false}
                           />
@@ -1016,8 +1030,8 @@ const OrderFormDetailFields = ({
 
         <FormDescription>
           {form.watch("fulfilmentDates.hasEnd")
-            ? "Please select the start and end date and time for order Fulfilment."
-            : "Please select the date and time for order Fulfilment."}
+            ? "Please select the start and end date and time for order fulfilment. All times are in Singapore time (GMT+8)."
+            : "Please select the date and time for order fulfilment. All times are in Singapore time (GMT+8)."}
         </FormDescription>
       </div>
     </>
