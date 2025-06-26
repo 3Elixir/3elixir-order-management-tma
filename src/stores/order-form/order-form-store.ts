@@ -1,6 +1,7 @@
 import { createStore } from "zustand/vanilla";
 import { orderFormSchema } from "@schema/order-schema";
 import { z } from "zod";
+import { createSingaporeDate } from "~/lib/utils";
 
 export type OrderFormState = z.infer<typeof orderFormSchema>;
 
@@ -22,19 +23,19 @@ export const defaultInitState: OrderFormState = {
     name: "",
   },
   orderCollectionDateTime: (() => {
-    const date = new Date();
+    const date = createSingaporeDate(new Date());
     date.setHours(12, 0, 0, 0);
     return date;
   })(),
   fulfilmentDates: {
     hasEnd: false,
     fulfilmentStart: (() => {
-      const date = new Date();
+      const date = createSingaporeDate(new Date());
       date.setHours(12, 0, 0, 0);
       return date;
     })(),
     fulfilmentEnd: (() => {
-      const date = new Date();
+      const date = createSingaporeDate(new Date());
       date.setHours(12, 0, 0, 0);
       return date;
     })(),
