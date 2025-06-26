@@ -23,19 +23,19 @@ export const defaultInitState: OrderFormState = {
     name: "",
   },
   orderCollectionDateTime: (() => {
-    const date = createSingaporeDate(new Date());
+    const date = new Date();
     date.setHours(12, 0, 0, 0);
     return date;
   })(),
   fulfilmentDates: {
     hasEnd: false,
     fulfilmentStart: (() => {
-      const date = createSingaporeDate(new Date());
+      const date = new Date();
       date.setHours(12, 0, 0, 0);
       return date;
     })(),
     fulfilmentEnd: (() => {
-      const date = createSingaporeDate(new Date());
+      const date = new Date();
       date.setHours(12, 0, 0, 0);
       return date;
     })(),
