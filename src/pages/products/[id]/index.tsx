@@ -300,8 +300,8 @@ const ProductDetailsFooter = ({
       name: details.attributes.name,
       defaultPrice: details.attributes.defaultPrice ?? undefined,
       brand: {
-        id: details.attributes.brand.data?.id.toString() ?? "0",
-        name: details.attributes.brand.data?.attributes.brand ?? "no brand",
+        id: details.attributes.brand.data?.id.toString() ?? "No Brand",
+        name: details.attributes.brand.data?.attributes.brand ?? "No Brand",
       },
       category: {
         id: details.attributes.category.data?.id.toString() ?? "0",
