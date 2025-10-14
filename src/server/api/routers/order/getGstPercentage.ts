@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
 
 const outputSchema = z.object({
@@ -15,13 +15,13 @@ const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const getGstPercentage = publicProcedure
+export const getGstPercentage = protectedProcedure
   .output(outputSchema)
-  .query(async () => {
+  .query(async ({ ctx }) => {
     try {
       const response = await fetch(`${process.env.STRAPI_API_URL}/api/gst?`, {
         headers: {
-          Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}`,
+          Authorization: `Bearer ${ctx.user.jwt}`,
         },
       });
       if (!response.ok) throw response;

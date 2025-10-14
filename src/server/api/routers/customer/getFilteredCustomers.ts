@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 import qs from "qs";
 import { env } from "process";
 import { TRPCError } from "@trpc/server";
@@ -51,10 +51,10 @@ const outputSchema = z.object({
   }),
 });
 
-export const getFilteredCustomers = publicProcedure
+export const getFilteredCustomers = protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
     const { pagination, sort, filters } = input;
 
     const queryParams = {
@@ -82,7 +82,7 @@ export const getFilteredCustomers = publicProcedure
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
         },
       );

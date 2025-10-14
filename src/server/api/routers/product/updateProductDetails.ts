@@ -1,15 +1,15 @@
 import { z } from "zod";
 import { env } from "~/env";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 import { productFormSchema } from "~/types/product-schema";
 
 const inputSchema = productFormSchema.extend({
   productId: z.number(),
 });
 
-export const updateProductDetails = publicProcedure
+export const updateProductDetails = protectedProcedure
   .input(inputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const { productId, name, sku, brand, category, defaultPrice } = input;
 
     const payload = {
@@ -34,7 +34,7 @@ export const updateProductDetails = publicProcedure
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
           body: JSON.stringify(payload),
         },

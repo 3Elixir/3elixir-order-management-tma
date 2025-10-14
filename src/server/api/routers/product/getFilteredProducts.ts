@@ -1,6 +1,6 @@
 import qs from "qs";
 import { z } from "zod";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
 
@@ -73,10 +73,10 @@ const outputSchema = z.object({
   }),
 });
 
-export const getFilteredProducts = publicProcedure
+export const getFilteredProducts = protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
     const {
       search,
       filters: { categories, brands },
@@ -123,7 +123,7 @@ export const getFilteredProducts = publicProcedure
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + env.STRAPI_API_TOKEN,
+            Authorization: "Bearer " + ctx.user.jwt,
           },
         },
       );

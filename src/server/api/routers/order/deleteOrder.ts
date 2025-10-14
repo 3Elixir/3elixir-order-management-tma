@@ -1,9 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { env } from "~/env";
-import { publicProcedure } from "~/server/api/trpc";
-import { createCaller } from "../../root";
-import { db } from "~/server/db";
+import { protectedProcedure } from "~/server/api/trpc";
 import qs from "qs";
 
 const inputSchema = z.object({
@@ -86,10 +84,10 @@ export const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const deleteOrder = publicProcedure
+export const deleteOrder = protectedProcedure
   .input(inputSchema)
-  .mutation(async ({ input }) => {
-    const { orderId, chatId } = input;
+  .mutation(async ({ input, ctx }) => {
+    const { orderId } = input;
 
     const queryParams = {
       populate: {
@@ -123,7 +121,7 @@ export const deleteOrder = publicProcedure
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
         },
       );

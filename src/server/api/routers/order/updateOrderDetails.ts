@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { env } from "~/env";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 import {
   SALES_CHANNELS_WITH_SALES_AGENTS,
   orderFormSchema,
@@ -94,9 +94,9 @@ export const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const updateOrderDetails = publicProcedure
+export const updateOrderDetails = protectedProcedure
   .input(inputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const {
       orderId,
       customerName,
@@ -126,9 +126,7 @@ export const updateOrderDetails = publicProcedure
         customerAddress,
         customerContact,
         fulfilmentStart,
-        fulfilmentEnd: hasEnd
-          ? fulfilmentEnd
-          : null,
+        fulfilmentEnd: hasEnd ? fulfilmentEnd : null,
         deliveryFee,
         remarks,
         orderProducts,
@@ -201,7 +199,7 @@ export const updateOrderDetails = publicProcedure
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
           body: JSON.stringify(payload),
         },

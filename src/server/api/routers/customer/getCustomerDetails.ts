@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 import qs from "qs";
 import { env } from "process";
 import { TRPCError } from "@trpc/server";
@@ -32,10 +32,10 @@ const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const getCustomerDetails = publicProcedure
+export const getCustomerDetails = protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
     const queryParams = {
       populate: {
         sales_channel: {
@@ -54,7 +54,7 @@ export const getCustomerDetails = publicProcedure
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
         },
       );

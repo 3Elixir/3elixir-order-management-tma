@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { env } from "~/env";
-import { publicProcedure } from "~/server/api/trpc";
-import { db } from "~/server/db";
-import { createCaller } from "../../root";
+import { protectedProcedure } from "~/server/api/trpc";
 import qs from "qs";
 
 const inputSchema = z.object({
@@ -86,10 +84,10 @@ export const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const updateOrderStatus = publicProcedure
+export const updateOrderStatus = protectedProcedure
   .input(inputSchema)
-  .mutation(async ({ input }) => {
-    const { orderId, statusId, prevStatusName } = input;
+  .mutation(async ({ input, ctx }) => {
+    const { orderId, statusId } = input;
 
     const payload = {
       data: {
@@ -130,7 +128,7 @@ export const updateOrderStatus = publicProcedure
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
           body: JSON.stringify(payload),
         },
