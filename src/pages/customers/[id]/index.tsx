@@ -22,8 +22,8 @@ import { NextPageWithLayout } from "~/pages/_app";
 import { AppRouter } from "~/server/api/root";
 import { api } from "~/utils/api";
 import { format } from "date-fns";
-import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
-import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
+import type { MiniAppsEventPayload } from "@tma.js/sdk-react";
+import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk-react";
 import { useCustomerForm } from "~/stores/customer-form/useCustomerForm";
 
 type CustomerDetailsOutput =
@@ -120,7 +120,7 @@ const CustomerDetailsMain = ({
       ],
     });
 
-    const onConfrimDeleteCustomer = (payload: PopupClosedPayload) => {
+    const onConfrimDeleteCustomer = (payload: MiniAppsEventPayload<"popup_closed">) => {
       unregisterTmaEvent("popup_closed", onConfrimDeleteCustomer);
 
       if (payload.button_id !== "ok") return;

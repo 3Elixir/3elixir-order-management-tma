@@ -1,11 +1,10 @@
 import {
   useBackButton,
   useMainButton,
-  usePostEvent,
+  useHapticFeedback,
   useThemeParams,
 } from "@tma.js/sdk-react";
 import { useEffect } from "react";
-import { TmaSDKLoader } from "@components/layouts/TmaSdkLoader";
 import { NextPageWithLayout } from "~/pages/_app";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,7 +63,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   const tmaMainButton = useMainButton();
   const tmaBackButton = useBackButton();
   const tmaThemeParams = useThemeParams();
-  const tmaPostEvent = usePostEvent();
+  const tmaHaptic = useHapticFeedback();
 
   const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
 
@@ -116,10 +115,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
     tmaMainButton.disable();
     tmaMainButton.showLoader();
 
-    tmaPostEvent("web_app_trigger_haptic_feedback", {
-      type: "notification",
-      notification_type: "success",
-    });
+    tmaHaptic.notificationOccurred("success");
 
     updateOrderForm(formValues);
     router.push("/orders/create-step4");
@@ -128,22 +124,19 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   const onErrors: SubmitErrorHandler<z.infer<typeof orderFormStep3Schema>> = (
     errors,
   ) => {
-    tmaPostEvent("web_app_trigger_haptic_feedback", {
-      type: "notification",
-      notification_type: "error",
-    });
+    tmaHaptic.notificationOccurred("error");
     console.error("Form errors", errors);
   };
 
   // Update the tmaMainButton color based on the form state
   if (!form.formState.isValid || !orderProducts.length) {
     tmaMainButton.setParams({
-      backgroundColor: "#71717a",
+      bgColor: "#71717a",
       textColor: "#d4d4d8",
     });
   } else {
     tmaMainButton.setParams({
-      backgroundColor: tmaThemeParams.buttonColor,
+      bgColor: tmaThemeParams.buttonColor,
       textColor: tmaThemeParams.buttonTextColor,
     });
   }

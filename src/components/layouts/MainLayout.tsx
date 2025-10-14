@@ -31,7 +31,7 @@ export default function MainLayout({ title, children }: MainLayoutProps) {
     return () => {
       tmaClosingBehavior.disableConfirmation();
     };
-  }, [miniApp, pathName]);
+  }, [miniApp, pathName, tmaClosingBehavior]);
 
   return (
     <main className="flex h-screen flex-col">

@@ -1,12 +1,17 @@
 import type { AppProps, AppType } from "next/app";
 import { ReactElement, ReactNode } from "react";
 import { NextPage } from "next";
+import dynamic from "next/dynamic";
 import { api } from "~/utils/api";
 import "~/styles/globals.css";
 import { StoresProvider } from "@stores/stores-provider";
 import { AuthProvider } from "@lib/contexts/AuthProvider";
-import { TmaSDKLoader } from "~/components/layouts/TmaSdkLoader";
 import { Toaster } from "react-hot-toast";
+
+const TmaSDKLoader = dynamic(
+  () => import("~/components/layouts/TmaSdkLoader").then((mod) => mod.TmaSDKLoader),
+  { ssr: false }
+);
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
   getLayout?: (page: ReactElement) => ReactNode;

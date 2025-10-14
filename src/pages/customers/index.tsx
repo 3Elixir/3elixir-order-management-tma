@@ -209,7 +209,7 @@ const CustomerCard = ({
       tmaMainButton.on("click", onMainbuttonClick);
       tmaMainButton.setParams({
         text: "Cancel",
-        backgroundColor: tmaThemeParams.buttonColor,
+        bgColor: tmaThemeParams.buttonColor,
         textColor: tmaThemeParams.buttonTextColor,
       });
     }
@@ -373,7 +373,7 @@ const CustomersQueryFooter = ({
   );
 };
 
-CustomersPage.getLayout = (page) => {
+const CustomersPageLayout = ({ children }: { children: React.ReactNode }) => {
   const searchParams = useSearchParams();
   const fromStatus = z
     .union([z.enum(["order"]), z.null()])
@@ -388,10 +388,14 @@ CustomersPage.getLayout = (page) => {
             : "👑 View Customers"
         }
       >
-        {page}
+        {children}
       </MainLayout>
     </AuthGuard>
   );
+};
+
+CustomersPage.getLayout = (page) => {
+  return <CustomersPageLayout>{page}</CustomersPageLayout>;
 };
 
 export default CustomersPage;

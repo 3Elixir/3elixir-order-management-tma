@@ -14,7 +14,7 @@ const PageHeader = ({ title, className }: PageHeaderProps) => {
         className,
       )}
       style={{
-        backgroundColor: tmaThemeParams.sectionBackgroundColor,
+        backgroundColor: tmaThemeParams.sectionBgColor,
       }}
     >
       <h1
