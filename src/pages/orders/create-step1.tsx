@@ -1,7 +1,7 @@
 import {
   useBackButton,
   useMainButton,
-  usePostEvent,
+  useHapticFeedback,
   useThemeParams,
   useViewport,
 } from "@tma.js/sdk-react";
@@ -49,7 +49,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   const queryClient = api.useUtils();
   const tmaMainButton = useMainButton();
   const tmaBackButton = useBackButton();
-  const tmaPostEvent = usePostEvent();
+  const tmaHaptic = useHapticFeedback();
   const tmaThemeParams = useThemeParams();
   const tmaViewport = useViewport();
   const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
@@ -121,7 +121,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
 
   // Hide the back button and expand the viewport
   useEffect(() => {
-    tmaViewport.expand();
+    tmaViewport?.expand();
     tmaBackButton.hide();
   }, []);
 
@@ -131,10 +131,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
     tmaMainButton.showLoader();
     tmaMainButton.disable();
 
-    tmaPostEvent("web_app_trigger_haptic_feedback", {
-      type: "notification",
-      notification_type: "success",
-    });
+    tmaHaptic.notificationOccurred("success");
 
     updateOrderForm(formValues);
     router.push("/orders/create-step2");
@@ -144,21 +141,18 @@ const CreateOrdersPage: NextPageWithLayout = () => {
     errors,
   ) => {
     console.error(errors);
-    tmaPostEvent("web_app_trigger_haptic_feedback", {
-      type: "notification",
-      notification_type: "error",
-    });
+    tmaHaptic.notificationOccurred("error");
   };
 
   // Update the tmaMainButton color based on the form state
   if (!form.formState.isValid) {
     tmaMainButton.setParams({
-      backgroundColor: "#71717a",
+      bgColor: "#71717a",
       textColor: "#d4d4d8",
     });
   } else {
     tmaMainButton.setParams({
-      backgroundColor: tmaThemeParams.buttonColor,
+      bgColor: tmaThemeParams.buttonColor,
       textColor: tmaThemeParams.buttonTextColor,
     });
   }

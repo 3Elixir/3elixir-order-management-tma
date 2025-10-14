@@ -1,5 +1,5 @@
 import { useBackButton, useInitData, usePopup } from "@tma.js/sdk-react";
-import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
+import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk-react";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
 import { useEffect } from "react";
@@ -16,7 +16,7 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { NextPageWithLayout } from "~/pages/_app";
 import { api } from "~/utils/api";
-import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
+import type { MiniAppsEventPayload } from "@tma.js/sdk-react";
 import { inferRouterOutputs } from "@trpc/server";
 import { AppRouter } from "~/server/api/root";
 import { match } from "ts-pattern";
@@ -126,7 +126,7 @@ const ProductDetailsMain = ({
       ],
     });
 
-    const onConfrimDeleteOrder = (payload: PopupClosedPayload) => {
+    const onConfrimDeleteOrder = (payload: MiniAppsEventPayload<"popup_closed">) => {
       unregisterTmaEvent("popup_closed", onConfrimDeleteOrder);
 
       if (payload.button_id !== "ok") return;

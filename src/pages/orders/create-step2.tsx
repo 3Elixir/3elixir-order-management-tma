@@ -1,7 +1,7 @@
 import {
   useBackButton,
   useMainButton,
-  usePostEvent,
+  useHapticFeedback,
   useThemeParams,
 } from "@tma.js/sdk-react";
 import { useEffect, useMemo, useState } from "react";
@@ -64,7 +64,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   const router = useRouter();
   const tmaMainButton = useMainButton();
   const tmaBackButton = useBackButton();
-  const tmaPostEvent = usePostEvent();
+  const tmaHaptic = useHapticFeedback();
   const tmaThemeParams = useThemeParams();
 
   const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
@@ -144,10 +144,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
     // Trigger telegram feedbacks
     tmaMainButton.disable();
     tmaMainButton.showLoader();
-    tmaPostEvent("web_app_trigger_haptic_feedback", {
-      type: "notification",
-      notification_type: "success",
-    });
+    tmaHaptic.notificationOccurred("success");
 
     // Update the order form state and navigate to the next step
     updateOrderForm({
@@ -165,21 +162,18 @@ const CreateOrdersPage: NextPageWithLayout = () => {
     errors,
   ) => {
     console.error(errors);
-    tmaPostEvent("web_app_trigger_haptic_feedback", {
-      type: "notification",
-      notification_type: "error",
-    });
+    tmaHaptic.notificationOccurred("error");
   };
 
   // Update the tmaMainButton color based on the form state
   if (!form.formState.isValid) {
     tmaMainButton.setParams({
-      backgroundColor: "#71717a",
+      bgColor: "#71717a",
       textColor: "#d4d4d8",
     });
   } else {
     tmaMainButton.setParams({
-      backgroundColor: tmaThemeParams.buttonColor,
+      bgColor: tmaThemeParams.buttonColor,
       textColor: tmaThemeParams.buttonTextColor,
     });
   }

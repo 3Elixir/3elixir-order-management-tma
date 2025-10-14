@@ -3,12 +3,13 @@ import {
   useBackButton,
   useMainButton,
   useThemeParams,
-  usePostEvent,
+  useHapticFeedback,
   usePopup,
   useClosingBehavior,
   useInitData,
+  MiniAppsEventPayload,
 } from "@tma.js/sdk-react";
-import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
+import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk-react";
 import { inferRouterOutputs } from "@trpc/server";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
@@ -54,7 +55,6 @@ import {
   orderFormSchema,
 } from "~/types/order-schema";
 import { api } from "~/utils/api";
-import { type PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
 import { Button } from "~/components/ui/button";
 import {
   CalendarIcon,
@@ -182,7 +182,7 @@ const OrderEditForm = ({
 }) => {
   const queryContext = api.useUtils();
   const router = useRouter();
-  const tmaPostEvent = usePostEvent();
+  const tmaHaptic = useHapticFeedback();
   const tmaMainButton = useMainButton();
   const tmaThemeParams = useThemeParams();
   const tmaPopup = usePopup();
@@ -260,13 +260,12 @@ const OrderEditForm = ({
 
   // Register the tmaPopup event
   useEffect(() => {
-    const onSubmission = async (event: PopupClosedPayload) => {
+    const onSubmission = async (
+      event: MiniAppsEventPayload<"popup_closed">,
+    ) => {
       if (event.button_id !== "ok") return;
 
-      tmaPostEvent("web_app_trigger_haptic_feedback", {
-        type: "notification",
-        notification_type: "success",
-      });
+      tmaHaptic.notificationOccurred("success");
 
       tmaMainButton.setParams({
         isLoaderVisible: true,
@@ -281,8 +280,12 @@ const OrderEditForm = ({
         // Convert fulfillment dates to Singapore timezone before submission
         fulfilmentDates: {
           ...formValues.fulfilmentDates,
-          fulfilmentStart: createSingaporeDate(formValues.fulfilmentDates.fulfilmentStart),
-          fulfilmentEnd: createSingaporeDate(formValues.fulfilmentDates.fulfilmentEnd),
+          fulfilmentStart: createSingaporeDate(
+            formValues.fulfilmentDates.fulfilmentStart,
+          ),
+          fulfilmentEnd: createSingaporeDate(
+            formValues.fulfilmentDates.fulfilmentEnd,
+          ),
         },
       };
 
@@ -317,10 +320,7 @@ const OrderEditForm = ({
   const onSubmit: SubmitHandler<z.infer<typeof orderFormSchema>> = (
     formValues,
   ) => {
-    tmaPostEvent("web_app_trigger_haptic_feedback", {
-      type: "notification",
-      notification_type: "success",
-    });
+    tmaHaptic.notificationOccurred("success");
 
     tmaPopup.open({
       title: "Confirm Changes",
@@ -340,10 +340,7 @@ const OrderEditForm = ({
   const onErrors: SubmitErrorHandler<z.infer<typeof orderFormSchema>> = (
     errors,
   ) => {
-    tmaPostEvent("web_app_trigger_haptic_feedback", {
-      type: "notification",
-      notification_type: "error",
-    });
+    tmaHaptic.notificationOccurred("error");
     console.error(errors);
   };
 
@@ -351,12 +348,12 @@ const OrderEditForm = ({
   useEffect(() => {
     if (!form.formState.isValid) {
       tmaMainButton.setParams({
-        backgroundColor: "#71717a",
+        bgColor: "#71717a",
         textColor: "#d4d4d8",
       });
     } else {
       tmaMainButton.setParams({
-        backgroundColor: tmaThemeParams.buttonColor,
+        bgColor: tmaThemeParams.buttonColor,
         textColor: tmaThemeParams.buttonTextColor,
       });
     }
@@ -924,9 +921,7 @@ const OrderFormDetailFields = ({
                         mode="single"
                         selected={field.value}
                         onSelect={(date) => {
-                          const newDate = date
-                            ? new Date(date)
-                            : new Date();
+                          const newDate = date ? new Date(date) : new Date();
                           newDate.setHours(12, 0, 0, 0);
                           field.onChange(newDate);
                           form.setValue(
@@ -939,9 +934,7 @@ const OrderFormDetailFields = ({
                       />
                       <div className="border-t border-border p-3">
                         <TimePicker
-                          setDate={(date) =>
-                            field.onChange(date)
-                          }
+                          setDate={(date) => field.onChange(date)}
                           date={field.value}
                           hasSeconds={false}
                         />
@@ -986,9 +979,7 @@ const OrderFormDetailFields = ({
                           mode="single"
                           selected={field.value}
                           onSelect={(date) => {
-                            const newDate = date
-                              ? new Date(date)
-                              : new Date();
+                            const newDate = date ? new Date(date) : new Date();
                             newDate.setHours(12, 0, 0, 0);
                             field.onChange(newDate);
                           }}
@@ -1006,9 +997,7 @@ const OrderFormDetailFields = ({
                         />
                         <div className="border-t border-border p-3">
                           <TimePicker
-                            setDate={(date) =>
-                              field.onChange(date)
-                            }
+                            setDate={(date) => field.onChange(date)}
                             date={field.value}
                             hasSeconds={false}
                           />
