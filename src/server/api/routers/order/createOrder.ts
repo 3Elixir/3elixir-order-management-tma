@@ -2,7 +2,7 @@ import {
   SALES_CHANNELS_WITH_SALES_AGENTS,
   orderFormSchema,
 } from "@schema/order-schema";
-import { publicProcedure } from "@server/api/trpc";
+import { protectedProcedure } from "@server/api/trpc";
 import { z } from "zod";
 import { env } from "~/env";
 import { createCaller } from "../../root";
@@ -43,9 +43,9 @@ const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const createOrder = publicProcedure
+export const createOrder = protectedProcedure
   .input(inputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const {
       chatId,
       customerName,
@@ -128,7 +128,7 @@ export const createOrder = publicProcedure
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+          Authorization: `Bearer ${ctx.user.jwt}`,
         },
         body: JSON.stringify(payload),
       });
@@ -147,6 +147,8 @@ export const createOrder = publicProcedure
         data: { id: orderId },
       } = parser.data;
       const caller = createCaller({
+        req: ctx.req,
+        res: ctx.res,
         db,
       });
       await Promise.all([

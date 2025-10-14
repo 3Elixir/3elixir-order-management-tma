@@ -2,7 +2,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { Markup, Telegram, TelegramError } from "telegraf";
 import { env } from "~/env";
 import { escapeSpecialChars } from "~/lib/utils";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 import { outputSchema as updateOrderDetailsResponseSchema } from "~/server/api/routers/order/updateOrderDetails";
 import {
   calculateGstCost,
@@ -22,7 +22,7 @@ const inputSchema = updateOrderDetailsResponseSchema.extend({
   prevData: getOrderDetailsResponseSchema.shape.data,
 });
 
-export const sendOrderDetailsUpdateMessage = publicProcedure
+export const sendOrderDetailsUpdateMessage = protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
     const {

@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import qs from "qs";
 import { z } from "zod";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 
 const inputSchema = z.object({
   orderId: z.string(),
@@ -102,10 +102,10 @@ export const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const getOrderDetails = publicProcedure
+export const getOrderDetails = protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
     const { orderId } = input;
 
     // Fetch the order details from Strapi API
@@ -143,7 +143,7 @@ export const getOrderDetails = publicProcedure
         `${process.env.STRAPI_API_URL}/api/orders/${orderId}?${queryParamsString}`,
         {
           headers: {
-            Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
         },
       );

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
 
@@ -21,10 +21,10 @@ const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const updatePricing = publicProcedure
+export const updatePricing = protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const payload = {
       data: {
         price: input.price,
@@ -38,7 +38,7 @@ export const updatePricing = publicProcedure
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
           body: JSON.stringify(payload),
         },

@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import qs from "qs";
-import { output, z } from "zod";
+import { z } from "zod";
 import { env } from "~/env";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 
 const outputSchema = z.object({
   categories: z.array(z.string()),
@@ -31,9 +31,9 @@ const brandsSchema = z.object({
   ),
 });
 
-export const getFilterOptions = publicProcedure
+export const getFilterOptions = protectedProcedure
   .output(outputSchema)
-  .query(async () => {
+  .query(async ({ ctx }) => {
     const categoriesSearchParams = {
       pagination: {
         page: 1,
@@ -56,7 +56,7 @@ export const getFilterOptions = publicProcedure
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + env.STRAPI_API_TOKEN,
+            Authorization: "Bearer " + ctx.user.jwt,
           },
         },
       );
@@ -108,7 +108,7 @@ export const getFilterOptions = publicProcedure
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + env.STRAPI_API_TOKEN,
+            Authorization: "Bearer " + ctx.user.jwt,
           },
         },
       );

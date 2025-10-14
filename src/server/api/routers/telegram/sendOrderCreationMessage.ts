@@ -1,14 +1,14 @@
 import { Telegram, TelegramError } from "telegraf";
 import { z } from "zod";
 import { env } from "~/env";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 
 const inputSchema = z.object({
   chatId: z.number(),
   orderId: z.number(),
 });
 
-export const sendOrderCreationMessage = publicProcedure
+export const sendOrderCreationMessage = protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
     const { chatId, orderId } = input;

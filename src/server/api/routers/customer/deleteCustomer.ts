@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { env } from "~/env";
 
@@ -22,10 +22,10 @@ const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const deleteCustomer = publicProcedure
+export const deleteCustomer = protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const payload = {};
     try {
       const response = await fetch(
@@ -33,7 +33,7 @@ export const deleteCustomer = publicProcedure
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
         },
       );

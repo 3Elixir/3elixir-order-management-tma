@@ -69,7 +69,6 @@ export const login = publicProcedure
 
       // Step 4: Parse and return user data with JWT
       const data = await response.json();
-      console.debug("Strapi auth response data:", data);
       const parsed = userDataSchema.safeParse(data);
 
       if (!parsed.success) {
