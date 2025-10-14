@@ -8,6 +8,7 @@ import { httpBatchLink, loggerLink } from "@trpc/client";
 import { createTRPCNext } from "@trpc/next";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
+import { retrieveLaunchParams } from "@tma.js/sdk";
 
 import { type AppRouter } from "~/server/api/root";
 
@@ -40,6 +41,36 @@ export const api = createTRPCNext<AppRouter>({
            */
           transformer: superjson,
           url: `${getBaseUrl()}/api/trpc`,
+          headers() {
+            const headers: Record<string, string> = {};
+
+            // Add Telegram initData for authentication
+            if (typeof window !== "undefined") {
+              try {
+                const launchParams = retrieveLaunchParams();
+                if (launchParams.initDataRaw) {
+                  headers["x-telegram-init-data"] = launchParams.initDataRaw;
+                }
+              } catch (error) {
+                console.error("Failed to retrieve launch params:", error);
+              }
+
+              // Add user JWT from localStorage if available
+              const userStr = localStorage.getItem("user");
+              if (userStr) {
+                try {
+                  const user = JSON.parse(userStr);
+                  if (user?.jwt) {
+                    headers["authorization"] = `Bearer ${user.jwt}`;
+                  }
+                } catch (error) {
+                  console.error("Failed to parse user from localStorage:", error);
+                }
+              }
+            }
+
+            return headers;
+          },
         }),
       ],
     };

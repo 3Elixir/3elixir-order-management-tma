@@ -11,6 +11,7 @@ export const env = createEnv({
     DIRECT_URL: z.string().url(),
     STRAPI_API_URL: z.string().url(),
     STRAPI_API_TOKEN: z.string(),
+    STRAPI_SHARED_SECRET: z.string(),
     TELEGRAM_BOT_TOKEN: z.string(),
     TELEGRAM_CHANNEL_ID: z.string(),
     NODE_ENV: z
@@ -37,6 +38,7 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     STRAPI_API_URL: process.env.STRAPI_API_URL,
     STRAPI_API_TOKEN: process.env.STRAPI_API_TOKEN,
+    STRAPI_SHARED_SECRET: process.env.STRAPI_SHARED_SECRET,
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
     TELEGRAM_CHANNEL_ID: process.env.TELEGRAM_CHANNEL_ID,
     NODE_ENV: process.env.NODE_ENV,

@@ -6,7 +6,7 @@
  * TL;DR - This is where all the tRPC server stuff is created and plugged in. The pieces you will
  * need to use are documented accordingly near the end.
  */
-import { initTRPC } from "@trpc/server";
+import { initTRPC, TRPCError } from "@trpc/server";
 import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import superjson from "superjson";
 import { ZodError } from "zod";
@@ -21,7 +21,13 @@ import { db } from "~/server/db";
  * These allow you to access things when processing a request, like the database, the session, etc.
  */
 
-type CreateContextOptions = Record<string, never>;
+import { parse, validate } from "@tma.js/init-data-node";
+import { env } from "~/env";
+
+type CreateContextOptions = {
+  req?: CreateNextContextOptions["req"];
+  res?: CreateNextContextOptions["res"];
+};
 
 /**
  * This helper generates the "internals" for a tRPC context. If you need to use it, you can export
@@ -36,6 +42,8 @@ type CreateContextOptions = Record<string, never>;
 const createInnerTRPCContext = (_opts: CreateContextOptions) => {
   return {
     db,
+    req: _opts.req,
+    res: _opts.res,
   };
 };
 
@@ -46,7 +54,10 @@ const createInnerTRPCContext = (_opts: CreateContextOptions) => {
  * @see https://trpc.io/docs/context
  */
 export const createTRPCContext = (_opts: CreateNextContextOptions) => {
-  return createInnerTRPCContext({});
+  return createInnerTRPCContext({
+    req: _opts.req,
+    res: _opts.res,
+  });
 };
 
 /**
@@ -100,3 +111,65 @@ export const createTRPCRouter = t.router;
  * are logged in.
  */
 export const publicProcedure = t.procedure;
+
+/**
+ * Authentication middleware
+ *
+ * Validates Telegram initData and extracts user information.
+ * Throws UNAUTHORIZED error if initData is missing or invalid.
+ */
+const enforceUserAuth = t.middleware(async ({ ctx, next }) => {
+  // Get initDataRaw from request headers
+  const initDataRaw = ctx.req?.headers["x-telegram-init-data"];
+
+  if (!initDataRaw || typeof initDataRaw !== "string") {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Missing or invalid Telegram authentication data",
+    });
+  }
+
+  try {
+    // Validate Telegram initData
+    validate(initDataRaw, env.TELEGRAM_BOT_TOKEN);
+    const validatedData = parse(initDataRaw);
+
+    // Extract user JWT from authorization header (set by client after login)
+    const authHeader = ctx.req?.headers.authorization;
+    const jwt = authHeader?.replace("Bearer ", "");
+
+    if (!jwt) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Missing authentication token",
+      });
+    }
+
+    // Pass validated data to context
+    return next({
+      ctx: {
+        ...ctx,
+        user: {
+          jwt,
+          telegramUser: validatedData.user,
+        },
+      },
+    });
+  } catch (error) {
+    if (error instanceof TRPCError) {
+      throw error;
+    }
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Invalid Telegram authentication data",
+    });
+  }
+});
+
+/**
+ * Protected (authenticated) procedure
+ *
+ * Use this procedure for endpoints that require authentication.
+ * The user's JWT and Telegram data will be available in ctx.user
+ */
+export const protectedProcedure = t.procedure.use(enforceUserAuth);
