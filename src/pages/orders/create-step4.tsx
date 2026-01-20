@@ -214,6 +214,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                   <FormControl>
                     <Input
                       type="number"
+                      className="text-base"
                       inputMode="decimal"
                       placeholder="Enter the delivery fee"
                       min={0}

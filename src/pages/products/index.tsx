@@ -180,7 +180,7 @@ const ProductsPage: NextPageWithLayout = () => {
           <Input
             type="search"
             placeholder="Search..."
-            className="w-full rounded-lg bg-background pl-8"
+            className="w-full rounded-lg bg-background pl-8 text-base"
             value={liveSearch}
             onChange={(e) => setLiveSearch(e.target.value)}
           />
@@ -527,7 +527,7 @@ const ProductCardDefault = ({
                               </FormLabel>
                               <FormControl>
                                 <Input
-                                  className="col-span-3"
+                                  className="col-span-3 text-base"
                                   type="number"
                                   inputMode="decimal"
                                   placeholder="Enter a price"
@@ -912,7 +912,7 @@ const ProductCardCustomer = ({
                                   </FormLabel>
                                   <FormControl>
                                     <Input
-                                      className="col-span-3"
+                                      className="col-span-3 text-base"
                                       type="number"
                                       inputMode="decimal"
                                       placeholder="Enter a price"
