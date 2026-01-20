@@ -370,6 +370,7 @@ const ProductForm = () => {
                 <FormControl>
                   <Input
                     type="number"
+                    className="text-base"
                     inputMode="decimal"
                     placeholder="Default Price"
                     min={0}
