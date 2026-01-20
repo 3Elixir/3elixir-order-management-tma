@@ -82,7 +82,7 @@ const CustomersPage: NextPageWithLayout = () => {
           <Input
             type="search"
             placeholder="Search by customer name"
-            className="w-full rounded-lg bg-background pl-8"
+            className="w-full rounded-lg bg-background pl-8 text-base"
             value={liveSearch}
             onChange={(e) => setLiveSearch(e.target.value)}
           />
