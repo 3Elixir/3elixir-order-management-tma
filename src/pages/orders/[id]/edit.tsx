@@ -1244,6 +1244,7 @@ const OrderFormSummaryFields = ({
             <FormControl>
               <Input
                 type="number"
+                className="text-base"
                 placeholder="Enter the delivery fee"
                 min={0}
                 inputMode="decimal"
