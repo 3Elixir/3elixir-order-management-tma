@@ -4,7 +4,7 @@ process.env.SKIP_ENV_VALIDATION = "true";
 import { config } from "dotenv";
 import { z } from "zod";
 
-config();
+config({ quiet: true });
 
 const cliEnvSchema = z.object({
   DATABASE_URL: z.string().url(),

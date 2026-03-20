@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 // env-loader MUST be imported first — sets SKIP_ENV_VALIDATION before ~/env is evaluated
 import "./env-loader";
 
