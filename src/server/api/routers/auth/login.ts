@@ -42,15 +42,14 @@ export const login = publicProcedure
         });
       }
 
-      // Step 3: Authenticate with Strapi using telegram ID and shared secret
-      const response = await fetch(`${env.STRAPI_API_URL}/api/auth/local`, {
+      // Step 3: Authenticate with Strapi using the new telegram login endpoint
+      const response = await fetch(`${env.STRAPI_API_URL}/api/auth/telegram/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          identifier: telegramUserId.toString(),
-          password: env.STRAPI_SHARED_SECRET,
+          initDataRaw,
         }),
       });
 
