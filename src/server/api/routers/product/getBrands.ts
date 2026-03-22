@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
 import qs from "qs";
@@ -26,9 +26,9 @@ const outputSchema = z.object({
   }),
 });
 
-export const getBrands = publicProcedure
+export const getBrands = protectedProcedure
   .output(outputSchema)
-  .query(async () => {
+  .query(async ({ ctx }) => {
     const queryParams = {
       pagination: {
         page: 1,
@@ -46,7 +46,7 @@ export const getBrands = publicProcedure
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + env.STRAPI_API_TOKEN,
+            Authorization: "Bearer " + ctx.user.jwt,
           },
         },
       );

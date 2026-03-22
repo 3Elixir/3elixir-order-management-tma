@@ -5,10 +5,10 @@ import {
   useMiniApp,
   useInitData,
   useClosingBehavior,
-  usePostEvent,
+  useHapticFeedback,
+  MiniAppsEventPayload,
 } from "@tma.js/sdk-react";
-import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
-import { type PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
+import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk-react";
 import { useEffect } from "react";
 import { NextPageWithLayout } from "~/pages/_app";
 import { z } from "zod";
@@ -76,7 +76,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   const tmaPopup = usePopup();
   const tmaInitData = useInitData();
   const tmaClosingBehavior = useClosingBehavior();
-  const tmaPostEvent = usePostEvent();
+  const tmaHaptic = useHapticFeedback();
   const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
 
   const orderCreationMutation = api.order.createOrder.useMutation();
@@ -95,7 +95,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
     tmaMainButton.setParams({
       text: "Create Order 🚀",
       isEnabled: true,
-      backgroundColor: "#16a34a",
+      bgColor: "#16a34a",
       isLoaderVisible: false,
     });
 
@@ -126,15 +126,14 @@ const CreateOrdersPage: NextPageWithLayout = () => {
 
   // Register the tmaPopup event
   useEffect(() => {
-    const onSubmission = async (event: PopupClosedPayload) => {
+    const onSubmission = async (
+      event: MiniAppsEventPayload<"popup_closed">,
+    ) => {
       if (event.button_id !== "ok") return;
       if (!tmaInitData) return;
       if (!tmaInitData.user) return;
 
-      tmaPostEvent("web_app_trigger_haptic_feedback", {
-        type: "notification",
-        notification_type: "success",
-      });
+      tmaHaptic.notificationOccurred("success");
 
       tmaMainButton.setParams({
         isLoaderVisible: true,

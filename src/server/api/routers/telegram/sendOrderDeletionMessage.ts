@@ -3,7 +3,7 @@ import { Telegram, TelegramError } from "telegraf";
 import { z } from "zod";
 import { env } from "~/env";
 import { escapeSpecialChars } from "~/lib/utils";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 import { outputSchema as deleteOrderResponseSchema } from "~/server/api/routers/order/deleteOrder";
 import {
   calculateGstCost,
@@ -17,7 +17,7 @@ const inputSchema = deleteOrderResponseSchema.extend({
   chatId: z.number(),
 });
 
-export const sendOrderDeletionMessage = publicProcedure
+export const sendOrderDeletionMessage = protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
     const {
@@ -104,8 +104,8 @@ ${excludeGst ? "~\\- GST excluded~" : `~\\- GST included \\($${escapeSpecialChar
 ~\\- Sales agent\\(s\\): ${
       salesAgents.data.length > 0
         ? salesAgents.data
-        .map((agent) => escapeSpecialChars(agent.attributes.name))
-        .join(", ")
+            .map((agent) => escapeSpecialChars(agent.attributes.name))
+            .join(", ")
         : "N/A"
     }~
 ~\\- Remarks: ${escapeSpecialChars(remarks ?? "N/A")}~

@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { env } from "~/env";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 
 const inputSchema = z.object({
   productId: z.number(),
@@ -22,9 +22,9 @@ export const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const deleteProduct = publicProcedure
+export const deleteProduct = protectedProcedure
   .input(inputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const { productId } = input;
 
     try {
@@ -33,7 +33,7 @@ export const deleteProduct = publicProcedure
         {
           method: "DELETE",
           headers: {
-            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
         },
       );

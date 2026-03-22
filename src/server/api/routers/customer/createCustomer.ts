@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 import { customerFormSchema } from "~/types/customer-schema";
 import { env } from "~/env";
 import { TRPCError } from "@trpc/server";
@@ -21,13 +21,13 @@ const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const createCustomer = publicProcedure
+export const createCustomer = protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
   .meta({
     description: "some shits",
   })
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const payload = {
       data: {
         customerName: input.customerName,
@@ -45,7 +45,7 @@ export const createCustomer = publicProcedure
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+          Authorization: `Bearer ${ctx.user.jwt}`,
         },
         body: JSON.stringify(payload),
       });

@@ -5,12 +5,12 @@ import {
   useMainButton,
   useMiniApp,
   usePopup,
-  usePostEvent,
+  useHapticFeedback,
   useThemeParams,
   useViewport,
 } from "@tma.js/sdk-react";
-import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk";
-import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
+import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk-react";
+import type { MiniAppsEventPayload } from "@tma.js/sdk-react";
 import { useEffect } from "react";
 import { SubmitErrorHandler, SubmitHandler, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -64,7 +64,7 @@ const CreateProductPage: NextPageWithLayout = () => {
 const ProductForm = () => {
   const tmaClosingBehavior = useClosingBehavior();
   const tmaMainButton = useMainButton();
-  const tmaPostEvent = usePostEvent();
+  const tmaHaptic = useHapticFeedback();
   const tmaThemeParams = useThemeParams();
   const tmaViewport = useViewport();
   const tmaPopup = usePopup();
@@ -75,7 +75,7 @@ const ProductForm = () => {
   useEffect(() => {
     tmaMainButton.setParams({
       text: "Create Product 🚀",
-      backgroundColor: "#16a34a",
+      bgColor: "#16a34a",
       isLoaderVisible: false,
       isEnabled: true,
     });
@@ -95,7 +95,7 @@ const ProductForm = () => {
 
   // Hide the back button and expand the viewport
   useEffect(() => {
-    tmaViewport.expand();
+    tmaViewport?.expand();
   }, []);
 
   const productCreationMutation = api.product.createProduct.useMutation();
@@ -104,15 +104,12 @@ const ProductForm = () => {
 
   // Register pop up confirmation on form submission to confirm product creation
   useEffect(() => {
-    const onSubmission = async (event: PopupClosedPayload) => {
+    const onSubmission = async (event: MiniAppsEventPayload<"popup_closed">) => {
       if (event.button_id !== "ok") return;
       if (!tmaInitData) return;
       if (!tmaInitData.user) return;
 
-      tmaPostEvent("web_app_trigger_haptic_feedback", {
-        type: "notification",
-        notification_type: "success",
-      });
+      tmaHaptic.notificationOccurred("success");
 
       tmaMainButton.setParams({
         isLoaderVisible: true,
@@ -166,10 +163,7 @@ const ProductForm = () => {
   const onSubmit: SubmitHandler<z.infer<typeof productFormSchema>> = (
     _formValues,
   ) => {
-    tmaPostEvent("web_app_trigger_haptic_feedback", {
-      type: "notification",
-      notification_type: "success",
-    });
+    tmaHaptic.notificationOccurred("success");
 
     tmaPopup.open({
       title: "Create Product",
@@ -191,21 +185,18 @@ const ProductForm = () => {
     errors,
   ) => {
     console.error(errors);
-    tmaPostEvent("web_app_trigger_haptic_feedback", {
-      type: "notification",
-      notification_type: "error",
-    });
+    tmaHaptic.notificationOccurred("error");
   };
 
   // Update the tmaMainButton color based on the form state
   if (!form.formState.isValid) {
     tmaMainButton.setParams({
-      backgroundColor: "#71717a",
+      bgColor: "#71717a",
       textColor: "#d4d4d8",
     });
   } else {
     tmaMainButton.setParams({
-      backgroundColor: tmaThemeParams.buttonColor,
+      bgColor: tmaThemeParams.buttonColor,
       textColor: tmaThemeParams.buttonTextColor,
     });
   }

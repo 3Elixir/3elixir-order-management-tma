@@ -1,15 +1,17 @@
-import { env } from "~/env";
 import {
   PropsWithChildren,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
 } from "react";
 import { z } from "zod";
 import { useInitData, useMainButton } from "@tma.js/sdk-react";
+import { retrieveLaunchParams } from "@tma.js/sdk";
 import toast from "react-hot-toast";
 import { Button } from "~/components/ui/button";
+import { api } from "~/utils/api";
 
 const userDataSchema = z.object({
   jwt: z.string(),
@@ -31,7 +33,7 @@ type AuthContextType = {
   user: UserDataType | null;
   isLoading: boolean;
   status: "loading" | "error" | "success";
-  login: (telegram_user_id: string) => Promise<string>;
+  login: () => Promise<string>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -47,42 +49,53 @@ interface AuthProviderProps extends PropsWithChildren {}
 
 const AuthProvider = ({ children }: AuthProviderProps) => {
   const tmaInitData = useInitData();
+  const loginMutation = api.auth.login.useMutation();
 
   const [user, setUser] = useState<AuthContextType["user"]>(getUser);
   const [isLoading, setIsLoading] =
     useState<AuthContextType["isLoading"]>(false);
   const [status, setStatus] = useState<AuthContextType["status"]>("loading");
 
-  // Authenticate user via strapi
-  const login: AuthContextType["login"] = async (telegram_user_id) => {
+  // Authenticate user via tRPC
+  const login: AuthContextType["login"] = useCallback(async () => {
     setIsLoading(true);
     setStatus("loading");
-    const { data, message } = await authenticateUser({
-      telegram_user_id: telegram_user_id.toString(),
-    });
-    setIsLoading(false);
 
-    if (!data) {
+    try {
+      // Get initDataRaw from TMA SDK
+      const launchParams = retrieveLaunchParams();
+      const initDataRaw = launchParams.initDataRaw;
+
+      if (!initDataRaw) {
+        throw new Error("Failed to retrieve Telegram init data");
+      }
+
+      // Call tRPC login procedure
+      const response = await loginMutation.mutateAsync({ initDataRaw });
+
+      if (!response.success || !response.data) {
+        throw new Error(response.message || "Authentication failed");
+      }
+
+      setStatus("success");
+      localStorage.setItem("user", JSON.stringify(response.data));
+      setUser(response.data);
+      setIsLoading(false);
+
+      return response.message;
+    } catch (error) {
       setStatus("error");
       localStorage.removeItem("user");
       setUser(null);
-      throw new Error(message);
+      setIsLoading(false);
+      throw error;
     }
-
-    setStatus("success");
-    localStorage.setItem("user", JSON.stringify(data));
-    setUser(data);
-
-    return message;
-  };
+  }, [loginMutation]);
 
   // Authenticate user via strapi on first render
   useEffect(() => {
-    const telegram_user_id = tmaInitData?.user?.id;
-    if (!telegram_user_id) return;
-
     toast.promise(
-      login(telegram_user_id.toString()),
+      login(),
       {
         loading: "Authenticating user",
         success: (message) => message,
@@ -96,7 +109,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         },
       },
     );
-  }, [tmaInitData]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, isLoading, status }}>
@@ -117,16 +130,11 @@ const useAuth = () => {
 const AuthGuard = ({ children }: PropsWithChildren<{}>) => {
   const { user, login, isLoading } = useAuth();
 
-  const tmaInitData = useInitData();
   const tmaMainButton = useMainButton();
 
   const onAuthRetry = () => {
-    const telegram_user_id = tmaInitData?.user?.id;
-    if (!telegram_user_id) {
-      return toast.error("Failed to retry authentication");
-    }
     toast.promise(
-      login(tmaInitData?.user?.id.toString()),
+      login(),
       {
         loading: "Retrying authentication",
         success: (message) => message,
@@ -149,7 +157,7 @@ const AuthGuard = ({ children }: PropsWithChildren<{}>) => {
     } else {
       tmaMainButton?.show();
     }
-  }, [user]);
+  }, [tmaMainButton, user]);
 
   if (!user && isLoading) {
     return (
@@ -193,57 +201,6 @@ const getUser = () => {
     return userDataSchema.parse(JSON.parse(user));
   }
   return null;
-};
-
-const authenticateUser = async ({
-  telegram_user_id,
-}: {
-  telegram_user_id: string;
-}) => {
-  try {
-    const response = await fetch(
-      `${env.NEXT_PUBLIC_STRAPI_API_URL}/api/auth/local`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          identifier: telegram_user_id,
-          password: telegram_user_id,
-        }),
-      },
-    );
-    const data = await response.json();
-    if (response.ok) {
-      return {
-        status: response.status,
-        data: userDataSchema.parse(data),
-        message: "User authenticated",
-      };
-    }
-
-    if (response.status === 429) {
-      return {
-        status: response.status,
-        data: null,
-        message: "Authentication rate limit exceeded",
-      };
-    }
-
-    return {
-      status: response.status,
-      data: null,
-      message: "Failed to authenticate user",
-    };
-  } catch (error) {
-    console.error(error);
-    return {
-      status: 500,
-      data: null,
-      message: "Failed to authenticate user",
-    };
-  }
 };
 
 export { AuthGuard, AuthProvider, useAuth };

@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import qs from "qs";
 import { z } from "zod";
 import { env } from "~/env";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 
 const inputSchema = z.object({
   sort: z.object({
@@ -118,10 +118,10 @@ const outputSchema = z.object({
   }),
 });
 
-export const getFilteredOrders = publicProcedure
+export const getFilteredOrders = protectedProcedure
   .input(inputSchema)
   .output(outputSchema)
-  .query(async ({ input }) => {
+  .query(async ({ input, ctx }) => {
     const {
       filters: { orderStatuses, paymentMethods, salesChannels, salesAgents },
       sort,
@@ -185,7 +185,7 @@ export const getFilteredOrders = publicProcedure
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
         },
       );

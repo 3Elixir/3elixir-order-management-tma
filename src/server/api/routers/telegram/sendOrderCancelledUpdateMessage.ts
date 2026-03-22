@@ -2,7 +2,7 @@ import { Telegram, TelegramError } from "telegraf";
 import { z } from "zod";
 import { env } from "~/env";
 import { escapeSpecialChars } from "~/lib/utils";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 import { outputSchema } from "~/server/api/routers/order/updateOrderStatus";
 import { formatInTimeZone } from "date-fns-tz";
 import {
@@ -16,7 +16,7 @@ const inputSchema = outputSchema.extend({
   prevStatusName: z.string(),
 });
 
-export const sendOrderCancelledUpdateMessage = publicProcedure
+export const sendOrderCancelledUpdateMessage = protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
     const {
