@@ -17,7 +17,8 @@
     "start": "next start",
     "cli": "tsx src/cli/index.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@anatine/zod-mock": "^3.13.4",
