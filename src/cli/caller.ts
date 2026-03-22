@@ -1,13 +1,15 @@
 import { createCaller as createActualCaller } from "~/server/api/root";
 import { db } from "~/server/db";
 import { sign } from "@tma.js/init-data-node";
-import { env } from "~/env";
+
+// STRAPI_API_TOKEN is not mapped in src/env.js for some reason! We have to read it directly from process.env
+const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN!;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
 
 export function getCaller() {
   const initData = sign(
     {
-      auth_date: new Date(),
-      query_id: "cli_query",
+      queryId: "cli_query",
       user: {
         id: 999999999,
         isBot: false,
@@ -20,18 +22,16 @@ export function getCaller() {
         allowsWriteToPm: true
       },
     },
-    env.TELEGRAM_BOT_TOKEN,
-    new Date() // properly injects auth_date 
+    TELEGRAM_BOT_TOKEN,
+    new Date() // properly injects authDate behind the scenes
   );
-
-  const fakeJwt = "fake_jwt_token_for_cli";
 
   return createActualCaller({
     db,
     req: {
       headers: {
         "x-telegram-init-data": initData,
-        authorization: `Bearer ${fakeJwt}`,
+        authorization: `Bearer ${STRAPI_API_TOKEN}`,
       },
     } as any,
     res: {} as any,
