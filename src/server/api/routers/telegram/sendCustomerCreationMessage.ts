@@ -2,7 +2,7 @@ import { Telegram, TelegramError } from "telegraf";
 import { z } from "zod";
 import { env } from "~/env";
 import { escapeSpecialChars } from "~/lib/utils";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 
 const inputSchema = z.object({
   chatId: z.number(),
@@ -10,7 +10,7 @@ const inputSchema = z.object({
   customerName: z.string(),
 });
 
-export const sendCustomerCreationMessage = publicProcedure
+export const sendCustomerCreationMessage = protectedProcedure
   .input(inputSchema)
   .mutation(async ({ input }) => {
     const { chatId, customerId, customerName } = input;

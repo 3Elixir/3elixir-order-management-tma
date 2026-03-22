@@ -136,7 +136,7 @@ const ProductsPage: NextPageWithLayout = () => {
           text: "Finish adding products 🛍️",
           isEnabled: true,
           isLoaderVisible: false,
-          backgroundColor: tmaThemeParams.buttonColor,
+          bgColor: tmaThemeParams.buttonColor,
           textColor: tmaThemeParams.buttonTextColor,
         });
         onButtonClick = () => router.back();
@@ -148,7 +148,7 @@ const ProductsPage: NextPageWithLayout = () => {
           text: "Finish editing prices 🏷️",
           isEnabled: true,
           isLoaderVisible: false,
-          backgroundColor: tmaThemeParams.buttonColor,
+          bgColor: tmaThemeParams.buttonColor,
           textColor: tmaThemeParams.buttonTextColor,
         });
         onButtonClick = () => router.back();
@@ -319,7 +319,7 @@ const ProductsQueryList = ({
       {customerId && (
         <p className="ml-1 text-sm text-gray-500">
           Showing{" "}
-          <span className="font-medium text-primary">{customerName}'s</span>{" "}
+          <span className="font-medium text-primary">{customerName}&apos;s</span>{" "}
           product prices
         </p>
       )}
@@ -332,7 +332,7 @@ const ProductsQueryList = ({
             No products added
           </p>
           <span className="mt-2 text-center text-sm text-gray-500">
-            Add products to the order by clicking the "+" button on the product
+            Add products to the order by clicking the &quot;+&quot; button on the product
           </span>
         </div>
       )}
@@ -1224,7 +1224,7 @@ const ProductsQueryFooter = ({
   );
 };
 
-ProductsPage.getLayout = (page) => {
+const ProductsPageLayout = ({ children }: { children: React.ReactNode }) => {
   const searchParams = useSearchParams();
   const fromStatus = fromStatusSchema.safeParse(searchParams.get("from")).data;
   const title = match(fromStatus)
@@ -1234,9 +1234,13 @@ ProductsPage.getLayout = (page) => {
 
   return (
     <AuthGuard>
-      <MainLayout title={title}>{page}</MainLayout>;
+      <MainLayout title={title}>{children}</MainLayout>
     </AuthGuard>
   );
+};
+
+ProductsPage.getLayout = (page) => {
+  return <ProductsPageLayout>{page}</ProductsPageLayout>;
 };
 
 export default ProductsPage;

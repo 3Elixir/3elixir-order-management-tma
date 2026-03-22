@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 import qs from "qs";
 import { TRPCError } from "@trpc/server";
 
@@ -23,9 +23,9 @@ const outputSchema = z.object({
   meta: z.object({}),
 });
 
-export const getDefaultOrderStatus = publicProcedure
+export const getDefaultOrderStatus = protectedProcedure
   .output(outputSchema)
-  .query(async () => {
+  .query(async ({ ctx }) => {
     const queryParams = {
       populate: {
         order_status: {
@@ -42,7 +42,7 @@ export const getDefaultOrderStatus = publicProcedure
         `${process.env.STRAPI_API_URL}/api/utility?${queryParamsString}`,
         {
           headers: {
-            Authorization: `Bearer ${process.env.STRAPI_API_TOKEN}`,
+            Authorization: `Bearer ${ctx.user.jwt}`,
           },
         },
       );

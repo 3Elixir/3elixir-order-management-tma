@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { publicProcedure } from "../../trpc";
+import { protectedProcedure } from "../../trpc";
 import { TRPCError } from "@trpc/server";
 import { env } from "~/env";
 
@@ -25,9 +25,9 @@ const outputSchema = z.object({
   }),
 });
 
-export const getFulfilmentMethods = publicProcedure
+export const getFulfilmentMethods = protectedProcedure
   .output(outputSchema)
-  .query(async () => {
+  .query(async ({ ctx }) => {
     // Fetch products from Strapi API
     try {
       const response = await fetch(
@@ -35,7 +35,7 @@ export const getFulfilmentMethods = publicProcedure
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: "Bearer " + env.STRAPI_API_TOKEN,
+            Authorization: "Bearer " + ctx.user.jwt,
           },
         },
       );

@@ -1,8 +1,13 @@
 import MainLayout from "~/components/layouts/MainLayout";
 import { NextPageWithLayout } from "~/pages/_app";
 import { useParams, useSearchParams } from "next/navigation";
-import { useBackButton, usePopup, useInitData } from "@tma.js/sdk-react";
-import { on as onTmaEvent, off as offTmaEvent } from "@tma.js/sdk";
+import {
+  useBackButton,
+  usePopup,
+  useInitData,
+  MiniAppsEventPayload,
+} from "@tma.js/sdk-react";
+import { on as onTmaEvent, off as offTmaEvent } from "@tma.js/sdk-react";
 import { useRouter } from "next/router";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "~/components/ui/button";
@@ -33,7 +38,6 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Label } from "~/components/ui/label";
-import { PopupClosedPayload } from "node_modules/@tma.js/sdk/dist/dts/bridge/events/parsers/popupClosed";
 import {
   Popover,
   PopoverClose,
@@ -238,7 +242,9 @@ const OrderDetailsMain = ({
       ],
     });
 
-    const onConfrimDeleteOrder = (payload: PopupClosedPayload) => {
+    const onConfrimDeleteOrder = (
+      payload: MiniAppsEventPayload<"popup_closed">,
+    ) => {
       offTmaEvent("popup_closed", onConfrimDeleteOrder);
 
       if (payload.button_id !== "1") return;
@@ -290,7 +296,7 @@ const OrderDetailsMain = ({
                 >
                   {orderStatusLoading
                     ? "Updating..."
-                    : orderStatus.data?.attributes.orderStatus ?? "No status"}
+                    : (orderStatus.data?.attributes.orderStatus ?? "No status")}
                 </Badge>
               </PopoverTrigger>
               <PopoverContent className="flex w-36 flex-col" side="bottom">

@@ -8,7 +8,7 @@ import {
   calculateTotalOrderAmount,
 } from "~/lib/orderUtils";
 import { escapeSpecialChars } from "~/lib/utils";
-import { publicProcedure } from "~/server/api/trpc";
+import { protectedProcedure } from "~/server/api/trpc";
 import { orderFormSchema } from "~/types/order-schema";
 
 const inputSchema = orderFormSchema.extend({
@@ -16,9 +16,9 @@ const inputSchema = orderFormSchema.extend({
   orderId: z.number(),
 });
 
-export const sendOrderDetailsMessage = publicProcedure
+export const sendOrderDetailsMessage = protectedProcedure
   .input(inputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const {
       orderId,
       customerName,
@@ -94,7 +94,7 @@ ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 
     // Send a message to the order channel
     try {
       const telegram = new Telegram(env.TELEGRAM_BOT_TOKEN);
-      
+
       const miniAppUrl = new URL(env.NEXT_PUBLIC_TELEGRAM_MINI_APP_URL);
       miniAppUrl.searchParams.set("startapp", btoa(`/orders/${orderId}`));
 
@@ -119,7 +119,7 @@ ${escapeSpecialChars("🧾Please Paynow/Paylah to our Company UEN 202135539W (3 
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${env.STRAPI_API_TOKEN}`,
+          Authorization: `Bearer ${ctx.user.jwt}`,
         },
         body: JSON.stringify({
           data: {
