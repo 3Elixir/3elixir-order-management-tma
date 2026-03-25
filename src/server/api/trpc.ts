@@ -141,7 +141,7 @@ const enforceUserAuth = t.middleware(async ({ ctx, next }) => {
     if (!jwt) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "Missing authentication token",
+        message: "Missing authentication token. Please log in again.",
       });
     }
 
@@ -159,6 +159,18 @@ const enforceUserAuth = t.middleware(async ({ ctx, next }) => {
     if (error instanceof TRPCError) {
       throw error;
     }
+
+    // Provide specific messages for common failure modes
+    const msg =
+      error instanceof Error ? error.message.toLowerCase() : "";
+    if (msg.includes("expired")) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message:
+          "Session expired. Please close and reopen the app from Telegram.",
+      });
+    }
+
     throw new TRPCError({
       code: "UNAUTHORIZED",
       message: "Invalid Telegram authentication data",

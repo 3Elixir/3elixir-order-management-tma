@@ -43,21 +43,51 @@ export const login = publicProcedure
       }
 
       // Step 3: Authenticate with Strapi using the new telegram login endpoint
-      const response = await fetch(`${env.STRAPI_API_URL}/api/auth/telegram/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          initDataRaw,
-        }),
-      });
+      // Retry up to 2 times on transient network failures
+      let response: Response | undefined;
+      let lastError: Error | undefined;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          response = await fetch(`${env.STRAPI_API_URL}/api/auth/telegram/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              initDataRaw,
+            }),
+          });
+          break; // Success, exit retry loop
+        } catch (err) {
+          lastError = err instanceof Error ? err : new Error(String(err));
+          console.warn(
+            `Strapi auth attempt ${attempt + 1}/3 failed:`,
+            lastError.message,
+          );
+          if (attempt < 2) {
+            await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+          }
+        }
+      }
+
+      if (!response) {
+        console.error("All Strapi auth attempts failed:", lastError?.message);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Unable to reach authentication service. Please try again.",
+        });
+      }
 
       if (!response.ok) {
+        const errorBody = await response.text().catch(() => "");
+        console.error(
+          `Strapi auth failed with status ${response.status}:`,
+          errorBody,
+        );
         if (response.status === 429) {
           throw new TRPCError({
             code: "TOO_MANY_REQUESTS",
-            message: "Authentication rate limit exceeded",
+            message: "Authentication rate limit exceeded. Please wait a moment.",
           });
         }
         throw new TRPCError({
@@ -83,24 +113,41 @@ export const login = publicProcedure
         message: "User authenticated successfully",
       };
     } catch (error) {
-      // Handle validation errors from @tma.js/init-data-node
-      if (error instanceof Error && error.message.includes("invalid")) {
-        throw new TRPCError({
-          code: "UNAUTHORIZED",
-          message: "Invalid Telegram initData",
-        });
-      }
-
-      // Re-throw TRPCErrors
+      // Re-throw TRPCErrors as-is (already formatted)
       if (error instanceof TRPCError) {
         throw error;
       }
 
-      // Handle unknown errors
+      // Handle validation/expiration errors from @tma.js/init-data-node
+      if (error instanceof Error) {
+        const msg = error.message.toLowerCase();
+        // Catch both "invalid" and "expired" initData errors
+        if (msg.includes("expired")) {
+          console.warn("Telegram initData expired:", error.message);
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message:
+              "Session expired. Please close and reopen the app from Telegram.",
+          });
+        }
+        if (
+          msg.includes("invalid") ||
+          msg.includes("signature") ||
+          msg.includes("hash")
+        ) {
+          console.warn("Telegram initData validation failed:", error.message);
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Invalid Telegram authentication data",
+          });
+        }
+      }
+
+      // Handle unknown errors with full logging
       console.error("Login error:", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
-        message: "An error occurred during authentication",
+        message: "An error occurred during authentication. Please try again.",
       });
     }
   });

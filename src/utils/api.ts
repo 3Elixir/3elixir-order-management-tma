@@ -4,13 +4,53 @@
  *
  * We also create a few inference helpers for input and output types.
  */
-import { httpBatchLink, loggerLink } from "@trpc/client";
+import {
+  httpBatchLink,
+  loggerLink,
+  type TRPCLink,
+} from "@trpc/client";
+import { observable } from "@trpc/server/observable";
 import { createTRPCNext } from "@trpc/next";
 import { type inferRouterInputs, type inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
 import { retrieveLaunchParams } from "@tma.js/sdk";
 
 import { type AppRouter } from "~/server/api/root";
+
+/**
+ * Custom error handling link that clears stale auth state on UNAUTHORIZED errors.
+ * This handles cases where the JWT in localStorage has expired or become invalid,
+ * prompting a fresh login on the next navigation/retry.
+ */
+const authErrorLink: TRPCLink<AppRouter> = () => {
+  return ({ next, op }) => {
+    return observable((observer) => {
+      const unsubscribe = next(op).subscribe({
+        next(value) {
+          observer.next(value);
+        },
+        error(err) {
+          // If we get an UNAUTHORIZED error on a non-login procedure,
+          // clear stale auth data so AuthGuard can trigger re-login
+          if (
+            err?.data?.code === "UNAUTHORIZED" &&
+            op.path !== "auth.login"
+          ) {
+            console.warn(
+              `Auth error on ${op.path}: clearing stale session`,
+            );
+            localStorage.removeItem("user");
+          }
+          observer.error(err);
+        },
+        complete() {
+          observer.complete();
+        },
+      });
+      return unsubscribe;
+    });
+  };
+};
 
 const getBaseUrl = () => {
   if (typeof window !== "undefined") return ""; // browser should use relative url
@@ -33,6 +73,7 @@ export const api = createTRPCNext<AppRouter>({
             process.env.NODE_ENV === "development" ||
             (opts.direction === "down" && opts.result instanceof Error),
         }),
+        authErrorLink,
         httpBatchLink({
           /**
            * Transformer used for data de-serialization from the server.
