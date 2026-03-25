@@ -4,6 +4,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { z } from "zod";
@@ -92,24 +93,31 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [loginMutation]);
 
+  // Use a ref to track if initial login has been attempted (prevents double-fire in StrictMode)
+  const hasAttemptedLogin = useRef(false);
+
   // Authenticate user via strapi on first render
   useEffect(() => {
+    if (hasAttemptedLogin.current) return;
+    hasAttemptedLogin.current = true;
+
     toast.promise(
       login(),
       {
         loading: "Authenticating user",
         success: (message) => message,
-        error: (error) => error.message,
+        error: (error: Error) =>
+          error.message || "Authentication failed. Please try again.",
       },
       {
         position: "top-right",
         success: {
           duration: 2000,
-          icon: "🔥",
+          icon: "\uD83D\uDD25",
         },
       },
     );
-  }, []);
+  }, [login]);
 
   return (
     <AuthContext.Provider value={{ user, login, isLoading, status }}>
@@ -144,7 +152,7 @@ const AuthGuard = ({ children }: PropsWithChildren<{}>) => {
         position: "top-right",
         success: {
           duration: 2000,
-          icon: "🔥",
+          icon: "\uD83D\uDD25",
         },
       },
     );
@@ -163,7 +171,7 @@ const AuthGuard = ({ children }: PropsWithChildren<{}>) => {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center justify-center p-8">
-          <span className="text-5xl">🚀</span>
+          <span className="text-5xl">\uD83D\uDE80</span>
           <p className="mt-2 text-center text-lg font-semibold">
             Authenticating user ...
           </p>
@@ -176,7 +184,7 @@ const AuthGuard = ({ children }: PropsWithChildren<{}>) => {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center justify-center p-8">
-          <span className="text-5xl">💩</span>
+          <span className="text-5xl">\uD83D\uDCA9</span>
           <p className="mt-2 text-center text-lg font-semibold text-red-500">
             Authentication failed
           </p>
@@ -196,9 +204,14 @@ const AuthGuard = ({ children }: PropsWithChildren<{}>) => {
 };
 
 const getUser = () => {
-  const user = localStorage.getItem("user");
-  if (user) {
-    return userDataSchema.parse(JSON.parse(user));
+  try {
+    const user = localStorage.getItem("user");
+    if (user) {
+      return userDataSchema.parse(JSON.parse(user));
+    }
+  } catch (error) {
+    console.error("Failed to parse stored user data, clearing:", error);
+    localStorage.removeItem("user");
   }
   return null;
 };
