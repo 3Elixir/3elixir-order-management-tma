@@ -204,7 +204,7 @@ const OrderProductList = ({
   const router = useRouter();
   const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
   const {
-    fields: orderProducts,
+    fields,
     remove: removeOrderProduct,
     insert: insertOrderProduct,
   } = useFieldArray({
@@ -212,12 +212,11 @@ const OrderProductList = ({
     name: "orderProducts",
   });
 
-  const onRemoveOrderProduct = (index: number, productId: number) => {
+  const onRemoveOrderProduct = (index: number) => {
+    const currentProducts = form.getValues("orderProducts");
     removeOrderProduct(index);
     updateOrderForm({
-      orderProducts: orderProducts.filter(
-        (orderProduct) => orderProduct.productId !== productId,
-      ),
+      orderProducts: currentProducts.filter((_, i) => i !== index),
     });
   };
 
@@ -227,7 +226,7 @@ const OrderProductList = ({
   };
 
   const onDuplicateOrderProduct = (index: number) => {
-    const orderProduct = orderProducts.at(index);
+    const orderProduct = form.getValues(`orderProducts.${index}`);
     if (!orderProduct) return;
 
     insertOrderProduct(index + 1, {
@@ -249,7 +248,7 @@ const OrderProductList = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orderProducts.map((field, index) => (
+            {fields.map((field, index) => (
               <TableRow key={field.id}>
                 <TableCell className="font-semibold">{field.name}</TableCell>
                 <TableCell>
@@ -297,9 +296,7 @@ const OrderProductList = ({
                       size="icon"
                       variant="destructive"
                       className="gap-1"
-                      onClick={() =>
-                        onRemoveOrderProduct(index, field.productId)
-                      }
+                      onClick={() => onRemoveOrderProduct(index)}
                     >
                       <X className="h-3.5 w-3.5" />
                     </Button>

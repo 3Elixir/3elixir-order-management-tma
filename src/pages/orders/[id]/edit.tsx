@@ -1040,7 +1040,7 @@ const OrderFormProductFields = ({
 
   const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
   const {
-    fields: orderProducts,
+    fields,
     remove: removeOrderProduct,
     insert: insertOrderProduct,
   } = useFieldArray({
@@ -1048,17 +1048,16 @@ const OrderFormProductFields = ({
     name: "orderProducts",
   });
 
-  const onRemoveOrderProduct = (index: number, productId: number) => {
+  const onRemoveOrderProduct = (index: number) => {
+    const currentProducts = form.getValues("orderProducts");
     removeOrderProduct(index);
     updateOrderForm({
-      orderProducts: orderProducts.filter(
-        (orderProduct) => orderProduct.productId !== productId,
-      ),
+      orderProducts: currentProducts.filter((_, i) => i !== index),
     });
   };
 
   const onDuplicateOrderProduct = (index: number) => {
-    const orderProduct = orderProducts[index];
+    const orderProduct = form.getValues(`orderProducts.${index}`);
     if (!orderProduct) return;
 
     // Create a new order product with the same values
@@ -1068,8 +1067,19 @@ const OrderFormProductFields = ({
     };
 
     insertOrderProduct(index + 1, newOrderProduct);
+
+    // We get the latest form values plus the newly inserted one.
+    // However, form.getValues might not reflect the insert immediately,
+    // so we construct the new array using the current values.
+    const currentProducts = form.getValues("orderProducts");
+    const updatedProducts = [
+      ...currentProducts.slice(0, index + 1),
+      newOrderProduct,
+      ...currentProducts.slice(index + 1),
+    ];
+
     updateOrderForm({
-      orderProducts: [...orderProducts, newOrderProduct],
+      orderProducts: updatedProducts,
     });
   };
 
@@ -1085,7 +1095,7 @@ const OrderFormProductFields = ({
       render={() => (
         <FormItem>
           <FormLabel>Products</FormLabel>
-          {orderProducts.length ? (
+          {fields.length ? (
             <Card>
               <CardContent className="p-2">
                 <Table>
@@ -1098,7 +1108,7 @@ const OrderFormProductFields = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orderProducts.map((field, index) => (
+                    {fields.map((field, index) => (
                       <TableRow key={field.id}>
                         <TableCell className="font-semibold">
                           {field.name}
@@ -1151,9 +1161,7 @@ const OrderFormProductFields = ({
                               size="icon"
                               variant="destructive"
                               className="gap-1"
-                              onClick={() =>
-                                onRemoveOrderProduct(index, field.productId)
-                              }
+                              onClick={() => onRemoveOrderProduct(index)}
                               type="button"
                             >
                               <X className="h-3.5 w-3.5" />
