@@ -74,7 +74,7 @@ import {
   PopoverTrigger,
 } from "~/components/ui/popover";
 import { format, isBefore } from "date-fns";
-import { createSingaporeDate } from "~/lib/utils";
+import { createSingaporeDate, generateCustomProductSku } from "~/lib/utils";
 import { Calendar } from "~/components/ui/calendar";
 import { TimePicker } from "~/components/ui/time-picker";
 import {
@@ -1088,6 +1088,22 @@ const OrderFormProductFields = ({
     router.push("/products?from=order");
   };
 
+  const onAddCustomProduct = () => {
+    insertOrderProduct(fields.length, {
+      productId: 0,
+      name: "",
+      sku: generateCustomProductSku(),
+      category: "Custom",
+      brand: "Custom",
+      quantity: 1,
+      price: 0,
+    });
+    // Ensure you also sync this new product to the Zustand store using updateOrderForm so it isn't lost if the user navigates away.
+    updateOrderForm({
+      orderProducts: form.getValues("orderProducts"),
+    });
+  };
+
   return (
     <FormField
       control={form.control}
@@ -1111,7 +1127,30 @@ const OrderFormProductFields = ({
                     {fields.map((field, index) => (
                       <TableRow key={field.id}>
                         <TableCell className="font-semibold">
-                          {field.name}
+                          {field.productId === 0 ? (
+                            <FormField
+                              control={form.control}
+                              name={`orderProducts.${index}.name`}
+                              render={({
+                                field: { onChange, ...inputField },
+                              }) => (
+                                <div>
+                                  <Label className="sr-only">
+                                    Product Name
+                                  </Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="Custom item name"
+                                    className="text-base font-semibold"
+                                    onChange={onChange}
+                                    {...inputField}
+                                  />
+                                </div>
+                              )}
+                            />
+                          ) : (
+                            field.name
+                          )}
                         </TableCell>
                         <TableCell>
                           <FormField
@@ -1184,7 +1223,7 @@ const OrderFormProductFields = ({
                   </TableBody>
                 </Table>
               </CardContent>
-              <CardFooter className="justify-center border-t p-2">
+              <CardFooter className="justify-center gap-2 border-t p-2">
                 <Button
                   className="gap-1"
                   variant="ghost"
@@ -1193,6 +1232,16 @@ const OrderFormProductFields = ({
                 >
                   <PlusCircle className="h-4 w-4" />
                   Add More Products
+                </Button>
+                <Button
+                  type="button"
+                  className="gap-1"
+                  variant="outline"
+                  size="default"
+                  onClick={onAddCustomProduct}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Add Custom Product
                 </Button>
               </CardFooter>
             </Card>
