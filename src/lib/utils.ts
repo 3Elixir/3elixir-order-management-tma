@@ -21,8 +21,12 @@ const SINGAPORE_TIMEZONE = "Asia/Singapore";
 
 export const createSingaporeDate = (date: Date | null | undefined): Date => {
   if (!date) return new Date();
-  
+
   // Convert the input date to Singapore timezone, then back to UTC for storage
   // This ensures the date/time is treated as Singapore time regardless of user's timezone
   return fromZonedTime(date, SINGAPORE_TIMEZONE);
 };
+
+export function generateCustomProductSku() {
+  return `CUSTOM-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+}
