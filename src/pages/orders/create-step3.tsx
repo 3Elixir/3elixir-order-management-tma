@@ -57,6 +57,7 @@ import {
   DrawerTrigger,
 } from "~/components/ui/drawer";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { generateCustomProductSku } from "~/lib/utils";
 
 const CreateOrdersPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -235,6 +236,22 @@ const OrderProductList = ({
     });
   };
 
+  const onAddCustomProduct = () => {
+    insertOrderProduct(fields.length, {
+      productId: 0,
+      name: "",
+      sku: generateCustomProductSku(),
+      category: "Custom",
+      brand: "Custom",
+      quantity: 1,
+      price: 0,
+    });
+    // Ensure you also sync this new product to the Zustand store using updateOrderForm so it isn't lost if the user navigates away.
+    updateOrderForm({
+      orderProducts: form.getValues("orderProducts"),
+    });
+  };
+
   return (
     <Card>
       <CardContent className="p-2">
@@ -250,7 +267,28 @@ const OrderProductList = ({
           <TableBody>
             {fields.map((field, index) => (
               <TableRow key={field.id}>
-                <TableCell className="font-semibold">{field.name}</TableCell>
+                <TableCell className="font-semibold">
+                  {field.productId === 0 ? (
+                    <FormField
+                      control={form.control}
+                      name={`orderProducts.${index}.name`}
+                      render={({ field: { onChange, ...inputField } }) => (
+                        <div>
+                          <Label className="sr-only">Product Name</Label>
+                          <Input
+                            type="text"
+                            placeholder="Custom item name"
+                            className="text-base font-semibold"
+                            onChange={onChange}
+                            {...inputField}
+                          />
+                        </div>
+                      )}
+                    />
+                  ) : (
+                    field.name
+                  )}
+                </TableCell>
                 <TableCell>
                   <FormField
                     control={form.control}
@@ -317,7 +355,7 @@ const OrderProductList = ({
           </TableBody>
         </Table>
       </CardContent>
-      <CardFooter className="justify-center border-t p-2">
+      <CardFooter className="justify-center gap-2 border-t p-2">
         <Button
           className="gap-1"
           variant="ghost"
@@ -326,6 +364,16 @@ const OrderProductList = ({
         >
           <PlusCircle className="h-4 w-4" />
           Add More Products
+        </Button>
+        <Button
+          type="button"
+          className="gap-1"
+          variant="outline"
+          size="default"
+          onClick={onAddCustomProduct}
+        >
+          <PlusCircle className="h-4 w-4" />
+          Add Custom Product
         </Button>
       </CardFooter>
     </Card>
