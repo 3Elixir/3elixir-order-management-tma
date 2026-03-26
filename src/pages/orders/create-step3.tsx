@@ -230,14 +230,28 @@ const OrderProductList = ({
     const orderProduct = form.getValues(`orderProducts.${index}`);
     if (!orderProduct) return;
 
-    insertOrderProduct(index + 1, {
+    const newOrderProduct = {
       ...orderProduct,
+      sku: `${orderProduct.sku}-copy`,
       quantity: 1, // Reset quantity for the new product
+    };
+
+    insertOrderProduct(index + 1, newOrderProduct);
+
+    const currentProducts = form.getValues("orderProducts");
+    const updatedProducts = [
+      ...currentProducts.slice(0, index + 1),
+      newOrderProduct,
+      ...currentProducts.slice(index + 1),
+    ];
+
+    updateOrderForm({
+      orderProducts: updatedProducts,
     });
   };
 
   const onAddCustomProduct = () => {
-    insertOrderProduct(fields.length, {
+    const newCustomProduct = {
       productId: 0,
       name: "",
       sku: generateCustomProductSku(),
@@ -245,10 +259,13 @@ const OrderProductList = ({
       brand: "Custom",
       quantity: 1,
       price: 0,
-    });
-    // Ensure you also sync this new product to the Zustand store using updateOrderForm so it isn't lost if the user navigates away.
+    };
+
+    insertOrderProduct(fields.length, newCustomProduct);
+
+    const currentProducts = form.getValues("orderProducts");
     updateOrderForm({
-      orderProducts: form.getValues("orderProducts"),
+      orderProducts: [...currentProducts, newCustomProduct],
     });
   };
 

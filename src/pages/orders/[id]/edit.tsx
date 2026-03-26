@@ -1063,6 +1063,7 @@ const OrderFormProductFields = ({
     // Create a new order product with the same values
     const newOrderProduct = {
       ...orderProduct,
+      sku: `${orderProduct.sku}-copy`,
       quantity: 1, // Reset quantity to 1 for the duplicated product
     };
 
@@ -1089,7 +1090,7 @@ const OrderFormProductFields = ({
   };
 
   const onAddCustomProduct = () => {
-    insertOrderProduct(fields.length, {
+    const newCustomProduct = {
       productId: 0,
       name: "",
       sku: generateCustomProductSku(),
@@ -1097,10 +1098,13 @@ const OrderFormProductFields = ({
       brand: "Custom",
       quantity: 1,
       price: 0,
-    });
-    // Ensure you also sync this new product to the Zustand store using updateOrderForm so it isn't lost if the user navigates away.
+    };
+
+    insertOrderProduct(fields.length, newCustomProduct);
+
+    const currentProducts = form.getValues("orderProducts");
     updateOrderForm({
-      orderProducts: form.getValues("orderProducts"),
+      orderProducts: [...currentProducts, newCustomProduct],
     });
   };
 
