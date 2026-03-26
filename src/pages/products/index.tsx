@@ -319,7 +319,9 @@ const ProductsQueryList = ({
       {customerId && (
         <p className="ml-1 text-sm text-gray-500">
           Showing{" "}
-          <span className="font-medium text-primary">{customerName}&apos;s</span>{" "}
+          <span className="font-medium text-primary">
+            {customerName}&apos;s
+          </span>{" "}
           product prices
         </p>
       )}
@@ -332,19 +334,26 @@ const ProductsQueryList = ({
             No products added
           </p>
           <span className="mt-2 text-center text-sm text-gray-500">
-            Add products to the order by clicking the &quot;+&quot; button on the product
+            Add products to the order by clicking the &quot;+&quot; button on
+            the product
           </span>
         </div>
       )}
       {match(fromStatus)
         .with("order", () =>
           parsedProducts.map((product) => (
-            <ProductCardOrder key={product.productId} product={product} />
+            <ProductCardOrder
+              key={product.sku || product.productId}
+              product={product}
+            />
           )),
         )
         .with("customer", () =>
           parsedProducts.map((product) => (
-            <ProductCardCustomer key={product.productId} product={product} />
+            <ProductCardCustomer
+              key={product.sku || product.productId}
+              product={product}
+            />
           )),
         )
         .otherwise(() =>

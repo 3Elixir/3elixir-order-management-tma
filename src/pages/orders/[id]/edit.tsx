@@ -9,7 +9,10 @@ import {
   useInitData,
   MiniAppsEventPayload,
 } from "@tma.js/sdk-react";
-import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk-react";
+import {
+  on as registerTmaEvent,
+  off as unregisterTmaEvent,
+} from "@tma.js/sdk-react";
 import { inferRouterOutputs } from "@trpc/server";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
@@ -1095,16 +1098,16 @@ const OrderFormProductFields = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orderProducts.map((orderProduct, index) => (
-                      <TableRow key={`${orderProduct.productId}-${index}`}>
+                    {orderProducts.map((field, index) => (
+                      <TableRow key={field.id}>
                         <TableCell className="font-semibold">
-                          {orderProduct.name}
+                          {field.name}
                         </TableCell>
                         <TableCell>
                           <FormField
                             control={form.control}
                             name={`orderProducts.${index}.quantity`}
-                            render={({ field: { onChange, ...field } }) => (
+                            render={({ field: { onChange, ...formField } }) => (
                               <div>
                                 <Label className="sr-only">Quantity</Label>
                                 <Input
@@ -1115,7 +1118,7 @@ const OrderFormProductFields = ({
                                   onChange={(e) =>
                                     onChange(parseInt(e.target.value))
                                   }
-                                  {...field}
+                                  {...formField}
                                 />
                               </div>
                             )}
@@ -1125,7 +1128,7 @@ const OrderFormProductFields = ({
                           <FormField
                             control={form.control}
                             name={`orderProducts.${index}.price`}
-                            render={({ field: { onChange, ...field } }) => (
+                            render={({ field: { onChange, ...formField } }) => (
                               <div>
                                 <Label className="sr-only">Price</Label>
                                 <Input
@@ -1135,7 +1138,7 @@ const OrderFormProductFields = ({
                                   onChange={(e) =>
                                     onChange(parseFloat(e.target.value))
                                   }
-                                  {...field}
+                                  {...formField}
                                 />
                               </div>
                             )}
@@ -1149,10 +1152,7 @@ const OrderFormProductFields = ({
                               variant="destructive"
                               className="gap-1"
                               onClick={() =>
-                                onRemoveOrderProduct(
-                                  index,
-                                  orderProduct.productId,
-                                )
+                                onRemoveOrderProduct(index, field.productId)
                               }
                               type="button"
                             >

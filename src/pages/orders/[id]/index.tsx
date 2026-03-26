@@ -296,7 +296,7 @@ const OrderDetailsMain = ({
                 >
                   {orderStatusLoading
                     ? "Updating..."
-                    : (orderStatus.data?.attributes.orderStatus ?? "No status")}
+                    : orderStatus.data?.attributes.orderStatus ?? "No status"}
                 </Badge>
               </PopoverTrigger>
               <PopoverContent className="flex w-36 flex-col" side="bottom">
@@ -484,7 +484,7 @@ const OrderDetailsMain = ({
               </TableHeader>
               <TableBody>
                 {orderProducts.map((orderProduct) => (
-                  <TableRow key={orderProduct.productId}>
+                  <TableRow key={orderProduct.sku}>
                     <TableCell>
                       <div>
                         <p className="font-normal text-muted-foreground">

@@ -249,16 +249,14 @@ const OrderProductList = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orderProducts.map((orderProduct, index) => (
-              <TableRow key={`${orderProduct.productId}-${index}`}>
-                <TableCell className="font-semibold">
-                  {orderProduct.name}
-                </TableCell>
+            {orderProducts.map((field, index) => (
+              <TableRow key={field.id}>
+                <TableCell className="font-semibold">{field.name}</TableCell>
                 <TableCell>
                   <FormField
                     control={form.control}
                     name={`orderProducts.${index}.quantity`}
-                    render={({ field: { onChange, ...field } }) => (
+                    render={({ field: { onChange, ...formField } }) => (
                       <div>
                         <Label className="sr-only">Quantity</Label>
                         <Input
@@ -268,7 +266,7 @@ const OrderProductList = ({
                           min={1}
                           pattern="[0-9]*"
                           onChange={(e) => onChange(parseInt(e.target.value))}
-                          {...field}
+                          {...formField}
                         />
                       </div>
                     )}
@@ -278,7 +276,7 @@ const OrderProductList = ({
                   <FormField
                     control={form.control}
                     name={`orderProducts.${index}.price`}
-                    render={({ field: { onChange, ...field } }) => (
+                    render={({ field: { onChange, ...formField } }) => (
                       <div>
                         <Label className="sr-only">Price</Label>
                         <Input
@@ -286,7 +284,7 @@ const OrderProductList = ({
                           className="text-center text-base"
                           inputMode="decimal"
                           onChange={(e) => onChange(parseFloat(e.target.value))}
-                          {...field}
+                          {...formField}
                         />
                       </div>
                     )}
@@ -300,7 +298,7 @@ const OrderProductList = ({
                       variant="destructive"
                       className="gap-1"
                       onClick={() =>
-                        onRemoveOrderProduct(index, orderProduct.productId)
+                        onRemoveOrderProduct(index, field.productId)
                       }
                     >
                       <X className="h-3.5 w-3.5" />
