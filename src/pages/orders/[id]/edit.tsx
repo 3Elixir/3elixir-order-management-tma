@@ -107,6 +107,16 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "~/components/ui/drawer";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+  SheetClose,
+  SheetFooter,
+} from "~/components/ui/sheet";
 
 const EditOrderPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -1132,26 +1142,58 @@ const OrderFormProductFields = ({
                       <TableRow key={field.id}>
                         <TableCell className="font-semibold">
                           {field.productId === 0 ? (
-                            <FormField
-                              control={form.control}
-                              name={`orderProducts.${index}.name`}
-                              render={({
-                                field: { onChange, ...inputField },
-                              }) => (
-                                <div>
-                                  <Label className="sr-only">
-                                    Product Name
-                                  </Label>
-                                  <Input
-                                    type="text"
-                                    placeholder="Custom item name"
-                                    className="text-base font-semibold"
-                                    onChange={onChange}
-                                    {...inputField}
+                            <Sheet>
+                              <SheetTrigger asChild>
+                                <div className="cursor-pointer border-b border-dashed border-gray-400 pb-0.5 text-primary">
+                                  {form.watch(
+                                    `orderProducts.${index}.name`,
+                                  ) || (
+                                    <span className="italic text-gray-400">
+                                      Tap to name...
+                                    </span>
+                                  )}
+                                </div>
+                              </SheetTrigger>
+                              <SheetContent side="top">
+                                <SheetHeader>
+                                  <SheetTitle>Custom Product Name</SheetTitle>
+                                  <SheetDescription>
+                                    Enter a descriptive name for this custom
+                                    item.
+                                  </SheetDescription>
+                                </SheetHeader>
+                                <div className="py-6">
+                                  <FormField
+                                    control={form.control}
+                                    name={`orderProducts.${index}.name`}
+                                    render={({
+                                      field: { onChange, value, ...inputField },
+                                    }) => (
+                                      <div>
+                                        <Label className="sr-only">
+                                          Product Name
+                                        </Label>
+                                        <Input
+                                          type="text"
+                                          placeholder="e.g., Special Birthday Cake"
+                                          className="h-12 text-lg font-semibold"
+                                          onChange={onChange}
+                                          value={value}
+                                          {...inputField}
+                                        />
+                                      </div>
+                                    )}
                                   />
                                 </div>
-                              )}
-                            />
+                                <SheetFooter>
+                                  <SheetClose asChild>
+                                    <Button type="button" className="w-full">
+                                      Done
+                                    </Button>
+                                  </SheetClose>
+                                </SheetFooter>
+                              </SheetContent>
+                            </Sheet>
                           ) : (
                             field.name
                           )}
