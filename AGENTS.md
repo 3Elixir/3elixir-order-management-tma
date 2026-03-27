@@ -214,3 +214,12 @@ Configured in `tsconfig.json` and mirrored in `vitest.config.ts`:
 - **tRPC procedures are Strapi wrappers** — each procedure builds a Strapi query using `qs`, calls the Strapi API with the configured token, and returns typed responses.
 - **The CLI reuses the server-side tRPC caller** — it creates a `createCaller()` context identical to what the Next.js API routes use, so CLI calls go through the exact same validation and logic as web requests.
 - **Telegram integration** — mutation procedures in the `telegram` router send formatted messages to a Telegram channel via the Bot API (using `telegraf`).
+
+---
+
+## Development Workflow
+
+Our development flow strictly follows this environment progression:
+1. **feature branch**: All new features and bug fixes must be developed on a dedicated feature branch.
+2. **staging**: Merge feature branches into the `staging` branch. Pushing to `staging` automatically triggers a deployment to the Vercel staging environment. This is where features are tested and validated.
+3. **main**: Once verified in staging, merge the changes into `main` for production deployment.

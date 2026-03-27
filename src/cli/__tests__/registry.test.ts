@@ -33,11 +33,7 @@ const EXPECTED_PROCEDURES: Record<string, string[]> = {
     "getFilteredCustomers",
     "updateCustomerDetails",
   ],
-  customerProduct: [
-    "createPricing",
-    "getPricing",
-    "updatePricing",
-  ],
+  customerProduct: ["createPricing", "getPricing", "updatePricing"],
   salesAgent: ["getSalesAgents"],
   salesChannel: ["getSalesChannels"],
   orderStatus: ["getDefaultOrderStatus", "getOrderStatuses"],
@@ -51,6 +47,7 @@ const EXPECTED_PROCEDURES: Record<string, string[]> = {
     "sendOrderStatusUpdateMessage",
     "sendProductCreationMessage",
   ],
+  auth: ["login"],
 };
 
 const TOTAL_PROCEDURES = Object.values(EXPECTED_PROCEDURES).reduce(
@@ -65,9 +62,9 @@ describe("registry", () => {
     registry = getRegistry();
   });
 
-  it("discovers all 39 procedures", () => {
+  it("discovers all 40 procedures", () => {
     expect(registry.procedures).toHaveLength(TOTAL_PROCEDURES);
-    expect(TOTAL_PROCEDURES).toBe(39);
+    expect(TOTAL_PROCEDURES).toBe(40);
   });
 
   it("returns procedures in a consistent order", () => {
@@ -124,6 +121,7 @@ describe("registry", () => {
 
     it("marks mutations correctly", () => {
       const mutations = [
+        "auth.login",
         "order.createOrder",
         "order.deleteOrder",
         "order.updateOrderDetails",
@@ -146,9 +144,7 @@ describe("registry", () => {
         (p) => p.router === "telegram",
       );
       for (const proc of telegramProcs) {
-        expect(proc.type, `${proc.path} should be a mutation`).toBe(
-          "mutation",
-        );
+        expect(proc.type, `${proc.path} should be a mutation`).toBe("mutation");
       }
     });
   });
@@ -170,7 +166,10 @@ describe("registry", () => {
       ];
       for (const path of noInputProcs) {
         const proc = registry.procedures.find((p) => p.path === path);
-        expect(proc?.inputSchema, `${path} should have null inputSchema`).toBeNull();
+        expect(
+          proc?.inputSchema,
+          `${path} should have null inputSchema`,
+        ).toBeNull();
       }
     });
 
