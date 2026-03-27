@@ -158,7 +158,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                 {orderProducts.length ? (
                   <OrderProductList form={form} />
                 ) : (
-                  <EmptyOrderProduct />
+                  <EmptyOrderProduct form={form} />
                 )}
               </FormItem>
             )}
@@ -170,8 +170,38 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   );
 };
 
-const EmptyOrderProduct = () => {
+const EmptyOrderProduct = ({
+  form,
+}: {
+  form: UseFormReturn<z.infer<typeof orderFormStep3Schema>>;
+}) => {
   const router = useRouter();
+  const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
+
+  const onAddCustomProduct = () => {
+    const newCustomProduct = {
+      productId: 0,
+      name: "",
+      sku: generateCustomProductSku(),
+      category: "Custom",
+      brand: "Custom",
+      quantity: 1,
+      price: 0,
+    };
+
+    const currentProducts = form.getValues("orderProducts");
+    const updatedProducts = [...currentProducts, newCustomProduct];
+
+    form.setValue("orderProducts", updatedProducts, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+
+    updateOrderForm({
+      orderProducts: updatedProducts,
+    });
+  };
 
   return (
     <div className="block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400">
@@ -182,17 +212,22 @@ const EmptyOrderProduct = () => {
       <p className="mt-1 text-sm text-gray-500">
         Get started by adding products from the catalog.
       </p>
-      <Button
-        type="button"
-        className="mt-6"
-        onClick={() => router.push("/products?from=order")}
-      >
-        <SquareArrowOutUpRight
-          className="-ml-0.5 mr-1.5 h-5 w-5"
-          aria-hidden="true"
-        />
-        Browse products
-      </Button>
+      <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+        <Button
+          type="button"
+          onClick={() => router.push("/products?from=order")}
+        >
+          <SquareArrowOutUpRight
+            className="-ml-0.5 mr-1.5 h-5 w-5"
+            aria-hidden="true"
+          />
+          Browse products
+        </Button>
+        <Button type="button" variant="outline" onClick={onAddCustomProduct}>
+          <PlusCircle className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
+          Custom product
+        </Button>
+      </div>
     </div>
   );
 };

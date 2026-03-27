@@ -1258,17 +1258,26 @@ const OrderFormProductFields = ({
               <p className="mt-1 text-sm text-gray-500">
                 Get started by adding products from the catalog.
               </p>
-              <Button
-                type="button"
-                className="mt-6"
-                onClick={() => onNavigateToProducts()}
-              >
-                <SquareArrowOutUpRight
-                  className="-ml-0.5 mr-1.5 h-5 w-5"
-                  aria-hidden="true"
-                />
-                Browse products
-              </Button>
+              <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+                <Button type="button" onClick={() => onNavigateToProducts()}>
+                  <SquareArrowOutUpRight
+                    className="-ml-0.5 mr-1.5 h-5 w-5"
+                    aria-hidden="true"
+                  />
+                  Browse products
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onAddCustomProduct}
+                >
+                  <PlusCircle
+                    className="-ml-0.5 mr-1.5 h-5 w-5"
+                    aria-hidden="true"
+                  />
+                  Custom product
+                </Button>
+              </div>
             </div>
           )}
         </FormItem>
