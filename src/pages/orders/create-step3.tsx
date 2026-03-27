@@ -415,7 +415,7 @@ const OrderProductList = ({
           onClick={() => onNavigateToProducts()}
         >
           <PlusCircle className="h-4 w-4" />
-          Add More Products
+          More Products
         </Button>
         <Button
           type="button"
@@ -425,7 +425,7 @@ const OrderProductList = ({
           onClick={onAddCustomProduct}
         >
           <PlusCircle className="h-4 w-4" />
-          Add Custom Product
+          Custom Product
         </Button>
       </CardFooter>
     </Card>
