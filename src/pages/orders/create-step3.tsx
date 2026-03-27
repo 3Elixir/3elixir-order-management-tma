@@ -56,6 +56,16 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "~/components/ui/drawer";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+  SheetClose,
+  SheetFooter,
+} from "~/components/ui/sheet";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
 import { generateCustomProductSku } from "~/lib/utils";
 
@@ -158,7 +168,7 @@ const CreateOrdersPage: NextPageWithLayout = () => {
                 {orderProducts.length ? (
                   <OrderProductList form={form} />
                 ) : (
-                  <EmptyOrderProduct />
+                  <EmptyOrderProduct form={form} />
                 )}
               </FormItem>
             )}
@@ -170,8 +180,38 @@ const CreateOrdersPage: NextPageWithLayout = () => {
   );
 };
 
-const EmptyOrderProduct = () => {
+const EmptyOrderProduct = ({
+  form,
+}: {
+  form: UseFormReturn<z.infer<typeof orderFormStep3Schema>>;
+}) => {
   const router = useRouter();
+  const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
+
+  const onAddCustomProduct = () => {
+    const newCustomProduct = {
+      productId: 0,
+      name: "",
+      sku: generateCustomProductSku(),
+      category: "Custom",
+      brand: "Custom",
+      quantity: 1,
+      price: 0,
+    };
+
+    const currentProducts = form.getValues("orderProducts");
+    const updatedProducts = [...currentProducts, newCustomProduct];
+
+    form.setValue("orderProducts", updatedProducts, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+
+    updateOrderForm({
+      orderProducts: updatedProducts,
+    });
+  };
 
   return (
     <div className="block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400">
@@ -182,17 +222,22 @@ const EmptyOrderProduct = () => {
       <p className="mt-1 text-sm text-gray-500">
         Get started by adding products from the catalog.
       </p>
-      <Button
-        type="button"
-        className="mt-6"
-        onClick={() => router.push("/products?from=order")}
-      >
-        <SquareArrowOutUpRight
-          className="-ml-0.5 mr-1.5 h-5 w-5"
-          aria-hidden="true"
-        />
-        Browse products
-      </Button>
+      <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+        <Button
+          type="button"
+          onClick={() => router.push("/products?from=order")}
+        >
+          <SquareArrowOutUpRight
+            className="-ml-0.5 mr-1.5 h-5 w-5"
+            aria-hidden="true"
+          />
+          Browse products
+        </Button>
+        <Button type="button" variant="outline" onClick={onAddCustomProduct}>
+          <PlusCircle className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
+          Custom product
+        </Button>
+      </div>
     </div>
   );
 };
@@ -286,22 +331,53 @@ const OrderProductList = ({
               <TableRow key={field.id}>
                 <TableCell className="font-semibold">
                   {field.productId === 0 ? (
-                    <FormField
-                      control={form.control}
-                      name={`orderProducts.${index}.name`}
-                      render={({ field: { onChange, ...inputField } }) => (
-                        <div>
-                          <Label className="sr-only">Product Name</Label>
-                          <Input
-                            type="text"
-                            placeholder="Custom item name"
-                            className="text-base font-semibold"
-                            onChange={onChange}
-                            {...inputField}
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <div className="cursor-pointer border-b border-dashed border-gray-400 pb-0.5 text-primary">
+                          {form.watch(`orderProducts.${index}.name`) || (
+                            <span className="italic text-gray-400">
+                              Tap to name...
+                            </span>
+                          )}
+                        </div>
+                      </SheetTrigger>
+                      <SheetContent side="top">
+                        <SheetHeader>
+                          <SheetTitle>Custom Product Name</SheetTitle>
+                          <SheetDescription>
+                            Enter a descriptive name for this custom item.
+                          </SheetDescription>
+                        </SheetHeader>
+                        <div className="py-6">
+                          <FormField
+                            control={form.control}
+                            name={`orderProducts.${index}.name`}
+                            render={({
+                              field: { onChange, value, ...inputField },
+                            }) => (
+                              <div>
+                                <Label className="sr-only">Product Name</Label>
+                                <Input
+                                  type="text"
+                                  placeholder="e.g., Special Birthday Cake"
+                                  className="h-12 text-lg font-semibold"
+                                  onChange={onChange}
+                                  value={value}
+                                  {...inputField}
+                                />
+                              </div>
+                            )}
                           />
                         </div>
-                      )}
-                    />
+                        <SheetFooter>
+                          <SheetClose asChild>
+                            <Button type="button" className="w-full">
+                              Done
+                            </Button>
+                          </SheetClose>
+                        </SheetFooter>
+                      </SheetContent>
+                    </Sheet>
                   ) : (
                     field.name
                   )}
@@ -380,7 +456,7 @@ const OrderProductList = ({
           onClick={() => onNavigateToProducts()}
         >
           <PlusCircle className="h-4 w-4" />
-          Add More Products
+          More Products
         </Button>
         <Button
           type="button"
@@ -390,7 +466,7 @@ const OrderProductList = ({
           onClick={onAddCustomProduct}
         >
           <PlusCircle className="h-4 w-4" />
-          Add Custom Product
+          Custom Product
         </Button>
       </CardFooter>
     </Card>
