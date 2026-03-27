@@ -30,7 +30,7 @@ export const login = publicProcedure
 
     // Step 1: Validate Telegram initData
     try {
-      validate(initDataRaw, env.TELEGRAM_BOT_TOKEN);
+      validate(initDataRaw, env.TELEGRAM_BOT_TOKEN, { expiresIn: 604800 });
       const validatedData = parse(initDataRaw);
 
       // Step 2: Extract telegram user ID
