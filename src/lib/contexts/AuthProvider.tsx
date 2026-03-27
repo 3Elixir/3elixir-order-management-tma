@@ -13,6 +13,7 @@ import { retrieveLaunchParams } from "@tma.js/sdk";
 import toast from "react-hot-toast";
 import { Button } from "~/components/ui/button";
 import { api } from "~/utils/api";
+import { isTokenExpired } from "~/utils/jwt";
 
 const userDataSchema = z.object({
   jwt: z.string(),
@@ -96,28 +97,36 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   // Use a ref to track if initial login has been attempted (prevents double-fire in StrictMode)
   const hasAttemptedLogin = useRef(false);
 
-  // Authenticate user via strapi on first render
+    // Authenticate user via strapi on first render
   useEffect(() => {
     if (hasAttemptedLogin.current) return;
     hasAttemptedLogin.current = true;
+
+    // IF WE ALREADY HAVE A VALID USER FROM LOCALSTORAGE, SKIP RE-LOGIN
+    // The getUser() function has already verified the JWT is not expired.
+    if (user) {
+      setStatus("success");
+      setIsLoading(false);
+      return;
+    }
 
     toast.promise(
       login(),
       {
         loading: "Authenticating user",
         success: (message) => message,
-        error: (error: Error) =>
+        error: (error) =>
           error.message || "Authentication failed. Please try again.",
       },
       {
         position: "top-right",
         success: {
           duration: 2000,
-          icon: "\uD83D\uDD25",
+          icon: "🔥",
         },
       },
     );
-  }, [login]);
+  }, [login, user]);
 
   return (
     <AuthContext.Provider value={{ user, login, isLoading, status }}>
@@ -205,9 +214,18 @@ const AuthGuard = ({ children }: PropsWithChildren<{}>) => {
 
 const getUser = () => {
   try {
-    const user = localStorage.getItem("user");
-    if (user) {
-      return userDataSchema.parse(JSON.parse(user));
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      const parsedUser = userDataSchema.parse(JSON.parse(userStr));
+      
+      // Check if the JWT is actually valid
+      if (isTokenExpired(parsedUser.jwt)) {
+        console.warn("Stored JWT is expired. Clearing session.");
+        localStorage.removeItem("user");
+        return null;
+      }
+      
+      return parsedUser;
     }
   } catch (error) {
     console.error("Failed to parse stored user data, clearing:", error);

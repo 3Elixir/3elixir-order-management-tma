@@ -84,7 +84,7 @@ describe("CLI integration", () => {
         procedures: Array<{ path: string; type: string }>;
       };
       expect(exitCode).toBe(0);
-      expect(output.procedures.length).toBe(39);
+      expect(output.procedures.length).toBe(40);
     });
 
     it("each procedure has required fields", () => {

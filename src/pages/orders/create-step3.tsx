@@ -57,6 +57,7 @@ import {
   DrawerTrigger,
 } from "~/components/ui/drawer";
 import { AuthGuard } from "~/lib/contexts/AuthProvider";
+import { generateCustomProductSku } from "~/lib/utils";
 
 const CreateOrdersPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -204,7 +205,7 @@ const OrderProductList = ({
   const router = useRouter();
   const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
   const {
-    fields: orderProducts,
+    fields,
     remove: removeOrderProduct,
     insert: insertOrderProduct,
   } = useFieldArray({
@@ -212,12 +213,11 @@ const OrderProductList = ({
     name: "orderProducts",
   });
 
-  const onRemoveOrderProduct = (index: number, productId: number) => {
+  const onRemoveOrderProduct = (index: number) => {
+    const currentProducts = form.getValues("orderProducts");
     removeOrderProduct(index);
     updateOrderForm({
-      orderProducts: orderProducts.filter(
-        (orderProduct) => orderProduct.productId !== productId,
-      ),
+      orderProducts: currentProducts.filter((_, i) => i !== index),
     });
   };
 
@@ -227,12 +227,45 @@ const OrderProductList = ({
   };
 
   const onDuplicateOrderProduct = (index: number) => {
-    const orderProduct = orderProducts.at(index);
+    const orderProduct = form.getValues(`orderProducts.${index}`);
     if (!orderProduct) return;
 
-    insertOrderProduct(index + 1, {
+    const newOrderProduct = {
       ...orderProduct,
+      sku: `${orderProduct.sku}-copy`,
       quantity: 1, // Reset quantity for the new product
+    };
+
+    insertOrderProduct(index + 1, newOrderProduct);
+
+    const currentProducts = form.getValues("orderProducts");
+    const updatedProducts = [
+      ...currentProducts.slice(0, index + 1),
+      newOrderProduct,
+      ...currentProducts.slice(index + 1),
+    ];
+
+    updateOrderForm({
+      orderProducts: updatedProducts,
+    });
+  };
+
+  const onAddCustomProduct = () => {
+    const newCustomProduct = {
+      productId: 0,
+      name: "",
+      sku: generateCustomProductSku(),
+      category: "Custom",
+      brand: "Custom",
+      quantity: 1,
+      price: 0,
+    };
+
+    insertOrderProduct(fields.length, newCustomProduct);
+
+    const currentProducts = form.getValues("orderProducts");
+    updateOrderForm({
+      orderProducts: [...currentProducts, newCustomProduct],
     });
   };
 
@@ -249,16 +282,35 @@ const OrderProductList = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orderProducts.map((orderProduct, index) => (
-              <TableRow key={`${orderProduct.productId}-${index}`}>
+            {fields.map((field, index) => (
+              <TableRow key={field.id}>
                 <TableCell className="font-semibold">
-                  {orderProduct.name}
+                  {field.productId === 0 ? (
+                    <FormField
+                      control={form.control}
+                      name={`orderProducts.${index}.name`}
+                      render={({ field: { onChange, ...inputField } }) => (
+                        <div>
+                          <Label className="sr-only">Product Name</Label>
+                          <Input
+                            type="text"
+                            placeholder="Custom item name"
+                            className="text-base font-semibold"
+                            onChange={onChange}
+                            {...inputField}
+                          />
+                        </div>
+                      )}
+                    />
+                  ) : (
+                    field.name
+                  )}
                 </TableCell>
                 <TableCell>
                   <FormField
                     control={form.control}
                     name={`orderProducts.${index}.quantity`}
-                    render={({ field: { onChange, ...field } }) => (
+                    render={({ field: { onChange, ...formField } }) => (
                       <div>
                         <Label className="sr-only">Quantity</Label>
                         <Input
@@ -268,7 +320,7 @@ const OrderProductList = ({
                           min={1}
                           pattern="[0-9]*"
                           onChange={(e) => onChange(parseInt(e.target.value))}
-                          {...field}
+                          {...formField}
                         />
                       </div>
                     )}
@@ -278,7 +330,7 @@ const OrderProductList = ({
                   <FormField
                     control={form.control}
                     name={`orderProducts.${index}.price`}
-                    render={({ field: { onChange, ...field } }) => (
+                    render={({ field: { onChange, ...formField } }) => (
                       <div>
                         <Label className="sr-only">Price</Label>
                         <Input
@@ -286,7 +338,7 @@ const OrderProductList = ({
                           className="text-center text-base"
                           inputMode="decimal"
                           onChange={(e) => onChange(parseFloat(e.target.value))}
-                          {...field}
+                          {...formField}
                         />
                       </div>
                     )}
@@ -299,9 +351,7 @@ const OrderProductList = ({
                       size="icon"
                       variant="destructive"
                       className="gap-1"
-                      onClick={() =>
-                        onRemoveOrderProduct(index, orderProduct.productId)
-                      }
+                      onClick={() => onRemoveOrderProduct(index)}
                     >
                       <X className="h-3.5 w-3.5" />
                     </Button>
@@ -322,7 +372,7 @@ const OrderProductList = ({
           </TableBody>
         </Table>
       </CardContent>
-      <CardFooter className="justify-center border-t p-2">
+      <CardFooter className="justify-center gap-2 border-t p-2">
         <Button
           className="gap-1"
           variant="ghost"
@@ -331,6 +381,16 @@ const OrderProductList = ({
         >
           <PlusCircle className="h-4 w-4" />
           Add More Products
+        </Button>
+        <Button
+          type="button"
+          className="gap-1"
+          variant="outline"
+          size="default"
+          onClick={onAddCustomProduct}
+        >
+          <PlusCircle className="h-4 w-4" />
+          Add Custom Product
         </Button>
       </CardFooter>
     </Card>

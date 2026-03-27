@@ -9,7 +9,10 @@ import {
   useInitData,
   MiniAppsEventPayload,
 } from "@tma.js/sdk-react";
-import { on as registerTmaEvent, off as unregisterTmaEvent } from "@tma.js/sdk-react";
+import {
+  on as registerTmaEvent,
+  off as unregisterTmaEvent,
+} from "@tma.js/sdk-react";
 import { inferRouterOutputs } from "@trpc/server";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/router";
@@ -71,7 +74,7 @@ import {
   PopoverTrigger,
 } from "~/components/ui/popover";
 import { format, isBefore } from "date-fns";
-import { createSingaporeDate } from "~/lib/utils";
+import { createSingaporeDate, generateCustomProductSku } from "~/lib/utils";
 import { Calendar } from "~/components/ui/calendar";
 import { TimePicker } from "~/components/ui/time-picker";
 import {
@@ -1037,7 +1040,7 @@ const OrderFormProductFields = ({
 
   const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
   const {
-    fields: orderProducts,
+    fields,
     remove: removeOrderProduct,
     insert: insertOrderProduct,
   } = useFieldArray({
@@ -1045,34 +1048,64 @@ const OrderFormProductFields = ({
     name: "orderProducts",
   });
 
-  const onRemoveOrderProduct = (index: number, productId: number) => {
+  const onRemoveOrderProduct = (index: number) => {
+    const currentProducts = form.getValues("orderProducts");
     removeOrderProduct(index);
     updateOrderForm({
-      orderProducts: orderProducts.filter(
-        (orderProduct) => orderProduct.productId !== productId,
-      ),
+      orderProducts: currentProducts.filter((_, i) => i !== index),
     });
   };
 
   const onDuplicateOrderProduct = (index: number) => {
-    const orderProduct = orderProducts[index];
+    const orderProduct = form.getValues(`orderProducts.${index}`);
     if (!orderProduct) return;
 
     // Create a new order product with the same values
     const newOrderProduct = {
       ...orderProduct,
+      sku: `${orderProduct.sku}-copy`,
       quantity: 1, // Reset quantity to 1 for the duplicated product
     };
 
     insertOrderProduct(index + 1, newOrderProduct);
+
+    // We get the latest form values plus the newly inserted one.
+    // However, form.getValues might not reflect the insert immediately,
+    // so we construct the new array using the current values.
+    const currentProducts = form.getValues("orderProducts");
+    const updatedProducts = [
+      ...currentProducts.slice(0, index + 1),
+      newOrderProduct,
+      ...currentProducts.slice(index + 1),
+    ];
+
     updateOrderForm({
-      orderProducts: [...orderProducts, newOrderProduct],
+      orderProducts: updatedProducts,
     });
   };
 
   const onNavigateToProducts = () => {
     updateOrderForm(form.getValues());
     router.push("/products?from=order");
+  };
+
+  const onAddCustomProduct = () => {
+    const newCustomProduct = {
+      productId: 0,
+      name: "",
+      sku: generateCustomProductSku(),
+      category: "Custom",
+      brand: "Custom",
+      quantity: 1,
+      price: 0,
+    };
+
+    insertOrderProduct(fields.length, newCustomProduct);
+
+    const currentProducts = form.getValues("orderProducts");
+    updateOrderForm({
+      orderProducts: [...currentProducts, newCustomProduct],
+    });
   };
 
   return (
@@ -1082,7 +1115,7 @@ const OrderFormProductFields = ({
       render={() => (
         <FormItem>
           <FormLabel>Products</FormLabel>
-          {orderProducts.length ? (
+          {fields.length ? (
             <Card>
               <CardContent className="p-2">
                 <Table>
@@ -1095,16 +1128,39 @@ const OrderFormProductFields = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orderProducts.map((orderProduct, index) => (
-                      <TableRow key={`${orderProduct.productId}-${index}`}>
+                    {fields.map((field, index) => (
+                      <TableRow key={field.id}>
                         <TableCell className="font-semibold">
-                          {orderProduct.name}
+                          {field.productId === 0 ? (
+                            <FormField
+                              control={form.control}
+                              name={`orderProducts.${index}.name`}
+                              render={({
+                                field: { onChange, ...inputField },
+                              }) => (
+                                <div>
+                                  <Label className="sr-only">
+                                    Product Name
+                                  </Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="Custom item name"
+                                    className="text-base font-semibold"
+                                    onChange={onChange}
+                                    {...inputField}
+                                  />
+                                </div>
+                              )}
+                            />
+                          ) : (
+                            field.name
+                          )}
                         </TableCell>
                         <TableCell>
                           <FormField
                             control={form.control}
                             name={`orderProducts.${index}.quantity`}
-                            render={({ field: { onChange, ...field } }) => (
+                            render={({ field: { onChange, ...formField } }) => (
                               <div>
                                 <Label className="sr-only">Quantity</Label>
                                 <Input
@@ -1115,7 +1171,7 @@ const OrderFormProductFields = ({
                                   onChange={(e) =>
                                     onChange(parseInt(e.target.value))
                                   }
-                                  {...field}
+                                  {...formField}
                                 />
                               </div>
                             )}
@@ -1125,7 +1181,7 @@ const OrderFormProductFields = ({
                           <FormField
                             control={form.control}
                             name={`orderProducts.${index}.price`}
-                            render={({ field: { onChange, ...field } }) => (
+                            render={({ field: { onChange, ...formField } }) => (
                               <div>
                                 <Label className="sr-only">Price</Label>
                                 <Input
@@ -1135,7 +1191,7 @@ const OrderFormProductFields = ({
                                   onChange={(e) =>
                                     onChange(parseFloat(e.target.value))
                                   }
-                                  {...field}
+                                  {...formField}
                                 />
                               </div>
                             )}
@@ -1148,12 +1204,7 @@ const OrderFormProductFields = ({
                               size="icon"
                               variant="destructive"
                               className="gap-1"
-                              onClick={() =>
-                                onRemoveOrderProduct(
-                                  index,
-                                  orderProduct.productId,
-                                )
-                              }
+                              onClick={() => onRemoveOrderProduct(index)}
                               type="button"
                             >
                               <X className="h-3.5 w-3.5" />
@@ -1176,7 +1227,7 @@ const OrderFormProductFields = ({
                   </TableBody>
                 </Table>
               </CardContent>
-              <CardFooter className="justify-center border-t p-2">
+              <CardFooter className="justify-center gap-2 border-t p-2">
                 <Button
                   className="gap-1"
                   variant="ghost"
@@ -1185,6 +1236,16 @@ const OrderFormProductFields = ({
                 >
                   <PlusCircle className="h-4 w-4" />
                   Add More Products
+                </Button>
+                <Button
+                  type="button"
+                  className="gap-1"
+                  variant="outline"
+                  size="default"
+                  onClick={onAddCustomProduct}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Add Custom Product
                 </Button>
               </CardFooter>
             </Card>

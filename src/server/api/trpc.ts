@@ -131,7 +131,7 @@ const enforceUserAuth = t.middleware(async ({ ctx, next }) => {
 
   try {
     // Validate Telegram initData
-    validate(initDataRaw, env.TELEGRAM_BOT_TOKEN);
+    validate(initDataRaw, env.TELEGRAM_BOT_TOKEN, { expiresIn: 0 });
     const validatedData = parse(initDataRaw);
 
     // Extract user JWT from authorization header (set by client after login)

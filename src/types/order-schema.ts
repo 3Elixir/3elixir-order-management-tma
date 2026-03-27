@@ -78,7 +78,7 @@ export const orderFormStep3Schema = z.object({
     .array(
       z.object({
         productId: z.number(),
-        name: z.string(),
+        name: z.string().min(1, "Name is required"),
         sku: z.string(),
         category: z.string(),
         brand: z.string(),
