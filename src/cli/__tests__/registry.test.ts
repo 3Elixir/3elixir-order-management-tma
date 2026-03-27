@@ -3,6 +3,7 @@ import { getRegistry, getSchemaForProcedure } from "../registry";
 
 // Expected routers and their procedures
 const EXPECTED_PROCEDURES: Record<string, string[]> = {
+  auth: ["login"],
   order: [
     "createOrder",
     "deleteOrder",
@@ -65,9 +66,9 @@ describe("registry", () => {
     registry = getRegistry();
   });
 
-  it("discovers all 39 procedures", () => {
+  it("discovers all 40 procedures", () => {
     expect(registry.procedures).toHaveLength(TOTAL_PROCEDURES);
-    expect(TOTAL_PROCEDURES).toBe(39);
+    expect(TOTAL_PROCEDURES).toBe(40);
   });
 
   it("returns procedures in a consistent order", () => {
