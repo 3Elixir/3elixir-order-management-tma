@@ -40,6 +40,12 @@ const authErrorLink: TRPCLink<AppRouter> = () => {
               `Auth error on ${op.path}: clearing stale session`,
             );
             localStorage.removeItem("user");
+            
+            // Force a reload so the React tree picks up the null localStorage 
+            // and AuthGuard correctly triggers the re-authentication UI.
+            if (typeof window !== "undefined") {
+              window.location.reload();
+            }
           }
           observer.error(err);
         },
