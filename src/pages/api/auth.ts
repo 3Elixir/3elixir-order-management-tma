@@ -10,7 +10,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     // Validate the initData by using the secret key
     const { initDataRaw } = req.body;
-    validate(initDataRaw, env.TELEGRAM_BOT_TOKEN);
+    validate(initDataRaw, env.TELEGRAM_BOT_TOKEN, { expiresIn: 604800 });
   } catch (error) {
     if (error instanceof Error) {
       return res.status(400).json({ success: false, error: error.message });
