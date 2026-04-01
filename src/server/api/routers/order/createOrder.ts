@@ -8,6 +8,44 @@ import { env } from "~/env";
 import { createCaller } from "../../root";
 import { db } from "~/server/db";
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
+async function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withRetry<T>(
+  fn: () => Promise<{ success: boolean; message?: string }>,
+  context: string,
+): Promise<{ success: boolean; message?: string; attempts: number }> {
+  let lastError: { success: boolean; message?: string } = {
+    success: false,
+    message: "Unknown error",
+  };
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    const result = await fn();
+    lastError = result;
+
+    if (result.success) {
+      return { success: true, attempts: attempt };
+    }
+
+    if (attempt < MAX_RETRIES) {
+      console.warn(
+        `${context} failed (attempt ${attempt}/${MAX_RETRIES}): ${result.message}. Retrying...`,
+      );
+      await sleep(RETRY_DELAY_MS * attempt);
+    }
+  }
+
+  console.error(
+    `${context} failed after ${MAX_RETRIES} attempts: ${lastError.message}`,
+  );
+  return { success: false, message: lastError.message, attempts: MAX_RETRIES };
+}
+
 const inputSchema = orderFormSchema.extend({
   chatId: z.number(),
 });
@@ -43,9 +81,16 @@ const outputSchema = z.object({
   meta: z.object({}),
 });
 
+const returnSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+});
+
+type CreateOrderResponse = z.infer<typeof returnSchema>;
+
 export const createOrder = protectedProcedure
   .input(inputSchema)
-  .mutation(async ({ input, ctx }) => {
+  .mutation(async ({ input, ctx }): Promise<CreateOrderResponse> => {
     const {
       chatId,
       customerName,
@@ -142,7 +187,7 @@ export const createOrder = protectedProcedure
         throw new Error("Response failed data validation");
       }
 
-      // Send messages to Telegram
+      // Send messages to Telegram with retry
       const {
         data: { id: orderId },
       } = parser.data;
@@ -151,18 +196,39 @@ export const createOrder = protectedProcedure
         res: ctx.res,
         db,
       });
-      await Promise.all([
-        // Send confirmation message to customer
-        caller.telegram.sendOrderCreationMessage({
-          chatId,
-          orderId,
-        }),
-        // Send order details to order channel
-        caller.telegram.sendOrderDetailsMessage({
-          orderId,
-          ...input,
-        }),
+
+      const [confirmationResult, detailsResult] = await Promise.all([
+        withRetry(
+          () =>
+            caller.telegram.sendOrderCreationMessage({
+              chatId,
+              orderId,
+            }),
+          "Order confirmation message",
+        ),
+        withRetry(
+          () =>
+            caller.telegram.sendOrderDetailsMessage({
+              orderId,
+              ...input,
+            }),
+          "Order details message",
+        ),
       ]);
+
+      // Check if all Telegram notifications succeeded
+      if (!confirmationResult.success || !detailsResult.success) {
+        const failedMessages = [
+          !confirmationResult.success && "confirmation",
+          !detailsResult.success && "details",
+        ]
+          .filter(Boolean)
+          .join(" and ");
+        return {
+          success: false,
+          message: `Order #${orderId} created successfully, but ${failedMessages} notification${failedMessages.includes(" and ") ? "s" : ""} failed to send after ${MAX_RETRIES} retries`,
+        };
+      }
 
       return {
         success: true,

@@ -155,9 +155,12 @@ const CreateOrdersPage: NextPageWithLayout = () => {
           isEnabled: true,
         });
         return tmaPopup.open({
-          title: "Error",
+          title: "Notification Issue",
           message: response.message,
           buttons: [{ type: "ok" }],
+        }).finally(() => {
+          tmaClosingBehavior.disableConfirmation();
+          tma.close();
         });
       }
 
