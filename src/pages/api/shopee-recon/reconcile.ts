@@ -1,10 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { promises as fs } from "fs";
 import formidable, { type File as FormidableFile } from "formidable";
-import { randomUUID } from "crypto";
 import { runPipeline } from "~/lib/recon/pipeline";
 import { SchemaError, ParseError, PipelineError } from "~/lib/recon/errors";
 import { put as putDownload } from "~/lib/recon/downloadStore";
+import { generateReconId, outputFilename } from "~/lib/recon/reconId";
 
 export const config = {
   api: {
@@ -81,15 +81,16 @@ export default async function handler(
 
   try {
     const result = await runPipeline(ordersBuf, incomeBuf);
-    const downloadId = randomUUID();
-    putDownload(downloadId, result.workbook);
+    const reconId = generateReconId();
+    putDownload(reconId, result.workbook);
     return res.status(200).json({
+      reconId,
       previews: result.previews,
       unmatched: result.unmatched,
       download: {
-        id: downloadId,
-        url: `/api/shopee-recon/download/${downloadId}`,
-        filename: "Output_Updated.xlsx",
+        id: reconId,
+        url: `/api/shopee-recon/download/${reconId}`,
+        filename: outputFilename(reconId),
       },
     });
   } catch (err) {

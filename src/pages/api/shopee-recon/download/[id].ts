@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { get as getDownload } from "~/lib/recon/downloadStore";
+import { isReconId, outputFilename } from "~/lib/recon/reconId";
 
-const FILENAME = "Output_Updated.xlsx";
 const XLSX_MIME =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
@@ -12,8 +12,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   }
 
   const { id } = req.query;
-  if (typeof id !== "string" || !id) {
-    return res.status(400).json({ error: "Missing download id" });
+  if (typeof id !== "string" || !isReconId(id)) {
+    return res.status(400).json({ error: "Invalid recon id" });
   }
 
   const workbook = getDownload(id);
@@ -23,11 +23,9 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       .json({ error: "Download not found or expired. Please reconcile again." });
   }
 
+  const filename = outputFilename(id);
   res.setHeader("Content-Type", XLSX_MIME);
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename="${FILENAME}"`,
-  );
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
   res.setHeader("Content-Length", workbook.length.toString());
   res.setHeader("Cache-Control", "private, no-store");
   return res.status(200).send(workbook);

@@ -10,6 +10,7 @@ import { Button } from '~/components/ui/button';
 import type { CompiledRow, PivotRow, SummaryRow } from '~/lib/recon/schema';
 
 type Result = {
+  reconId: string;
   previews: { compiled: CompiledRow[]; pivot: PivotRow[]; summary: SummaryRow };
   unmatched: { count: number };
   download: { id: string; url: string; filename: string };
@@ -118,8 +119,16 @@ export default function Home() {
         </header>
 
         <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-8 md:pb-8">
+          {/* Recon ID */}
+          <div className="flex min-w-0 items-baseline gap-2 text-sm">
+            <span className="shrink-0 font-medium text-foreground">Recon ID:</span>
+            <code className="truncate rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+              {result.reconId}
+            </code>
+          </div>
+
           {/* File summary — stack on mobile, inline on sm+ */}
-          <div className="flex min-w-0 flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
+          <div className="mt-2 flex min-w-0 flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
             <p className="flex min-w-0 items-baseline gap-1">
               <span className="shrink-0 font-medium text-foreground">Orders:</span>
               <span className="truncate font-mono text-xs">{orders?.name ?? '—'}</span>

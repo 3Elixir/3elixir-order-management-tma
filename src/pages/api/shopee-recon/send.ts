@@ -3,11 +3,10 @@ import { Telegram, TelegramError } from "telegraf";
 import { z } from "zod";
 import { env } from "~/env";
 import { get as getDownload } from "~/lib/recon/downloadStore";
-
-const FILENAME = "Output_Updated.xlsx";
+import { isReconId, outputFilename } from "~/lib/recon/reconId";
 
 const bodySchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().refine(isReconId, "Invalid recon id"),
   chatId: z.number(),
 });
 
@@ -33,12 +32,14 @@ export default async function handler(
       .json({ error: "Download not found or expired. Please reconcile again." });
   }
 
+  const filename = outputFilename(id);
+
   try {
     const telegram = new Telegram(env.TELEGRAM_BOT_TOKEN);
     await telegram.sendDocument(
       chatId,
-      { source: workbook, filename: FILENAME },
-      { caption: "ShopeeRecon result" },
+      { source: workbook, filename },
+      { caption: `ShopeeRecon · ${id}` },
     );
     return res.status(200).json({ success: true });
   } catch (err) {
