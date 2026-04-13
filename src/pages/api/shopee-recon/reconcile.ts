@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { promises as fs } from "fs";
 import formidable, { type File as FormidableFile } from "formidable";
+import { randomUUID } from "crypto";
 import { runPipeline } from "~/lib/recon/pipeline";
 import { SchemaError, ParseError, PipelineError } from "~/lib/recon/errors";
+import { put as putDownload } from "~/lib/recon/downloadStore";
 
 export const config = {
   api: {
@@ -79,13 +81,16 @@ export default async function handler(
 
   try {
     const result = await runPipeline(ordersBuf, incomeBuf);
-    const dataUrl =
-      "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," +
-      result.workbook.toString("base64");
+    const downloadId = randomUUID();
+    putDownload(downloadId, result.workbook);
     return res.status(200).json({
       previews: result.previews,
       unmatched: result.unmatched,
-      download: { href: dataUrl, filename: "Output_Updated.xlsx" },
+      download: {
+        id: downloadId,
+        url: `/api/shopee-recon/download/${downloadId}`,
+        filename: "Output_Updated.xlsx",
+      },
     });
   } catch (err) {
     if (err instanceof SchemaError) {
