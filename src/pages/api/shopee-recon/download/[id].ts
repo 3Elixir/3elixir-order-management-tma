@@ -16,8 +16,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: "Invalid recon id" });
   }
 
-  const workbook = getDownload(id);
-  if (!workbook) {
+  const entry = getDownload(id);
+  if (!entry) {
     return res
       .status(404)
       .json({ error: "Download not found or expired. Please reconcile again." });
@@ -26,7 +26,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const filename = outputFilename(id);
   res.setHeader("Content-Type", XLSX_MIME);
   res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-  res.setHeader("Content-Length", workbook.length.toString());
+  res.setHeader("Content-Length", entry.workbook.length.toString());
   res.setHeader("Cache-Control", "private, no-store");
-  return res.status(200).send(workbook);
+  return res.status(200).send(entry.workbook);
 }

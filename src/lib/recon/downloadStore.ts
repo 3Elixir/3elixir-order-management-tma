@@ -1,21 +1,32 @@
-// In-memory, TTL-bounded store for completed reconciliation workbooks.
-// Telegram Mini App's WebApp.downloadFile requires an HTTPS URL (not data URL),
-// so we stash the xlsx buffer here after reconcile and stream it from a
-// separate GET endpoint.
+import type { CompiledRow, PivotRow, SummaryRow } from "./schema";
+
+// In-memory, TTL-bounded store for completed reconciliations. Holds the
+// xlsx workbook plus the structured previews/unmatched so the Telegram
+// send endpoint can build an executive summary without re-parsing.
 //
-// Caveat: this is per-serverless-instance. Works reliably for the common flow
-// (user clicks download seconds after reconcile completes, same warm instance).
-// If this ever becomes unreliable at scale, swap for Vercel Blob or KV.
+// Caveat: this is per-serverless-instance. Works reliably for the common
+// flow (user triggers send seconds after reconcile completes on the same
+// warm instance). Swap for Vercel Blob/KV if that stops being true.
 
 const TTL_MS = 10 * 60 * 1000;
 const MAX_ENTRIES = 50;
 
-type Entry = { workbook: Buffer; expires: number };
+export type ReconEntry = {
+  workbook: Buffer;
+  previews: {
+    compiled: CompiledRow[];
+    pivot: PivotRow[];
+    summary: SummaryRow;
+  };
+  unmatched: { count: number };
+};
 
-const store: Map<string, Entry> =
-  (globalThis as unknown as { __reconDownloadStore?: Map<string, Entry> })
+type StoredEntry = ReconEntry & { expires: number };
+
+const store: Map<string, StoredEntry> =
+  (globalThis as unknown as { __reconDownloadStore?: Map<string, StoredEntry> })
     .__reconDownloadStore ?? new Map();
-(globalThis as unknown as { __reconDownloadStore?: Map<string, Entry> })
+(globalThis as unknown as { __reconDownloadStore?: Map<string, StoredEntry> })
   .__reconDownloadStore = store;
 
 function sweep() {
@@ -30,17 +41,18 @@ function sweep() {
   }
 }
 
-export function put(id: string, workbook: Buffer): void {
+export function put(id: string, entry: ReconEntry): void {
   sweep();
-  store.set(id, { workbook, expires: Date.now() + TTL_MS });
+  store.set(id, { ...entry, expires: Date.now() + TTL_MS });
 }
 
-export function get(id: string): Buffer | null {
+export function get(id: string): ReconEntry | null {
   const entry = store.get(id);
   if (!entry) return null;
   if (entry.expires < Date.now()) {
     store.delete(id);
     return null;
   }
-  return entry.workbook;
+  const { expires: _expires, ...rest } = entry;
+  return rest;
 }

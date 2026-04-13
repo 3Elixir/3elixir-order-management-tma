@@ -82,7 +82,11 @@ export default async function handler(
   try {
     const result = await runPipeline(ordersBuf, incomeBuf);
     const reconId = generateReconId();
-    putDownload(reconId, result.workbook);
+    putDownload(reconId, {
+      workbook: result.workbook,
+      previews: result.previews,
+      unmatched: result.unmatched,
+    });
     return res.status(200).json({
       reconId,
       previews: result.previews,
