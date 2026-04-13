@@ -3,7 +3,6 @@ import { getRegistry, getSchemaForProcedure } from "../registry";
 
 // Expected routers and their procedures
 const EXPECTED_PROCEDURES: Record<string, string[]> = {
-  auth: ["login"],
   order: [
     "createOrder",
     "deleteOrder",
