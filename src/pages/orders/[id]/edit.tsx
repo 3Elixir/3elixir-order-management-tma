@@ -1,0 +1,1552 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  useBackButton,
+  useMainButton,
+  useThemeParams,
+  useHapticFeedback,
+  usePopup,
+  useClosingBehavior,
+  useInitData,
+  MiniAppsEventPayload,
+} from "@tma.js/sdk-react";
+import {
+  on as registerTmaEvent,
+  off as unregisterTmaEvent,
+} from "@tma.js/sdk-react";
+import { inferRouterOutputs } from "@trpc/server";
+import { useParams } from "next/navigation";
+import { useRouter } from "next/router";
+import { useEffect, useMemo, useState } from "react";
+import {
+  type UseFormReturn,
+  type SubmitHandler,
+  type SubmitErrorHandler,
+  useForm,
+  useFieldArray,
+} from "react-hook-form";
+import { match } from "ts-pattern";
+import { z } from "zod";
+import MainLayout from "~/components/layouts/MainLayout";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "~/components/ui/form";
+import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import { NextPageWithLayout } from "~/pages/_app";
+import { AppRouter } from "~/server/api/root";
+import {
+  SALES_CHANNELS_WITH_SALES_AGENTS,
+  orderFormSchema,
+} from "~/types/order-schema";
+import { api } from "~/utils/api";
+import { Button } from "~/components/ui/button";
+import {
+  CalendarIcon,
+  CopyPlus,
+  PlusCircle,
+  SquareArrowOutUpRight,
+  Trash2,
+  X,
+} from "lucide-react";
+import { cn } from "~/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
+import { format, isBefore } from "date-fns";
+import { createSingaporeDate, generateCustomProductSku } from "~/lib/utils";
+import { Calendar } from "~/components/ui/calendar";
+import { TimePicker } from "~/components/ui/time-picker";
+import {
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  Table,
+  TableFooter,
+} from "~/components/ui/table";
+import { Label } from "~/components/ui/label";
+import { useOrderForm } from "@stores/order-form/useOrderForm";
+import { Textarea } from "~/components/ui/textarea";
+import { DropDown } from "~/components/ui/dropdown";
+import { Switch } from "~/components/ui/switch";
+import { AuthGuard, useAuth } from "~/lib/contexts/AuthProvider";
+import {
+  calculateGstCost,
+  calculateOrderGrandTotal,
+  calculateTotalOrderAmount,
+  DEFAULT_GST_PERCENTAGE,
+} from "~/lib/orderUtils";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "~/components/ui/drawer";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+  SheetClose,
+  SheetFooter,
+} from "~/components/ui/sheet";
+
+const EditOrderPage: NextPageWithLayout = () => {
+  const router = useRouter();
+  const tmaBackButton = useBackButton();
+  const params = useParams() as { id: string } | null;
+
+  const orderDetailsQuery = api.order.getOrderDetails.useQuery(
+    {
+      orderId: params?.id ?? "",
+    },
+    {
+      enabled: !!params?.id,
+    },
+  );
+
+  // show tma back button to navigate back to the previous page
+  useEffect(() => {
+    const onBackButtonPress = () => {
+      router.back();
+    };
+    tmaBackButton.on("click", onBackButtonPress);
+    tmaBackButton.show();
+
+    return () => {
+      tmaBackButton.off("click", onBackButtonPress);
+      tmaBackButton.hide();
+    };
+  }, []);
+
+  return (
+    <section>
+      {match(orderDetailsQuery)
+        .with(
+          {
+            status: "success",
+          },
+          ({ data: { data: orderDetails } }) => (
+            <div className="flex h-full flex-col">
+              <Card className="mx-3 mt-3">
+                <CardHeader>
+                  <CardTitle>Editing Order #{orderDetails.id}</CardTitle>
+                  <CardDescription>
+                    Change the details of the order below
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+              <OrderEditForm orderDetails={orderDetails} />
+            </div>
+          ),
+        )
+        .with(
+          {
+            status: "pending",
+          },
+          () => (
+            <div className="flex h-96 flex-1 items-center justify-center text-2xl font-semibold text-gray-500">
+              Loading...
+            </div>
+          ),
+        )
+        .with(
+          {
+            status: "error",
+          },
+          ({ error }) => <OrderDetailsError errorMessage={error.message} />,
+        )
+        .exhaustive()}
+    </section>
+  );
+};
+
+const OrderEditForm = ({
+  orderDetails,
+}: {
+  orderDetails: inferRouterOutputs<AppRouter>["order"]["getOrderDetails"]["data"];
+}) => {
+  const queryContext = api.useUtils();
+  const router = useRouter();
+  const tmaHaptic = useHapticFeedback();
+  const tmaMainButton = useMainButton();
+  const tmaThemeParams = useThemeParams();
+  const tmaPopup = usePopup();
+  const tmaClosingBehavior = useClosingBehavior();
+  const { user: tmaUser } = useInitData() ?? {};
+
+  const { updateOrderForm, ...orderFormState } = useOrderForm((store) => store);
+  const sendOrderDetailsUpdateMessageMutation =
+    api.telegram.sendOrderDetailsUpdateMessage.useMutation();
+  const sendOrderCancelledUpdateMessageMutation =
+    api.telegram.sendOrderCancelledUpdateMessage.useMutation();
+
+  const orderUpdateMutation = api.order.updateOrderDetails.useMutation({
+    onSuccess: ({ data }) => {
+      // Send a telegram update message to the channel only for cancelled orders
+      if (
+        data.data.attributes.order_status.data.attributes.orderStatus
+          .trim()
+          .toLowerCase() === "cancelled"
+      ) {
+        sendOrderCancelledUpdateMessageMutation.mutate({
+          ...data,
+          tmaUserName: tmaUser?.username ?? "Unknown User",
+          prevStatusName:
+            orderDetails.attributes.order_status.data?.attributes.orderStatus ??
+            "no order status",
+        });
+      } else {
+        sendOrderDetailsUpdateMessageMutation.mutate({
+          ...data,
+          prevData: orderDetails,
+          tmaUserName: tmaUser?.username ?? "Unknown User",
+        });
+      }
+    },
+    onSettled: () => {
+      queryContext.order.getOrderDetails.invalidate({
+        orderId: orderDetails.id.toString(),
+      });
+    },
+  });
+
+  const form = useForm<z.infer<typeof orderFormSchema>>({
+    resolver: zodResolver(orderFormSchema),
+    defaultValues: {
+      ...orderFormState,
+    },
+  });
+
+  // show tma main button to allow user to save the edited order
+  useEffect(() => {
+    tmaMainButton.setParams({
+      text: "Save Changes",
+      isEnabled: true,
+    });
+
+    const onMainButtonPress = () => form.handleSubmit(onSubmit, onErrors)();
+    tmaMainButton.on("click", onMainButtonPress);
+    tmaMainButton.show();
+
+    return () => {
+      tmaMainButton.off("click", onMainButtonPress);
+      tmaMainButton.hide();
+    };
+  }, []);
+
+  // Enable closing confirmation
+  useEffect(() => {
+    tmaClosingBehavior.enableConfirmation();
+
+    return () => {
+      tmaClosingBehavior.disableConfirmation();
+    };
+  }, []);
+
+  // Register the tmaPopup event
+  useEffect(() => {
+    const onSubmission = async (
+      event: MiniAppsEventPayload<"popup_closed">,
+    ) => {
+      if (event.button_id !== "ok") return;
+
+      tmaHaptic.notificationOccurred("success");
+
+      tmaMainButton.setParams({
+        isLoaderVisible: true,
+        isEnabled: false,
+      });
+
+      // Submit the order
+      const formValues = form.getValues();
+      const payload = {
+        ...formValues,
+        orderId: orderDetails.id,
+        // Convert fulfillment dates to Singapore timezone before submission
+        fulfilmentDates: {
+          ...formValues.fulfilmentDates,
+          fulfilmentStart: createSingaporeDate(
+            formValues.fulfilmentDates.fulfilmentStart,
+          ),
+          fulfilmentEnd: createSingaporeDate(
+            formValues.fulfilmentDates.fulfilmentEnd,
+          ),
+        },
+      };
+
+      const response = await orderUpdateMutation.mutateAsync(payload);
+      if (!response.success) {
+        tmaMainButton.setParams({
+          isLoaderVisible: false,
+          isEnabled: true,
+        });
+        return tmaPopup.open({
+          title: "Error",
+          message: response.message,
+          buttons: [{ type: "ok" }],
+        });
+      }
+
+      tmaMainButton.setParams({
+        isLoaderVisible: false,
+        isEnabled: true,
+      });
+
+      router.back();
+    };
+
+    registerTmaEvent("popup_closed", onSubmission);
+
+    return () => {
+      unregisterTmaEvent("popup_closed", onSubmission);
+    };
+  }, []);
+
+  const onSubmit: SubmitHandler<z.infer<typeof orderFormSchema>> = (
+    formValues,
+  ) => {
+    tmaHaptic.notificationOccurred("success");
+
+    tmaPopup.open({
+      title: "Confirm Changes",
+      message: "Are you sure you want to save the changes?",
+      buttons: [
+        {
+          type: "ok",
+          id: "ok",
+        },
+        {
+          type: "cancel",
+        },
+      ],
+    });
+  };
+
+  const onErrors: SubmitErrorHandler<z.infer<typeof orderFormSchema>> = (
+    errors,
+  ) => {
+    tmaHaptic.notificationOccurred("error");
+    console.error(errors);
+  };
+
+  // Update the tmaMainButton color based on the form validity
+  useEffect(() => {
+    if (!form.formState.isValid) {
+      tmaMainButton.setParams({
+        bgColor: "#71717a",
+        textColor: "#d4d4d8",
+      });
+    } else {
+      tmaMainButton.setParams({
+        bgColor: tmaThemeParams.buttonColor,
+        textColor: tmaThemeParams.buttonTextColor,
+      });
+    }
+  }, [form.formState.isValid]);
+
+  return (
+    <>
+      <Form {...form}>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div className="space-y-6 p-2 px-5 pb-10 pt-4">
+            <OrderFormCustomerFields form={form} />
+            <OrderFormDetailFields form={form} />
+            <OrderFormProductFields form={form} />
+            <OrderFormSummaryFields form={form} />
+          </div>
+        </form>
+      </Form>
+      <OrderSummaryFooter form={form} />
+    </>
+  );
+};
+
+const OrderFormCustomerFields = ({
+  form,
+}: {
+  form: UseFormReturn<z.infer<typeof orderFormSchema>>;
+}) => {
+  const paymentMethodsQuery = api.order.getPaymentMethods.useQuery();
+  const paymentStatusesQuery = api.order.getPaymentStatuses.useQuery();
+
+  return (
+    <>
+      {/* Customer Name */}
+      <FormField
+        control={form.control}
+        name="customerName"
+        render={({ field }) => (
+          <FormItem>
+            <div className="flex items-center justify-between">
+              <FormLabel>Customer Name</FormLabel>
+              <div className="flex items-center space-x-2 rounded-md border p-1 ps-2.5 shadow">
+                <Label className="text-xs" htmlFor="attention-to">
+                  Attention To
+                </Label>
+                <Switch
+                  checked={form.watch("hasAttentionTo")}
+                  onCheckedChange={(checked) =>
+                    form.setValue("hasAttentionTo", checked, {
+                      shouldTouch: true,
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  id="attention-to"
+                  aria-label="Attention To"
+                />
+              </div>
+            </div>
+            <FormControl>
+              <Input className="text-base" placeholder="Bryan" {...field} />
+            </FormControl>
+            <FormDescription>
+              Please provide the full name of the customer.
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+
+      {/* Attention To */}
+      {form.watch("hasAttentionTo") && (
+        <FormField
+          control={form.control}
+          name="attentionTo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Attention To</FormLabel>
+              <FormControl>
+                <Input
+                  className="text-base"
+                  placeholder="Accounts Payable"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                Intended recipient of the correspondence
+              </FormDescription>
+            </FormItem>
+          )}
+        />
+      )}
+
+      {/* Customer Address */}
+      <FormField
+        control={form.control}
+        name="customerAddress"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Customer Address</FormLabel>
+            <FormControl>
+              <Input
+                className="text-base"
+                placeholder="467A Sembawang Drive ..."
+                {...field}
+              />
+            </FormControl>
+            <FormDescription>Please provide the full address.</FormDescription>
+          </FormItem>
+        )}
+      />
+
+      {/* Customer Address */}
+      <FormField
+        control={form.control}
+        name="customerContact"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Customer Contact</FormLabel>
+            <FormControl>
+              <Input className="text-base" placeholder="8921 1123" {...field} />
+            </FormControl>
+            <FormDescription>
+              Please provide a contact number for the customer.
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+
+      {/* Payment Method */}
+      <FormField
+        control={form.control}
+        name="paymentMethod"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Payment Method</FormLabel>
+            <DropDown
+              selected={{
+                value: field.value.id,
+                name: field.value.name,
+              }}
+              onChange={(value) => {
+                const method = paymentMethodsQuery.data?.data.find(
+                  (method) => method.id.toString() === value,
+                );
+                field.onChange({
+                  id: method?.id.toString() ?? "",
+                  name: method?.attributes.paymentMethod ?? "",
+                });
+              }}
+              options={
+                paymentMethodsQuery.data?.data.map((method) => ({
+                  value: method.id.toString(),
+                  name: method.attributes.paymentMethod,
+                })) ?? []
+              }
+            />
+
+            <FormDescription>
+              Please select the payment method for this order.
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+
+      {/* Payment Status */}
+      <FormField
+        control={form.control}
+        name="paymentStatus"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Payment Status</FormLabel>
+            <DropDown
+              selected={{
+                value: field.value.id,
+                name: field.value.name,
+              }}
+              onChange={(value) => {
+                const status = paymentStatusesQuery.data?.data.find(
+                  (status) => status.id.toString() === value,
+                );
+                field.onChange({
+                  id: status?.id.toString() ?? "",
+                  name: status?.attributes.paymentStatus ?? "",
+                });
+              }}
+              options={
+                paymentStatusesQuery.data?.data.map((status) => ({
+                  value: status.id.toString(),
+                  name: status.attributes.paymentStatus,
+                })) ?? []
+              }
+            />
+            <FormDescription>
+              Please select the payment status for this order.
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+    </>
+  );
+};
+
+const OrderFormDetailFields = ({
+  form,
+}: {
+  form: UseFormReturn<z.infer<typeof orderFormSchema>>;
+}) => {
+  const salesAgentsQuery = api.salesAgent.getSalesAgents.useQuery();
+  const salesChannelsQuery = api.salesChannel.getSalesChannels.useQuery();
+  const orderStatusesQuery = api.orderStatus.getOrderStatuses.useQuery();
+  const fulfilmentMethodsQuery = api.order.getFulfilmentMethods.useQuery();
+
+  // state to determine if sales agents input should be shown
+  const allowSalesAgents = SALES_CHANNELS_WITH_SALES_AGENTS.map((c) =>
+    c.toLowerCase().trim(),
+  ).includes(form.watch("salesChannel").name.toLowerCase().trim());
+
+  const {
+    fields: salesAgentArray,
+    append,
+    remove,
+  } = useFieldArray({
+    control: form.control,
+    name: "salesAgents",
+  });
+
+  // Tag the sales agents options with isSelected property to enable/disable them in the select dropdown
+  const getSalesAgentOptions = (
+    agents: inferRouterOutputs<AppRouter>["salesAgent"]["getSalesAgents"]["data"],
+  ) => {
+    const selectedSalesAgents = form.getValues().salesAgents;
+    const agentOptions = agents.map((agent) => {
+      const isSelected = selectedSalesAgents.some(
+        (selectedAgent) => selectedAgent.value.id === agent.id.toString(),
+      );
+      return {
+        id: agent.id.toString(),
+        attributes: agent.attributes,
+        isSelected,
+      };
+    });
+    return agentOptions;
+  };
+
+  const shouldAllowMoreAgents = useMemo(() => {
+    return salesAgentArray.length < (salesAgentsQuery.data?.data.length ?? 0);
+  }, [salesAgentArray, salesAgentsQuery.data]);
+
+  return (
+    <>
+      {/* Current status of order */}
+      <FormField
+        control={form.control}
+        name="orderStatus"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Order Status</FormLabel>
+
+            <DropDown
+              selected={{
+                value: field.value.id,
+                name: field.value.name,
+              }}
+              onChange={(value) => {
+                const obj = orderStatusesQuery.data?.data.find(
+                  (status) => status.id.toString() === value,
+                );
+                field.onChange({
+                  id: obj?.id.toString() ?? "",
+                  name: obj?.attributes.orderStatus ?? "",
+                });
+              }}
+              options={
+                orderStatusesQuery.data?.data.map((status) => ({
+                  value: status.id.toString(),
+                  name: status.attributes.orderStatus,
+                })) ?? []
+              }
+            />
+            <FormDescription>
+              Please select the current status of the order.
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+
+      {/* Sales Channel */}
+      <FormField
+        control={form.control}
+        name="salesChannel"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Sales Channel</FormLabel>
+            <DropDown
+              selected={{
+                value: field.value.id,
+                name: field.value.name,
+              }}
+              onChange={(value) => {
+                const channel = salesChannelsQuery.data?.data.find(
+                  (channel) => channel.id.toString() === value,
+                );
+                field.onChange({
+                  id: channel?.id.toString() ?? "",
+                  name: channel?.attributes.salesChannel ?? "",
+                });
+              }}
+              options={
+                salesChannelsQuery.data?.data.map((channel) => ({
+                  value: channel.id.toString(),
+                  name: channel.attributes.salesChannel,
+                })) ?? []
+              }
+            />
+            <FormDescription>
+              Specify which sales channel the order came from.
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+
+      {/* Sales Agent */}
+      {allowSalesAgents && (
+        <div className="flex flex-col">
+          <FormField
+            control={form.control}
+            name="salesAgents"
+            render={() => (
+              <FormItem>
+                <FormLabel>Sales Agents</FormLabel>
+                <div className="mt-3 flex flex-col gap-2">
+                  {salesAgentArray.map((field, index) => (
+                    <FormField
+                      key={field.id}
+                      control={form.control}
+                      name={`salesAgents.${index}.value`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex gap-2">
+                            <Select
+                              onValueChange={(value) => {
+                                const agent = salesAgentsQuery.data?.data.find(
+                                  (agent) => agent.id.toString() === value,
+                                );
+                                field.onChange({
+                                  id: agent?.id.toString() ?? "",
+                                  name: agent?.attributes.name ?? "",
+                                });
+                              }}
+                              defaultValue={field.value.id}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue
+                                    placeholder={
+                                      <span className="text-muted-foreground">
+                                        Select sales agent
+                                      </span>
+                                    }
+                                  />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {match(salesAgentsQuery)
+                                  .with(
+                                    {
+                                      status: "pending",
+                                    },
+                                    () => (
+                                      <span className="px-2 text-sm">
+                                        Loading...
+                                      </span>
+                                    ),
+                                  )
+                                  .with(
+                                    {
+                                      status: "error",
+                                    },
+                                    () => (
+                                      <span className="px-2 text-sm">
+                                        Error loading sales agents
+                                      </span>
+                                    ),
+                                  )
+                                  .with(
+                                    {
+                                      status: "success",
+                                    },
+                                    ({ data: { data: salesAgents } }) =>
+                                      getSalesAgentOptions(salesAgents).map(
+                                        (agent) => (
+                                          <SelectItem
+                                            key={agent.id}
+                                            value={agent.id.toString()}
+                                            disabled={agent.isSelected}
+                                          >
+                                            {agent.attributes.name}
+                                          </SelectItem>
+                                        ),
+                                      ),
+                                  )
+                                  .exhaustive()}
+                              </SelectContent>
+                            </Select>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => remove(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                  {shouldAllowMoreAgents && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        append({
+                          value: {
+                            id: "",
+                            name: "",
+                          },
+                        })
+                      }
+                    >
+                      Add Sales Agent
+                    </Button>
+                  )}
+                </div>
+                {form.formState.errors.salesAgents &&
+                  !form.formState.isValid && (
+                    <p
+                      className={cn(
+                        "text-[0.8rem] font-medium text-destructive",
+                      )}
+                    >
+                      {form.formState.errors.salesAgents?.root?.message}
+                    </p>
+                  )}
+                <FormDescription className="mt-2">
+                  Add sales agents who are responsible for this order.
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+        </div>
+      )}
+
+      {/* Fulfilment method  */}
+      <FormField
+        control={form.control}
+        name="fulfilmentMethod"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Fulfilment Method</FormLabel>
+            <DropDown
+              selected={{
+                value: field.value.id,
+                name: field.value.name,
+              }}
+              onChange={(value) => {
+                const method = fulfilmentMethodsQuery.data?.data.find(
+                  (method) => method.id.toString() === value,
+                );
+                field.onChange({
+                  id: method?.id.toString() ?? "",
+                  name: method?.attributes.fulfilmentMethod ?? "",
+                });
+              }}
+              options={
+                fulfilmentMethodsQuery.data?.data.map((method) => ({
+                  value: method.id.toString(),
+                  name: method.attributes.fulfilmentMethod,
+                })) ?? []
+              }
+            />
+            <FormDescription>
+              Please select the fulfilment method for this order.
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+
+      {/* Order Fulfilment Datetime */}
+      <div className="flex flex-col space-y-2">
+        <div className="flex items-center justify-between">
+          <Label
+            className={cn(
+              form.formState.errors.fulfilmentDates &&
+                !form.formState.isValid &&
+                "text-destructive",
+            )}
+          >
+            Fulfilment Datetime
+          </Label>
+
+          <FormField
+            control={form.control}
+            name="fulfilmentDates.hasEnd"
+            render={({ field }) => (
+              <div className="flex items-center space-x-2 rounded-md border p-1 ps-2.5 shadow">
+                <FormLabel className="text-xs">End Datetime</FormLabel>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={(checked) => {
+                    // Set the end date to be the same as the start date when the switch is checked
+                    if (checked) {
+                      form.setValue(
+                        "fulfilmentDates.fulfilmentEnd",
+                        form.getValues().fulfilmentDates.fulfilmentStart,
+                      );
+                    }
+                    field.onChange(checked);
+                  }}
+                  aria-label="End Datetime"
+                />
+              </div>
+            )}
+          />
+        </div>
+
+        {/* Start and end datetimes */}
+        <div className="flex flex-col space-y-2">
+          {/* Fulfilment start datetime*/}
+          <FormField
+            control={form.control}
+            name="fulfilmentDates.fulfilmentStart"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  {form.watch("fulfilmentDates.hasEnd") ? (
+                    <FormLabel className="font-normal">
+                      Start Datetime
+                    </FormLabel>
+                  ) : (
+                    <FormLabel className="font-normal">Datetime</FormLabel>
+                  )}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "flex-grow pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground",
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PP h:mm a")
+                          ) : (
+                            <span>Pick a date and time</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(date) => {
+                          const newDate = date ? new Date(date) : new Date();
+                          newDate.setHours(12, 0, 0, 0);
+                          field.onChange(newDate);
+                          form.setValue(
+                            "fulfilmentDates.fulfilmentEnd",
+                            newDate,
+                          );
+                        }}
+                        defaultMonth={field.value}
+                        initialFocus
+                      />
+                      <div className="border-t border-border p-3">
+                        <TimePicker
+                          setDate={(date) => field.onChange(date)}
+                          date={field.value}
+                          hasSeconds={false}
+                        />
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </FormItem>
+            )}
+          />
+
+          {/* Fulfilment end datetime*/}
+          {form.watch("fulfilmentDates.hasEnd") && (
+            <FormField
+              control={form.control}
+              name="fulfilmentDates.fulfilmentEnd"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <FormLabel className="font-normal">End Datetime</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "flex-grow pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground",
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PP h:mm a")
+                            ) : (
+                              <span>Pick a date and time</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={(date) => {
+                            const newDate = date ? new Date(date) : new Date();
+                            newDate.setHours(12, 0, 0, 0);
+                            field.onChange(newDate);
+                          }}
+                          disabled={(date) => {
+                            // Disable dates that is before the start date
+                            const targetDate = new Date(date);
+                            targetDate.setHours(12, 0, 0, 0);
+                            return isBefore(
+                              targetDate,
+                              form.watch("fulfilmentDates.fulfilmentStart"),
+                            );
+                          }}
+                          defaultMonth={field.value}
+                          initialFocus
+                        />
+                        <div className="border-t border-border p-3">
+                          <TimePicker
+                            setDate={(date) => field.onChange(date)}
+                            date={field.value}
+                            hasSeconds={false}
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
+
+        {/* Error message */}
+        {form.formState.errors.fulfilmentDates && !form.formState.isValid && (
+          <p className={cn("text-[0.8rem] font-medium text-destructive")}>
+            {form.formState.errors.fulfilmentDates?.root?.message}
+          </p>
+        )}
+
+        <FormDescription>
+          {form.watch("fulfilmentDates.hasEnd")
+            ? "Please select the start and end date and time for order fulfilment. All times are in Singapore time (GMT+8)."
+            : "Please select the date and time for order fulfilment. All times are in Singapore time (GMT+8)."}
+        </FormDescription>
+      </div>
+    </>
+  );
+};
+
+const OrderFormProductFields = ({
+  form,
+}: {
+  form: UseFormReturn<z.infer<typeof orderFormSchema>>;
+}) => {
+  const router = useRouter();
+
+  const updateOrderForm = useOrderForm((store) => store.updateOrderForm);
+  const {
+    fields,
+    remove: removeOrderProduct,
+    insert: insertOrderProduct,
+  } = useFieldArray({
+    control: form.control,
+    name: "orderProducts",
+  });
+
+  const onRemoveOrderProduct = (index: number) => {
+    const currentProducts = form.getValues("orderProducts");
+    removeOrderProduct(index);
+    updateOrderForm({
+      orderProducts: currentProducts.filter((_, i) => i !== index),
+    });
+  };
+
+  const onDuplicateOrderProduct = (index: number) => {
+    const orderProduct = form.getValues(`orderProducts.${index}`);
+    if (!orderProduct) return;
+
+    // Create a new order product with the same values
+    const newOrderProduct = {
+      ...orderProduct,
+      sku: `${orderProduct.sku}-copy`,
+      quantity: 1, // Reset quantity to 1 for the duplicated product
+    };
+
+    insertOrderProduct(index + 1, newOrderProduct);
+
+    // We get the latest form values plus the newly inserted one.
+    // However, form.getValues might not reflect the insert immediately,
+    // so we construct the new array using the current values.
+    const currentProducts = form.getValues("orderProducts");
+    const updatedProducts = [
+      ...currentProducts.slice(0, index + 1),
+      newOrderProduct,
+      ...currentProducts.slice(index + 1),
+    ];
+
+    updateOrderForm({
+      orderProducts: updatedProducts,
+    });
+  };
+
+  const onNavigateToProducts = () => {
+    updateOrderForm(form.getValues());
+    router.push("/products?from=order");
+  };
+
+  const onAddCustomProduct = () => {
+    const newCustomProduct = {
+      productId: 0,
+      name: "",
+      sku: generateCustomProductSku(),
+      category: "Custom",
+      brand: "Custom",
+      quantity: 1,
+      price: 0,
+    };
+
+    insertOrderProduct(fields.length, newCustomProduct);
+
+    const currentProducts = form.getValues("orderProducts");
+    updateOrderForm({
+      orderProducts: [...currentProducts, newCustomProduct],
+    });
+  };
+
+  return (
+    <FormField
+      control={form.control}
+      name="orderProducts"
+      render={() => (
+        <FormItem>
+          <FormLabel>Products</FormLabel>
+          {fields.length ? (
+            <Card>
+              <CardContent className="p-2">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead className="min-w-16">No (x)</TableHead>
+                      <TableHead className="min-w-24">Price ($)</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {fields.map((field, index) => (
+                      <TableRow key={field.id}>
+                        <TableCell className="font-semibold">
+                          {field.productId === 0 ? (
+                            <Sheet>
+                              <SheetTrigger asChild>
+                                <div className="cursor-pointer border-b border-dashed border-gray-400 pb-0.5 text-primary">
+                                  {form.watch(
+                                    `orderProducts.${index}.name`,
+                                  ) || (
+                                    <span className="italic text-gray-400">
+                                      Tap to name...
+                                    </span>
+                                  )}
+                                </div>
+                              </SheetTrigger>
+                              <SheetContent side="top">
+                                <SheetHeader>
+                                  <SheetTitle>Custom Product Name</SheetTitle>
+                                  <SheetDescription>
+                                    Enter a descriptive name for this custom
+                                    item.
+                                  </SheetDescription>
+                                </SheetHeader>
+                                <div className="py-6">
+                                  <FormField
+                                    control={form.control}
+                                    name={`orderProducts.${index}.name`}
+                                    render={({
+                                      field: { onChange, value, ...inputField },
+                                    }) => (
+                                      <div>
+                                        <Label className="sr-only">
+                                          Product Name
+                                        </Label>
+                                        <Input
+                                          type="text"
+                                          placeholder="e.g., Special Birthday Cake"
+                                          className="h-12 text-lg font-semibold"
+                                          onChange={onChange}
+                                          value={value}
+                                          {...inputField}
+                                        />
+                                      </div>
+                                    )}
+                                  />
+                                </div>
+                                <SheetFooter>
+                                  <SheetClose asChild>
+                                    <Button type="button" className="w-full">
+                                      Done
+                                    </Button>
+                                  </SheetClose>
+                                </SheetFooter>
+                              </SheetContent>
+                            </Sheet>
+                          ) : (
+                            field.name
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`orderProducts.${index}.quantity`}
+                            render={({ field: { onChange, ...formField } }) => (
+                              <div>
+                                <Label className="sr-only">Quantity</Label>
+                                <Input
+                                  type="number"
+                                  className="text-center text-base"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  onChange={(e) =>
+                                    onChange(parseInt(e.target.value))
+                                  }
+                                  {...formField}
+                                />
+                              </div>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <FormField
+                            control={form.control}
+                            name={`orderProducts.${index}.price`}
+                            render={({ field: { onChange, ...formField } }) => (
+                              <div>
+                                <Label className="sr-only">Price</Label>
+                                <Input
+                                  type="number"
+                                  className="text-center text-base"
+                                  inputMode="decimal"
+                                  onChange={(e) =>
+                                    onChange(parseFloat(e.target.value))
+                                  }
+                                  {...formField}
+                                />
+                              </div>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-center gap-x-1">
+                            {/* Delete button */}
+                            <Button
+                              size="icon"
+                              variant="destructive"
+                              className="gap-1"
+                              onClick={() => onRemoveOrderProduct(index)}
+                              type="button"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </Button>
+
+                            {/* Duplciate button */}
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => onDuplicateOrderProduct(index)}
+                              type="button"
+                            >
+                              <CopyPlus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+              <CardFooter className="justify-center gap-2 border-t p-2">
+                <Button
+                  className="gap-1"
+                  variant="ghost"
+                  size="default"
+                  onClick={() => onNavigateToProducts()}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  More Products
+                </Button>
+                <Button
+                  type="button"
+                  className="gap-1"
+                  variant="outline"
+                  size="default"
+                  onClick={onAddCustomProduct}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  Custom Product
+                </Button>
+              </CardFooter>
+            </Card>
+          ) : (
+            <div className="block w-full rounded-lg border-2 border-dashed border-gray-300 p-12 text-center hover:border-gray-400">
+              <p className="text-4xl">🛍️</p>
+              <h3 className="mt-2 block text-sm font-semibold text-gray-900">
+                No products added
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Get started by adding products from the catalog.
+              </p>
+              <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+                <Button type="button" onClick={() => onNavigateToProducts()}>
+                  <SquareArrowOutUpRight
+                    className="-ml-0.5 mr-1.5 h-5 w-5"
+                    aria-hidden="true"
+                  />
+                  Browse products
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onAddCustomProduct}
+                >
+                  <PlusCircle
+                    className="-ml-0.5 mr-1.5 h-5 w-5"
+                    aria-hidden="true"
+                  />
+                  Custom product
+                </Button>
+              </div>
+            </div>
+          )}
+        </FormItem>
+      )}
+    />
+  );
+};
+
+const OrderFormSummaryFields = ({
+  form,
+}: {
+  form: UseFormReturn<z.infer<typeof orderFormSchema>>;
+}) => {
+  return (
+    <>
+      {/* Delivery Fee */}
+      <FormField
+        control={form.control}
+        name="deliveryFee"
+        render={({ field: { onChange, ...field } }) => (
+          <FormItem>
+            <FormLabel>Delivery Fee ($)</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                className="text-base"
+                placeholder="Enter the delivery fee"
+                min={0}
+                inputMode="decimal"
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  onChange(value);
+                }}
+                {...field}
+              />
+            </FormControl>
+            <FormDescription>
+              Enter the delivery fee for the order. Leave it as $0 if there is
+              no delivery fee.
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+
+      {/* Remarks */}
+      <FormField
+        control={form.control}
+        name="remarks"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Remarks</FormLabel>
+            <FormControl>
+              <Textarea
+                placeholder="Enter any additional information here"
+                className="resize-none text-base"
+                rows={4}
+                {...field}
+              />
+            </FormControl>
+            <FormDescription>
+              Include any addtional information such as delivery instructions,
+              special requests, etc.
+            </FormDescription>
+          </FormItem>
+        )}
+      />
+    </>
+  );
+};
+
+const OrderDetailsError = ({ errorMessage }: { errorMessage: string }) => {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center p-8">
+      <span className="text-5xl">💩</span>
+      <p className="mt-2 text-center text-lg font-semibold text-red-500">
+        Something went wrong
+      </p>
+      <span className="mt-2 text-center text-sm text-gray-500">
+        {errorMessage}
+      </span>
+    </div>
+  );
+};
+
+const OrderSummaryFooter = ({
+  form,
+}: {
+  form: UseFormReturn<z.infer<typeof orderFormSchema>>;
+}) => {
+  const deliveryFee = form.watch("deliveryFee");
+  const excludeGst = form.watch("excludeGst");
+  const orderProducts = useOrderForm((store) => store.orderProducts);
+
+  // Calculate prices for order
+  const orderAmount = calculateTotalOrderAmount(orderProducts, deliveryFee);
+  const gstPrice = calculateGstCost(orderAmount);
+  const finalPrice = calculateOrderGrandTotal(
+    orderProducts,
+    deliveryFee,
+    excludeGst,
+  );
+
+  return (
+    <div className="sticky bottom-0 flex justify-between border-t bg-white px-4 py-3 shadow">
+      <Form {...form}>
+        <FormField
+          control={form.control}
+          name="excludeGst"
+          render={({ field }) => (
+            <FormItem className="flex items-center space-x-2 space-y-0">
+              <FormControl>
+                <Switch
+                  checked={!field.value}
+                  onCheckedChange={(checked) => field.onChange(!checked)}
+                  aria-label="exclude-gst"
+                />
+              </FormControl>
+              <FormLabel>Add GST</FormLabel>
+            </FormItem>
+          )}
+        />
+      </Form>
+
+      <Drawer>
+        <DrawerTrigger asChild>
+          <Button type="button">
+            <Label>Grand Total:</Label>
+            <p className="ml-1 font-semibold underline">
+              ${finalPrice.toFixed(2)}
+            </p>
+          </Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Order Summary</DrawerTitle>
+            <DrawerClose />
+          </DrawerHeader>
+          <DrawerDescription>
+            <div className="p-4">
+              <Table className="max-h-[80vh]">
+                <TableHeader className="sticky top-0 bg-zinc-100">
+                  <TableRow>
+                    <TableHead className="w-[100px] font-semibold">
+                      Item
+                    </TableHead>
+                    <TableHead className="w-[100px] font-semibold">
+                      No (x)
+                    </TableHead>
+                    <TableHead className="w-[100px] font-semibold">
+                      Price ($)
+                    </TableHead>
+                    <TableHead className="w-[100px] text-right font-semibold">
+                      Total ($)
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orderProducts.map((orderProduct, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{orderProduct.sku}</TableCell>
+                      <TableCell className="text-center">
+                        {orderProduct.quantity}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        ${orderProduct.price.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        $
+                        {(orderProduct.quantity * orderProduct.price).toFixed(
+                          2,
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell className="italic">Delivery Fee</TableCell>
+                    <TableCell className="text-center">1</TableCell>
+                    <TableCell className="text-center">
+                      ${deliveryFee.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ${deliveryFee.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                  {!form.watch("excludeGst") && (
+                    <TableRow>
+                      <TableCell className="italic">
+                        GST ({DEFAULT_GST_PERCENTAGE * 100}%)
+                      </TableCell>
+                      <TableCell className="text-center">1</TableCell>
+                      <TableCell className="text-center">
+                        ${gstPrice.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        ${gstPrice.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+                <TableFooter className="sticky bottom-0 bg-zinc-100">
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-right text-primary">
+                      <Label className="font-semibold">Grand Total:</Label>
+                    </TableCell>
+                    <TableCell
+                      className="text-right font-semibold text-primary underline"
+                      colSpan={1}
+                    >
+                      ${finalPrice.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          </DrawerDescription>
+        </DrawerContent>
+      </Drawer>
+    </div>
+  );
+};
+
+EditOrderPage.getLayout = (page) => {
+  return (
+    <AuthGuard>
+      <MainLayout title="📝 Edit Order">{page}</MainLayout>
+    </AuthGuard>
+  );
+};
+
+export default EditOrderPage;
