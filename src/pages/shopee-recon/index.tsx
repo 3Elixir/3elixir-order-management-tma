@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useInitData } from '@tma.js/sdk-react';
 import { FileDropzone } from '~/components/shopee-recon/file-dropzone';
 import { ResultTabs } from '~/components/shopee-recon/result-tabs';
 import { UnmatchedBanner } from '~/components/shopee-recon/unmatched-banner';
@@ -39,6 +40,8 @@ function formatBytes(bytes: number): string {
 }
 
 export default function Home() {
+  const tmaInitData = useInitData();
+  const chatId = tmaInitData?.user?.id;
   const [orders, setOrders] = useState<File | null>(null);
   const [income, setIncome] = useState<File | null>(null);
   const [running, setRunning] = useState(false);
@@ -147,7 +150,7 @@ export default function Home() {
 
           {/* Download — sticky on mobile, inline on md+ */}
           <div className="fixed inset-x-4 bottom-4 z-30 md:static md:mt-4 md:inset-auto md:flex md:justify-start [&_button]:w-full md:[&_button]:w-auto [&_button]:shadow-xl md:[&_button]:shadow-none [&_button]:ring-1 [&_button]:ring-white/10 md:[&_button]:ring-0">
-            <DownloadButton url={result.download.url} filename={result.download.filename} />
+            <DownloadButton downloadId={result.download.id} chatId={chatId} />
           </div>
         </main>
       </div>

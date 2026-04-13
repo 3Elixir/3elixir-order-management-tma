@@ -1,57 +1,48 @@
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Button } from '~/components/ui/button';
 
-type TelegramWebApp = {
-  downloadFile?: (
-    params: { url: string; file_name: string },
-    callback?: (ok: boolean) => void,
-  ) => void;
-  openLink?: (url: string, opts?: { try_instant_view?: boolean }) => void;
-};
-
-function getWebApp(): TelegramWebApp | null {
-  if (typeof window === 'undefined') return null;
-  const w = window as unknown as { Telegram?: { WebApp?: TelegramWebApp } };
-  return w.Telegram?.WebApp ?? null;
-}
-
-function absoluteUrl(path: string): string {
-  if (typeof window === 'undefined') return path;
-  return new URL(path, window.location.origin).toString();
-}
-
 export function DownloadButton({
-  url,
-  filename,
+  downloadId,
+  chatId,
 }: {
-  url: string;
-  filename: string;
+  downloadId: string;
+  chatId: number | undefined;
 }) {
-  function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
-    e.preventDefault();
-    const abs = absoluteUrl(url);
-    const webApp = getWebApp();
+  const [sending, setSending] = useState(false);
 
-    if (webApp?.downloadFile) {
-      webApp.downloadFile({ url: abs, file_name: filename });
+  async function handleClick() {
+    if (!chatId) {
+      toast.error('Missing Telegram chat — reopen the mini app.');
       return;
     }
-
-    if (webApp?.openLink) {
-      webApp.openLink(abs);
-      return;
+    setSending(true);
+    try {
+      const res = await fetch('/api/shopee-recon/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: downloadId, chatId }),
+      });
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        toast.error(body.error ?? 'Failed to send file.');
+        return;
+      }
+      toast.success('Sent to your Telegram chat.');
+    } catch (err) {
+      toast.error((err as Error).message ?? 'Failed to send file.');
+    } finally {
+      setSending(false);
     }
-
-    const a = document.createElement('a');
-    a.href = abs;
-    a.download = filename;
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
   }
 
   return (
-    <Button size="lg" className="font-bold gap-2" onClick={handleClick}>
+    <Button
+      size="lg"
+      className="font-bold gap-2"
+      onClick={handleClick}
+      disabled={sending || !chatId}
+    >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         className="h-4 w-4 shrink-0"
@@ -67,7 +58,7 @@ export function DownloadButton({
         <polyline points="7 10 12 15 17 10" />
         <line x1="12" y1="15" x2="12" y2="3" />
       </svg>
-      Download {filename}
+      {sending ? 'Sending…' : 'Send to Telegram'}
     </Button>
   );
 }
