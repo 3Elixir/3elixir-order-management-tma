@@ -46,5 +46,10 @@
     ".next/types/**/*.ts",
     "src/server/api/routers/salesAgent"
   ],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/lib/recon/**/*.test.ts",
+    "src/lib/recon/__tests__/**/*.ts"
+  ]
 }

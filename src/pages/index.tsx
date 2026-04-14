@@ -16,6 +16,7 @@ import {
   Users,
   PlusCircle,
   ListFilter,
+  FileSpreadsheet,
 } from "lucide-react";
 import { env } from "~/env";
 
@@ -84,6 +85,19 @@ export default function Home() {
         },
       ],
       color: "bg-purple-50 dark:bg-purple-950",
+    },
+    {
+      title: "Shopee Reconciliation",
+      description: "Reconcile Shopee orders with income release exports",
+      icon: <FileSpreadsheet className="h-6 w-6" />,
+      links: [
+        {
+          label: "Open Tool",
+          href: "/shopee-recon",
+          icon: <ListFilter className="mr-2 h-4 w-4" />,
+        },
+      ],
+      color: "bg-orange-50 dark:bg-orange-950",
     },
   ];
 
