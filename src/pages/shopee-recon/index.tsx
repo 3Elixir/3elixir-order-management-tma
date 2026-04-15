@@ -44,6 +44,7 @@ export default function Home() {
   const tmaInitData = useInitData();
   const chatId = tmaInitData?.user?.id;
   const [orders, setOrders] = useState<File | null>(null);
+  const [ordersPrev, setOrdersPrev] = useState<File | null>(null);
   const [income, setIncome] = useState<File | null>(null);
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
@@ -71,13 +72,14 @@ export default function Home() {
   }, [running]);
 
   async function run() {
-    if (!orders || !income) return;
+    if (!orders || !ordersPrev || !income) return;
     setRunning(true);
     setError(null);
     setResult(null);
     try {
       const fd = new FormData();
       fd.append('orders', orders);
+      fd.append('ordersPrev', ordersPrev);
       fd.append('income', income);
       const res = await fetch('/api/shopee-recon/reconcile', { method: 'POST', body: fd });
       const body = await res.json();
@@ -97,6 +99,7 @@ export default function Home() {
     setResult(null);
     setError(null);
     setOrders(null);
+    setOrdersPrev(null);
     setIncome(null);
   }
 
@@ -130,8 +133,13 @@ export default function Home() {
           {/* File summary — stack on mobile, inline on sm+ */}
           <div className="mt-2 flex min-w-0 flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
             <p className="flex min-w-0 items-baseline gap-1">
-              <span className="shrink-0 font-medium text-foreground">Orders:</span>
+              <span className="shrink-0 font-medium text-foreground">Orders (T):</span>
               <span className="truncate font-mono text-xs">{orders?.name ?? '—'}</span>
+            </p>
+            <span className="hidden text-border sm:inline">·</span>
+            <p className="flex min-w-0 items-baseline gap-1">
+              <span className="shrink-0 font-medium text-foreground">Orders (T-1):</span>
+              <span className="truncate font-mono text-xs">{ordersPrev?.name ?? '—'}</span>
             </p>
             <span className="hidden text-border sm:inline">·</span>
             <p className="flex min-w-0 items-baseline gap-1">
@@ -180,7 +188,8 @@ export default function Home() {
           {/* File pills */}
           <div className="grid gap-3 md:grid-cols-2">
             {[
-              { label: 'Orders export', file: orders },
+              { label: 'Orders export (current month)', file: orders },
+              { label: 'Orders export (previous month)', file: ordersPrev },
               { label: 'Income Released export', file: income },
             ].map(({ label, file }) => (
               <div
@@ -232,13 +241,14 @@ export default function Home() {
         <header>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">ShopeeRecon</h1>
           <p className="mt-1.5 text-sm text-muted-foreground sm:text-base">
-            Reconcile a Shopee Orders export with an Income Released export.
+            Reconcile two months of Shopee Orders exports with an Income Released export.
           </p>
         </header>
 
         {/* Dropzones */}
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <FileDropzone label="Orders export" file={orders} onFile={setOrders} />
+          <FileDropzone label="Orders export (current month, T)" file={orders} onFile={setOrders} />
+          <FileDropzone label="Orders export (previous month, T-1)" file={ordersPrev} onFile={setOrdersPrev} />
           <FileDropzone label="Income Released export" file={income} onFile={setIncome} />
         </div>
 
@@ -246,7 +256,7 @@ export default function Home() {
         <div className="mt-6">
           <Button
             onClick={run}
-            disabled={!orders || !income || running}
+            disabled={!orders || !ordersPrev || !income || running}
             className="h-11 w-full sm:w-auto"
           >
             Reconcile

@@ -16,10 +16,23 @@ export type PipelineResult = {
   workbook: Buffer;
 };
 
-export async function runPipeline(ordersBuf: Buffer, incomeBuf: Buffer): Promise<PipelineResult> {
-  const ordersRaw = await readOrders(ordersBuf);
-  const incomeRaw = await readIncome(incomeBuf);
-  const orders = computeOrderTotals(filterCompletedOrders(ordersRaw));
+export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, incomeBuf: Buffer): Promise<PipelineResult> {
+  const [ordersRaw, ordersPrevRaw, incomeRaw] = await Promise.all([
+    readOrders(ordersBuf),
+    readOrders(ordersPrevBuf),
+    readIncome(incomeBuf),
+  ]);
+
+  // Combine current + previous month orders, deduplicate on orderId + productName
+  const seen = new Set<string>();
+  const combinedOrdersRaw = [...ordersRaw, ...ordersPrevRaw].filter((r) => {
+    const key = `${r.orderId}__${r.productName}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const orders = computeOrderTotals(filterCompletedOrders(combinedOrdersRaw));
   const income = computeIncomeAggregates(filterSkuView(incomeRaw));
   const merged = leftJoin(income, orders);
   const unmatchedRows = unmatched(merged);
