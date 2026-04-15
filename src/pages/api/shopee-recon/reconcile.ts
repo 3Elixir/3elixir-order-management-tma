@@ -32,17 +32,19 @@ export default async function handler(
 
   const form = formidable({
     multiples: false,
-    maxFiles: 2,
+    maxFiles: 3,
     maxFileSize: 5 * 1024 * 1024,
     allowEmptyFiles: false,
   });
 
   let ordersFile: FormidableFile | null = null;
+  let ordersPrevFile: FormidableFile | null = null;
   let incomeFile: FormidableFile | null = null;
 
   try {
     const [, files] = await form.parse(req);
     ordersFile = pickFile(files.orders);
+    ordersPrevFile = pickFile(files.ordersPrev);
     incomeFile = pickFile(files.income);
   } catch (err) {
     return res.status(400).json({
@@ -51,18 +53,22 @@ export default async function handler(
     });
   }
 
-  if (!ordersFile || !incomeFile) {
+  if (!ordersFile || !ordersPrevFile || !incomeFile) {
     return res.status(400).json({
       kind: "parse",
-      message: 'Both "orders" and "income" file fields are required.',
+      message: '"orders", "ordersPrev", and "income" file fields are all required.',
     });
   }
 
   let ordersBuf: Buffer;
+  let ordersPrevBuf: Buffer;
   let incomeBuf: Buffer;
   try {
-    ordersBuf = await fs.readFile(ordersFile.filepath);
-    incomeBuf = await fs.readFile(incomeFile.filepath);
+    [ordersBuf, ordersPrevBuf, incomeBuf] = await Promise.all([
+      fs.readFile(ordersFile.filepath),
+      fs.readFile(ordersPrevFile.filepath),
+      fs.readFile(incomeFile.filepath),
+    ]);
   } catch (err) {
     return res.status(400).json({
       kind: "parse",
@@ -73,6 +79,9 @@ export default async function handler(
       ordersFile?.filepath
         ? fs.unlink(ordersFile.filepath).catch(() => undefined)
         : Promise.resolve(),
+      ordersPrevFile?.filepath
+        ? fs.unlink(ordersPrevFile.filepath).catch(() => undefined)
+        : Promise.resolve(),
       incomeFile?.filepath
         ? fs.unlink(incomeFile.filepath).catch(() => undefined)
         : Promise.resolve(),
@@ -80,7 +89,7 @@ export default async function handler(
   }
 
   try {
-    const result = await runPipeline(ordersBuf, incomeBuf);
+    const result = await runPipeline(ordersBuf, ordersPrevBuf, incomeBuf);
     const reconId = generateReconId();
     putDownload(reconId, {
       workbook: result.workbook,
