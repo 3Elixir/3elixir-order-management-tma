@@ -31,6 +31,10 @@ export function ResultTabs({ compiled, pivot, summary }: Props) {
             { key: 'quantity', header: 'Quantity', align: 'right' },
             { key: 'totalOrderAmount', header: 'Total Order Amount', format: fmt2, align: 'right' },
           ]}
+          footer={{
+            sku: 'Total',
+            totalOrderAmount: fmtSGD(compiled.reduce((sum, r) => sum + r.totalOrderAmount, 0)),
+          }}
         />
       </TabsContent>
       <TabsContent value="pivot">
@@ -47,6 +51,7 @@ export function ResultTabs({ compiled, pivot, summary }: Props) {
         <DataTable
           rows={[summary]}
           columns={[
+            { key: 'totalOrderAmount', header: 'Total Order Amount', format: (v) => fmtSGD(v as number), align: 'right' },
             { key: 'totalReleased', header: 'Total Released Amount (S$)', format: (v) => fmtSGD(v as number), align: 'right' },
             { key: 'commissionFee', header: 'Commission fee (Incl. GST)', format: (v) => fmtSGD(v as number), align: 'right' },
             { key: 'transactionFee', header: 'Transaction Fee (Incl. Gst)', format: (v) => fmtSGD(v as number), align: 'right' },

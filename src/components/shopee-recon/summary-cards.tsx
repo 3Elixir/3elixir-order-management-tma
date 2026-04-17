@@ -11,6 +11,7 @@ export const fmtSGD = (n: number) =>
 type Props = { summary: SummaryRow };
 
 const ITEMS = [
+  { key: 'totalOrderAmount' as const, label: 'Total Order Amount' },
   { key: 'totalReleased' as const, label: 'Total Released' },
   { key: 'commissionFee' as const, label: 'Commission Fee' },
   { key: 'transactionFee' as const, label: 'Transaction Fee' },
@@ -19,7 +20,7 @@ const ITEMS = [
 
 export function SummaryCards({ summary }: Props) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5">
       {ITEMS.map((it) => (
         <Card key={it.key} className="p-4">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
