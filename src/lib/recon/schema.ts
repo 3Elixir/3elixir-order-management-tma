@@ -71,6 +71,7 @@ export type PivotRow = {
 };
 
 export type SummaryRow = {
+  totalOrderAmount: number;
   totalReleased: number;
   commissionFee: number;
   transactionFee: number;
