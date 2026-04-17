@@ -58,7 +58,7 @@ export function DataTable<T extends Record<string, unknown>>({ rows, columns, fo
           )}
         </TableBody>
         {footer && (
-          <TableFooter>
+          <TableFooter className="sticky bottom-0 z-10 bg-card">
             <TableRow>
               {columns.map((c) => (
                 <TableCell
