@@ -32,7 +32,7 @@ export function ResultTabs({ compiled, pivot, summary }: Props) {
             { key: 'totalOrderAmount', header: 'Total Order Amount', format: fmt2, align: 'right' },
           ]}
           footer={{
-            sku: 'Total',
+            productName: 'Total Order Amount',
             totalOrderAmount: fmtSGD(compiled.reduce((sum, r) => sum + r.totalOrderAmount, 0)),
           }}
         />
