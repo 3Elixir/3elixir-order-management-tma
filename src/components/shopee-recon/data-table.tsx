@@ -58,13 +58,13 @@ export function DataTable<T extends Record<string, unknown>>({ rows, columns, fo
           )}
         </TableBody>
         {footer && (
-          <TableFooter className="sticky bottom-0 z-10 bg-card">
+          <TableFooter className="sticky bottom-0 z-10 bg-background/95 backdrop-blur-sm font-semibold">
             <TableRow>
               {columns.map((c) => (
                 <TableCell
                   key={String(c.key)}
                   className={[
-                    'py-2 tabular-nums font-semibold',
+                    'py-3 tabular-nums',
                     c.align === 'right' ? 'text-right' : 'text-left',
                   ].join(' ')}
                 >
