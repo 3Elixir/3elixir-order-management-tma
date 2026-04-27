@@ -38,7 +38,14 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
   const merged = leftJoin(income, orders);
   const unmatchedRows = unmatched(merged);
   const compiled = buildIncomeCompiled(merged);
-  const pivot = buildPivotTable(orders);
+  // Build pivot from income-matched orders only — restricts to orders present in the
+  // income file (Merged_DF), preventing carryover orders from the previous month file
+  // from inflating the totals.
+  const pivotInput = merged.filter(
+    (r): r is typeof r & Required<Pick<typeof r, 'sku' | 'quantity' | 'totalOrderAmount'>> =>
+      r.sku != null && r.quantity != null && r.totalOrderAmount != null,
+  );
+  const pivot = buildPivotTable(pivotInput);
   const summary = buildIncomeSummary(income);
   const workbook = await writeWorkbook({ compiled, pivot, summary });
   return {
