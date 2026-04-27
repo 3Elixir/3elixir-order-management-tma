@@ -1,4 +1,4 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/components/ui/table';
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '~/components/ui/table';
 
 type Column<T> = {
   key: keyof T;
@@ -10,9 +10,10 @@ type Column<T> = {
 type Props<T extends Record<string, unknown>> = {
   rows: T[];
   columns: Column<T>[];
+  footer?: Partial<Record<keyof T, string>>;
 };
 
-export function DataTable<T extends Record<string, unknown>>({ rows, columns }: Props<T>) {
+export function DataTable<T extends Record<string, unknown>>({ rows, columns, footer }: Props<T>) {
   return (
     <div className="max-h-[65vh] overflow-auto rounded-xl border bg-card">
       <Table>
@@ -56,6 +57,23 @@ export function DataTable<T extends Record<string, unknown>>({ rows, columns }: 
             ))
           )}
         </TableBody>
+        {footer && (
+          <TableFooter className="sticky bottom-0 z-10 bg-background/95 backdrop-blur-sm font-semibold">
+            <TableRow>
+              {columns.map((c) => (
+                <TableCell
+                  key={String(c.key)}
+                  className={[
+                    'py-3 tabular-nums',
+                    c.align === 'right' ? 'text-right' : 'text-left',
+                  ].join(' ')}
+                >
+                  {footer[c.key] ?? ''}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableFooter>
+        )}
       </Table>
     </div>
   );
