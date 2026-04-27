@@ -33,15 +33,20 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
     return true;
   });
 
+  // Current month orders only (used for pivot) vs combined orders (used for compiled/unmatched)
+  // The previous month file supplements the join for unmatched income rows but must NOT
+  // contribute to the pivot — otherwise settled carryover orders inflate the totals.
+  const currentOrders = computeOrderTotals(filterCompletedOrders(ordersRaw));
   const orders = computeOrderTotals(filterCompletedOrders(combinedOrdersRaw));
   const income = computeIncomeAggregates(filterSkuView(incomeRaw));
   const merged = leftJoin(income, orders);
   const unmatchedRows = unmatched(merged);
   const compiled = buildIncomeCompiled(merged);
-  // Build pivot from income-matched orders only — restricts to orders present in the
-  // income file (Merged_DF), preventing carryover orders from the previous month file
-  // from inflating the totals.
-  const pivotInput = merged.filter(
+  // Build pivot from income × current-month orders only (mirrors Python Merged_DF).
+  // Using combined orders here would include previous-month carryover orders that appear
+  // in the income file, doubling the pivot totals.
+  const mergedCurrentOnly = leftJoin(income, currentOrders);
+  const pivotInput = mergedCurrentOnly.filter(
     (r): r is typeof r & Required<Pick<typeof r, 'sku' | 'quantity' | 'totalOrderAmount'>> =>
       r.sku != null && r.quantity != null && r.totalOrderAmount != null,
   );
