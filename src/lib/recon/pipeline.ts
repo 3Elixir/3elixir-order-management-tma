@@ -23,10 +23,11 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
     readIncome(incomeBuf),
   ]);
 
-  // Combine current + previous month orders, deduplicate on orderId + productName
+  // Combine current + previous month orders, deduplicate on orderId + sku
+  // (matches the dedup key used in buildPivotTable to prevent double-counting)
   const seen = new Set<string>();
   const combinedOrdersRaw = [...ordersRaw, ...ordersPrevRaw].filter((r) => {
-    const key = `${r.orderId}__${r.productName}`;
+    const key = `${r.orderId}\x00${r.sku}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
