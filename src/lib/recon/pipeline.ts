@@ -51,8 +51,6 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
       r.sku != null && r.quantity != null && r.totalOrderAmount != null,
   );
   const pivot = buildPivotTable(pivotInput);
-  const summary = buildIncomeSummary(income);
-  const pivot = buildPivotTable(orders);
   const totalOrderAmount = compiled.reduce((sum, r) => sum + r.totalOrderAmount, 0);
   const summary = { ...buildIncomeSummary(income), totalOrderAmount };
   const workbook = await writeWorkbook({ compiled, pivot, summary });
