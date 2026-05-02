@@ -6,12 +6,13 @@ import {
 import { leftJoin, unmatched } from './join';
 import { buildIncomeCompiled } from './compile';
 import { buildPivotTable } from './pivot';
+import { buildProductBreakdown } from './product-breakdown';
 import { buildIncomeSummary } from './summary';
 import { writeWorkbook } from './writer';
-import type { CompiledRow, PivotRow, SummaryRow, MergedRow } from './schema';
+import type { CompiledRow, PivotRow, SummaryRow, ProductBreakdownRow, MergedRow } from './schema';
 
 export type PipelineResult = {
-  previews: { compiled: CompiledRow[]; pivot: PivotRow[]; summary: SummaryRow };
+  previews: { compiled: CompiledRow[]; pivot: PivotRow[]; breakdown: ProductBreakdownRow[]; summary: SummaryRow };
   unmatched: { count: number; sample: MergedRow[] };
   workbook: Buffer;
 };
@@ -51,11 +52,12 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
       r.sku != null && r.quantity != null && r.totalOrderAmount != null,
   );
   const pivot = buildPivotTable(pivotInput);
+  const breakdown = buildProductBreakdown(pivotInput);
   const totalOrderAmount = compiled.reduce((sum, r) => sum + r.totalOrderAmount, 0);
   const summary = { ...buildIncomeSummary(income), totalOrderAmount };
-  const workbook = await writeWorkbook({ compiled, pivot, summary });
+  const workbook = await writeWorkbook({ compiled, pivot, breakdown, summary });
   return {
-    previews: { compiled, pivot, summary },
+    previews: { compiled, pivot, breakdown, summary },
     unmatched: { count: unmatchedRows.length, sample: unmatchedRows.slice(0, 5) },
     workbook,
   };
