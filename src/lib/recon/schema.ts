@@ -77,3 +77,12 @@ export type SummaryRow = {
   transactionFee: number;
   totalShippingFee: number;
 };
+
+export type ProductBreakdownRow = {
+  sku: string;
+  totalQuantity: number;
+  revenuePerUnit: number;
+  totalOrderAmount: number;
+  totalFees: number;
+  netRevenue: number;
+};
