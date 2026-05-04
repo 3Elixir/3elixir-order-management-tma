@@ -54,17 +54,17 @@ export async function writeWorkbook(input: {
       'SKU Reference No.',
       'Total Quantity',
       'Revenue per Unit',
-      'Total Order Amount',
-      'Total Fees',
       'Net Revenue',
+      'Total Fees',
+      'Total Order Amount',
     ],
     rows: input.breakdown.map((r) => [
       r.sku,
       r.totalQuantity,
       r.revenuePerUnit,
-      r.totalOrderAmount,
-      r.totalFees,
       r.netRevenue,
+      r.totalFees,
+      r.totalOrderAmount,
     ]),
   });
   addSheet(wb, {
