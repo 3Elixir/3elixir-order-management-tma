@@ -51,8 +51,9 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
     (r): r is typeof r & Required<Pick<typeof r, 'sku' | 'quantity' | 'totalOrderAmount'>> =>
       r.sku != null && r.quantity != null && r.totalOrderAmount != null,
   );
+  const unmatchedIncomeRows = mergedCurrentOnly.filter((r) => r.sku == null);
   const pivot = buildPivotTable(pivotInput);
-  const breakdown = buildProductBreakdown(pivotInput);
+  const breakdown = buildProductBreakdown(pivotInput, unmatchedIncomeRows);
   const totalOrderAmount = compiled.reduce((sum, r) => sum + r.totalOrderAmount, 0);
   const summary = { ...buildIncomeSummary(income), totalOrderAmount };
   const workbook = await writeWorkbook({ compiled, pivot, breakdown, summary });
