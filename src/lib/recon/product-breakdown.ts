@@ -1,9 +1,9 @@
-import type { OrderRow, IncomeRow, ProductBreakdownRow } from './schema';
+import type { OrderRow, IncomeRow, MergedRow, ProductBreakdownRow } from './schema';
 
 type BreakdownInput = Pick<OrderRow, 'orderId' | 'sku' | 'quantity' | 'totalOrderAmount'> &
   Pick<IncomeRow, 'commissionFee' | 'transactionFee' | 'totalShippingFee'>;
 
-export function buildProductBreakdown(rows: BreakdownInput[]): ProductBreakdownRow[] {
+export function buildProductBreakdown(rows: BreakdownInput[], unmatchedRows: MergedRow[] = []): ProductBreakdownRow[] {
   // Dedupe by (orderId, sku) — mirrors pivot table dedup logic
   const seen = new Set<string>();
   const deduped: BreakdownInput[] = [];
@@ -26,7 +26,7 @@ export function buildProductBreakdown(rows: BreakdownInput[]): ProductBreakdownR
   }
 
   // Build result: (sku quantity * revenue per unit) - total fees
-  return [...acc.entries()]
+  const result: ProductBreakdownRow[] = [...acc.entries()]
     .map(([sku, v]) => ({
       sku,
       totalQuantity: v.totalQuantity,
@@ -36,4 +36,22 @@ export function buildProductBreakdown(rows: BreakdownInput[]): ProductBreakdownR
       netRevenue: v.totalOrderAmount - v.totalFees,
     }))
     .sort((a, b) => (a.sku < b.sku ? -1 : a.sku > b.sku ? 1 : 0));
+
+  // Append fees from income rows that had no matching order (preserves parity with Income Summary)
+  const unmatchedFees = unmatchedRows.reduce(
+    (sum, r) => sum + r.commissionFee + r.transactionFee + r.totalShippingFee,
+    0,
+  );
+  if (unmatchedFees !== 0) {
+    result.push({
+      sku: '(Unmatched)',
+      totalQuantity: 0,
+      revenuePerUnit: 0,
+      totalOrderAmount: 0,
+      totalFees: unmatchedFees,
+      netRevenue: -unmatchedFees,
+    });
+  }
+
+  return result;
 }

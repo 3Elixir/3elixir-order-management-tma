@@ -1,10 +1,11 @@
 import { readFileSync } from 'fs';
 import { runPipeline } from './src/lib/recon/pipeline.ts';
 
-const ordersBuf = readFileSync('./src/lib/recon/__tests__/fixtures/inputs/Orders.xlsx');
-const incomeBuf = readFileSync('./src/lib/recon/__tests__/fixtures/inputs/Income.xlsx');
+const ordersBuf     = readFileSync('./Order.all.20251001_20251031.xlsx');
+const ordersPrevBuf = readFileSync('./Order.all.20250901_20250930.xlsx');
+const incomeBuf     = readFileSync('./Income.released.sg.20251001_20251031.xlsx');
 
-const result = await runPipeline(ordersBuf, ordersBuf, incomeBuf);
+const result = await runPipeline(ordersBuf, ordersPrevBuf, incomeBuf);
 
 console.log('\n=== PIVOT TABLE ===');
 console.log('SKU'.padEnd(30), 'Total Qty'.padStart(12), 'Total Order Amt (SGD)'.padStart(22));
