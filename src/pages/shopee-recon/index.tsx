@@ -7,11 +7,11 @@ import { ErrorDisplay, type ApiError } from '~/components/shopee-recon/error-dis
 import { DownloadButton } from '~/components/shopee-recon/download-button';
 import { SummaryCards } from '~/components/shopee-recon/summary-cards';
 import { Button } from '~/components/ui/button';
-import type { CompiledRow, PivotRow, SummaryRow } from '~/lib/recon/schema';
+import type { CompiledRow, PivotRow, SummaryRow, ProductBreakdownRow } from '~/lib/recon/schema';
 
 type Result = {
   reconId: string;
-  previews: { compiled: CompiledRow[]; pivot: PivotRow[]; summary: SummaryRow };
+  previews: { compiled: CompiledRow[]; pivot: PivotRow[]; breakdown: ProductBreakdownRow[]; summary: SummaryRow };
   unmatched: { count: number };
   download: { id: string; url: string; filename: string };
 };
@@ -162,6 +162,7 @@ export default function Home() {
           <ResultTabs
             compiled={result.previews.compiled}
             pivot={result.previews.pivot}
+            breakdown={result.previews.breakdown}
             summary={result.previews.summary}
           />
 
