@@ -54,7 +54,7 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
   const unmatchedIncomeRows = mergedCurrentOnly.filter((r) => r.sku == null);
   const pivot = buildPivotTable(pivotInput);
   const breakdown = buildProductBreakdown(pivotInput, unmatchedIncomeRows);
-  const totalOrderAmount = compiled.reduce((sum, r) => sum + r.totalOrderAmount, 0);
+  const totalOrderAmount = pivot.reduce((sum, r) => sum + r.totalOrderAmount, 0);
   const summary = { ...buildIncomeSummary(income), totalOrderAmount };
   const workbook = await writeWorkbook({ compiled, pivot, breakdown, summary });
   return {

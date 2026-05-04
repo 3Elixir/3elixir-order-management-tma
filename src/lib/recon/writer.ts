@@ -70,12 +70,14 @@ export async function writeWorkbook(input: {
   addSheet(wb, {
     name: 'Income Summary',
     headers: [
+      'Total Order Amount',
       'Total Released Amount (S$)',
       'Commission fee (Incl. GST)',
       'Transaction Fee (Incl. Gst)',
       'Total Shipping Fee',
     ],
     rows: [[
+      input.summary.totalOrderAmount,
       input.summary.totalReleased,
       input.summary.commissionFee,
       input.summary.transactionFee,
