@@ -2,12 +2,24 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { Telegram, TelegramError } from "telegraf";
 import { z } from "zod";
 import { env } from "~/env";
-import { get as getDownload, type ReconEntry } from "~/lib/recon/downloadStore";
 import { isReconId, outputFilename } from "~/lib/recon/reconId";
+
+const summaryStatsSchema = z.object({
+  totalReleased: z.number(),
+  commissionFee: z.number(),
+  transactionFee: z.number(),
+  totalShippingFee: z.number(),
+  uniqueOrders: z.number(),
+  skuCount: z.number(),
+  compiledRows: z.number(),
+  unmatchedCount: z.number(),
+});
 
 const bodySchema = z.object({
   id: z.string().refine(isReconId, "Invalid recon id"),
   chatId: z.number(),
+  workbookB64: z.string().min(1),
+  summaryStats: summaryStatsSchema,
 });
 
 function fmtSGD(n: number): string {
@@ -25,25 +37,22 @@ function htmlEscape(s: string): string {
     .replace(/>/g, "&gt;");
 }
 
-function buildSummaryHtml(reconId: string, entry: ReconEntry): string {
-  const { summary, pivot, compiled } = entry.previews;
-  const uniqueOrderIds = new Set(compiled.map((r) => r.orderId).filter(Boolean))
-    .size;
+function buildSummaryHtml(reconId: string, stats: z.infer<typeof summaryStatsSchema>): string {
   const lines = [
     `📊 <b>ShopeeRecon summary</b>`,
     `<code>${htmlEscape(reconId)}</code>`,
     ``,
     `<b>Totals</b>`,
-    `• Total released: <b>${htmlEscape(fmtSGD(summary.totalReleased))}</b>`,
-    `• Commission fee: ${htmlEscape(fmtSGD(summary.commissionFee))}`,
-    `• Transaction fee: ${htmlEscape(fmtSGD(summary.transactionFee))}`,
-    `• Shipping fee: ${htmlEscape(fmtSGD(summary.totalShippingFee))}`,
+    `• Total released: <b>${htmlEscape(fmtSGD(stats.totalReleased))}</b>`,
+    `• Commission fee: ${htmlEscape(fmtSGD(stats.commissionFee))}`,
+    `• Transaction fee: ${htmlEscape(fmtSGD(stats.transactionFee))}`,
+    `• Shipping fee: ${htmlEscape(fmtSGD(stats.totalShippingFee))}`,
     ``,
     `<b>Scope</b>`,
-    `• Orders: ${uniqueOrderIds}`,
-    `• SKUs: ${pivot.length}`,
-    `• Compiled rows: ${compiled.length}`,
-    `• Unmatched income rows: ${entry.unmatched.count}`,
+    `• Orders: ${stats.uniqueOrders}`,
+    `• SKUs: ${stats.skuCount}`,
+    `• Compiled rows: ${stats.compiledRows}`,
+    `• Unmatched income rows: ${stats.unmatchedCount}`,
   ];
   return lines.join("\n");
 }
@@ -63,23 +72,17 @@ export default async function handler(
       .status(400)
       .json({ error: "Invalid body", issues: parsed.error.issues });
   }
-  const { id, chatId } = parsed.data;
+  const { id, chatId, workbookB64, summaryStats } = parsed.data;
 
-  const entry = getDownload(id);
-  if (!entry) {
-    return res
-      .status(404)
-      .json({ error: "Download not found or expired. Please reconcile again." });
-  }
-
+  const workbook = Buffer.from(workbookB64, 'base64');
   const filename = outputFilename(id);
   const telegram = new Telegram(env.TELEGRAM_BOT_TOKEN);
 
   try {
     await telegram.sendDocument(
       chatId,
-      { source: entry.workbook, filename },
-      { caption: buildSummaryHtml(id, entry), parse_mode: "HTML" },
+      { source: workbook, filename },
+      { caption: buildSummaryHtml(id, summaryStats), parse_mode: "HTML" },
     );
     return res.status(200).json({ success: true });
   } catch (err) {
