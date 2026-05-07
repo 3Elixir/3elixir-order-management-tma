@@ -9,10 +9,23 @@ import { SummaryCards } from '~/components/shopee-recon/summary-cards';
 import { Button } from '~/components/ui/button';
 import type { CompiledRow, SummaryRow, ProductBreakdownRow } from '~/lib/recon/schema';
 
+type SummaryStats = {
+  totalReleased: number;
+  commissionFee: number;
+  transactionFee: number;
+  totalShippingFee: number;
+  uniqueOrders: number;
+  skuCount: number;
+  compiledRows: number;
+  unmatchedCount: number;
+};
+
 type Result = {
   reconId: string;
   previews: { compiled: CompiledRow[]; breakdown: ProductBreakdownRow[]; summary: SummaryRow };
   unmatched: { count: number };
+  workbookB64: string;
+  summaryStats: SummaryStats;
   download: { id: string; url: string; filename: string };
 };
 
@@ -165,9 +178,16 @@ export default function Home() {
             summary={result.previews.summary}
           />
 
+
           {/* Download — sticky on mobile, inline on md+ */}
           <div className="fixed inset-x-4 bottom-4 z-30 md:static md:mt-4 md:inset-auto md:flex md:justify-start [&_button]:w-full md:[&_button]:w-auto [&_button]:shadow-xl md:[&_button]:shadow-none [&_button]:ring-1 [&_button]:ring-white/10 md:[&_button]:ring-0">
-            <DownloadButton downloadId={result.download.id} chatId={chatId} />
+            <DownloadButton
+              downloadId={result.download.id}
+              filename={result.download.filename}
+              chatId={chatId}
+              workbookB64={result.workbookB64}
+              summaryStats={result.summaryStats}
+            />
           </div>
         </main>
       </div>

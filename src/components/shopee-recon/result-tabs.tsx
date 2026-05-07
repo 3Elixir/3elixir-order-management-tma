@@ -44,9 +44,9 @@ export function ResultTabs({ compiled, breakdown, summary }: Props) {
             { key: 'sku', header: 'SKU Reference No.' },
             { key: 'totalQuantity', header: 'Total Quantity', align: 'right' },
             { key: 'revenuePerUnit', header: 'Revenue per Unit', format: fmt2, align: 'right' },
-            { key: 'totalOrderAmount', header: 'Total Order Amount', format: fmt2, align: 'right' },
-            { key: 'totalFees', header: 'Total Fees', format: fmt2, align: 'right' },
             { key: 'netRevenue', header: 'Net Revenue', format: fmt2, align: 'right' },
+            { key: 'totalFees', header: 'Total Fees', format: fmt2, align: 'right' },
+            { key: 'totalOrderAmount', header: 'Total Order Amount', format: fmt2, align: 'right' },
           ]}
         />
       </TabsContent>
