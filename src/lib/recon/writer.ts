@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import type { CompiledRow, PivotRow, SummaryRow, ProductBreakdownRow } from './schema';
+import type { CompiledRow, SummaryRow, ProductBreakdownRow } from './schema';
 
 type SheetSpec = {
   name: string;
@@ -33,7 +33,6 @@ function addSheet(wb: ExcelJS.Workbook, spec: SheetSpec): void {
 
 export async function writeWorkbook(input: {
   compiled: CompiledRow[];
-  pivot: PivotRow[];
   breakdown: ProductBreakdownRow[];
   summary: SummaryRow;
 }): Promise<Buffer> {
@@ -42,11 +41,6 @@ export async function writeWorkbook(input: {
     name: 'Income Compiled',
     headers: ['SKU Reference No.', 'Order ID', 'Product Name', 'Quantity', 'Total Order Amount'],
     rows: input.compiled.map((r) => [r.sku, r.orderId, r.productName, r.quantity, r.totalOrderAmount]),
-  });
-  addSheet(wb, {
-    name: 'Pivot Table',
-    headers: ['SKU Reference No.', 'Total Quantity', 'Total Order Amount'],
-    rows: input.pivot.map((r) => [r.sku, r.totalQuantity, r.totalOrderAmount]),
   });
   addSheet(wb, {
     name: 'Product Breakdown',

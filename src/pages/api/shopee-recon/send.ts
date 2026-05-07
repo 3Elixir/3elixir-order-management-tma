@@ -26,7 +26,7 @@ function htmlEscape(s: string): string {
 }
 
 function buildSummaryHtml(reconId: string, entry: ReconEntry): string {
-  const { summary, pivot, compiled } = entry.previews;
+  const { summary, breakdown, compiled } = entry.previews;
   const uniqueOrderIds = new Set(compiled.map((r) => r.orderId).filter(Boolean))
     .size;
   const lines = [
@@ -41,7 +41,7 @@ function buildSummaryHtml(reconId: string, entry: ReconEntry): string {
     ``,
     `<b>Scope</b>`,
     `• Orders: ${uniqueOrderIds}`,
-    `• SKUs: ${pivot.length}`,
+    `• SKUs: ${breakdown.length}`,
     `• Compiled rows: ${compiled.length}`,
     `• Unmatched income rows: ${entry.unmatched.count}`,
   ];
