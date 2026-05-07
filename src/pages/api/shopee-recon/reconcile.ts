@@ -96,14 +96,14 @@ export default async function handler(
       previews: result.previews,
       unmatched: result.unmatched,
     });
-    const { compiled, pivot, summary } = result.previews;
+    const { compiled, breakdown, summary } = result.previews;
     const summaryStats = {
       totalReleased: summary.totalReleased,
       commissionFee: summary.commissionFee,
       transactionFee: summary.transactionFee,
       totalShippingFee: summary.totalShippingFee,
       uniqueOrders: new Set(compiled.map((r) => r.orderId).filter(Boolean)).size,
-      skuCount: pivot.length,
+      skuCount: breakdown.length,
       compiledRows: compiled.length,
       unmatchedCount: result.unmatched.count,
     };
