@@ -81,6 +81,10 @@ export function shippingRows(merged: MergedRow[]): CompiledRow[] {
   return aggregateByOrder(merged, 'totalShippingFee', 'SF', 'Shipping Fee');
 }
 
+export function vouchersAndRebatesRows(merged: MergedRow[]): CompiledRow[] {
+  return aggregateByOrder(merged, 'vouchersAndRebates', 'VR', 'Vouchers & Rebates');
+}
+
 export function buildIncomeCompiled(merged: MergedRow[]): CompiledRow[] {
   const all = [
     ...productRows(merged),
@@ -89,6 +93,7 @@ export function buildIncomeCompiled(merged: MergedRow[]): CompiledRow[] {
     ...txnFeeRows(merged),
     ...commissionRows(merged),
     ...shippingRows(merged),
+    ...vouchersAndRebatesRows(merged),
   ];
   // Stable sort by orderId. Array.prototype.sort is stable in ES2019+.
   return all.sort((a, b) => (a.orderId < b.orderId ? -1 : a.orderId > b.orderId ? 1 : 0));

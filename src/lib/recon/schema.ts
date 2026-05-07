@@ -28,7 +28,7 @@ export const INCOME_REQUIRED = [
   'Lost Compensation',
 ] as const;
 
-export const SYNTHETIC_SKUS = ['RF', 'LC', 'TF', 'CF', 'SF'] as const;
+export const SYNTHETIC_SKUS = ['RF', 'LC', 'TF', 'CF', 'SF', 'VR'] as const;
 export type SyntheticSku = (typeof SYNTHETIC_SKUS)[number];
 
 export type OrderRow = {
