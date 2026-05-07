@@ -59,6 +59,7 @@ export function ResultTabs({ compiled, breakdown, summary }: Props) {
             { key: 'commissionFee', header: 'Commission fee (Incl. GST)', format: (v) => fmtSGD(v as number), align: 'right' },
             { key: 'transactionFee', header: 'Transaction Fee (Incl. Gst)', format: (v) => fmtSGD(v as number), align: 'right' },
             { key: 'totalShippingFee', header: 'Total Shipping Fee', format: (v) => fmtSGD(v as number), align: 'right' },
+            { key: 'vouchersAndRebates', header: 'Vouchers & Rebates', format: (v) => fmtSGD(v as number), align: 'right' },
           ]}
         />
       </TabsContent>

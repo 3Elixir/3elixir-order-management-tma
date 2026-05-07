@@ -69,6 +69,7 @@ export async function writeWorkbook(input: {
       'Commission fee (Incl. GST)',
       'Transaction Fee (Incl. Gst)',
       'Total Shipping Fee',
+      'Vouchers & Rebates',
     ],
     rows: [[
       input.summary.totalOrderAmount,
@@ -76,6 +77,7 @@ export async function writeWorkbook(input: {
       input.summary.commissionFee,
       input.summary.transactionFee,
       input.summary.totalShippingFee,
+      input.summary.vouchersAndRebates,
     ]],
   });
   const arr = await wb.xlsx.writeBuffer();

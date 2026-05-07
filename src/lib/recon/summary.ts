@@ -8,6 +8,7 @@ export function buildIncomeSummary(income: IncomeRow[]): IncomeSummary {
     commissionFee: 0,
     transactionFee: 0,
     totalShippingFee: 0,
+    vouchersAndRebates: 0,
   };
   return income.reduce<IncomeSummary>(
     (acc, r) => ({
@@ -15,6 +16,7 @@ export function buildIncomeSummary(income: IncomeRow[]): IncomeSummary {
       commissionFee: acc.commissionFee + r.commissionFee,
       transactionFee: acc.transactionFee + r.transactionFee,
       totalShippingFee: acc.totalShippingFee + r.totalShippingFee,
+      vouchersAndRebates: acc.vouchersAndRebates + r.vouchersAndRebates,
     }),
     init,
   );

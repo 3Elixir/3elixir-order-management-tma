@@ -76,6 +76,7 @@ export type SummaryRow = {
   commissionFee: number;
   transactionFee: number;
   totalShippingFee: number;
+  vouchersAndRebates: number;
 };
 
 export type ProductBreakdownRow = {
