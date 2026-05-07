@@ -1,4 +1,4 @@
-import type { CompiledRow, PivotRow, SummaryRow } from "./schema";
+import type { CompiledRow, ProductBreakdownRow, SummaryRow } from "./schema";
 
 // In-memory, TTL-bounded store for completed reconciliations. Holds the
 // xlsx workbook plus the structured previews/unmatched so the Telegram
@@ -15,7 +15,7 @@ export type ReconEntry = {
   workbook: Buffer;
   previews: {
     compiled: CompiledRow[];
-    pivot: PivotRow[];
+    breakdown: ProductBreakdownRow[];
     summary: SummaryRow;
   };
   unmatched: { count: number };
