@@ -108,16 +108,6 @@ export async function readOrders(buffer: Buffer): Promise<RawOrderRow[]> {
   return out;
 }
 
-// Read the last numeric cell in a row (Summary section-total values sit in the rightmost column).
-function lastNumberInRow(row: ExcelJS.Row): number {
-  let val = 0;
-  row.eachCell({ includeEmpty: false }, (cell) => {
-    const n = cellNumber(cell.value);
-    if (!Number.isNaN(n) && typeof n === 'number' && n !== 0) val = n;
-  });
-  return val;
-}
-
 export async function readIncomeSummary(buffer: Buffer): Promise<IncomeSummaryTab> {
   const wb = await loadWorkbook(buffer);
   const ws = wb.getWorksheet('Summary');
@@ -152,7 +142,7 @@ export async function readIncomeSummary(buffer: Buffer): Promise<IncomeSummaryTa
     const col1 = String(row.getCell(1).value ?? '').trim();
     if (col1) {
       for (const [needle, key] of COL1_LABELS) {
-        if (col1.startsWith(needle)) out[key] = lastNumberInRow(row);
+        if (col1.startsWith(needle)) out[key] = cellNumber(row.getCell(4).value);
       }
     }
     const col2 = String(row.getCell(2).value ?? '').trim();
