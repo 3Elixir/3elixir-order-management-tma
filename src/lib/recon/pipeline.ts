@@ -55,7 +55,7 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
   const unmatchedIncomeRows = mergedCurrentOnly.filter((r) => r.sku == null);
   const breakdown = buildProductBreakdown(pivotInput, unmatchedIncomeRows);
   const totalOrderAmount = compiled.reduce((sum, r) => sum + r.totalOrderAmount, 0);
-  const summary = { ...buildIncomeSummary(income), totalOrderAmount };
+  const summary = { ...buildIncomeSummary(income, summaryTab, adjustment), totalOrderAmount };
 
   const actualReleased = summaryTab.totalReleased + adjustment.total;
   const releasedGap = totalOrderAmount - actualReleased;
