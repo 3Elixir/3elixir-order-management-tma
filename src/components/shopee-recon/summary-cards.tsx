@@ -47,7 +47,7 @@ export function SummaryCards({ summary, reconciliation }: Props) {
         <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-3">
           <Card className="p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Actual Released
+              Actual Released (Shopee)
             </p>
             <p className="mt-2 text-xl font-semibold tabular-nums sm:text-2xl">
               {fmtSGD(reconciliation.actualReleased)}
@@ -58,26 +58,23 @@ export function SummaryCards({ summary, reconciliation }: Props) {
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Released Gap
             </p>
-            <p className={`mt-2 text-xl font-semibold tabular-nums sm:text-2xl ${reconciliation.releasedGap !== 0 ? 'text-destructive' : ''}`}>
+            <p className="mt-2 text-xl font-semibold tabular-nums sm:text-2xl text-muted-foreground">
               {fmtSGD(reconciliation.releasedGap)}
             </p>
           </Card>
 
           <Card className="p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Reconciliation Status
+              Unattributed
             </p>
-            <div className="mt-2">
-              {reconciliation.reconciliationFlagged ? (
-                <span className="inline-flex items-center rounded-full bg-destructive/10 px-3 py-1 text-sm font-semibold text-destructive ring-1 ring-inset ring-destructive/20">
-                  Out of tolerance
-                </span>
-              ) : (
-                <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-sm font-semibold text-emerald-600 ring-1 ring-inset ring-emerald-500/20 dark:text-emerald-400">
-                  Reconciled
-                </span>
-              )}
-            </div>
+            <p className="mt-2 text-xl font-semibold tabular-nums sm:text-2xl text-muted-foreground">
+              {fmtSGD(reconciliation.releasedGap)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {reconciliation.actualReleased === 0
+                ? '—'
+                : `(${(Math.abs(reconciliation.releasedGap / reconciliation.actualReleased) * 100).toFixed(1)}% of released)`}
+            </p>
           </Card>
         </div>
       )}
