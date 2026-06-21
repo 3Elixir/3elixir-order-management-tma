@@ -35,7 +35,7 @@ test('e2e: full pipeline produces correct structural output for Feb 2026', async
   // ---- Income Summary ----
   // Assert against authoritative Summary-tab values from the Feb 2026 income fixture.
   // totalReleased = sum of Income-tab rows (income rows), not Summary tab.
-  expect(result.previews.summary.totalReleased).toBeGreaterThan(0);
+  expect(result.previews.summary.totalReleased).toBeCloseTo(36005.18, 2);
   // The commissionFee, transactionFee, serviceFee come directly from the Summary tab.
   expect(result.previews.summary.commissionFee).toBeCloseTo(-3296.34, 2);
   expect(result.previews.summary.transactionFee).toBeCloseTo(-1416.87, 2);

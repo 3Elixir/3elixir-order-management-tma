@@ -13,8 +13,13 @@ test('runPipeline produces previews + xlsx buffer for real inputs', async () => 
   expect(result.previews.compiled.length).toBeGreaterThan(0);
   expect(result.previews.breakdown.length).toBeGreaterThan(0);
   expect(result.previews.summary).toHaveProperty('totalReleased');
+  // actualReleased is deterministic for this fixture: tab.totalReleased + adjustment.total
+  // = 32274.54 + 185.27 = 32459.81 (matches summary.test.ts for the same Income.xlsx fixture).
+  expect(result.reconciliation.actualReleased).toBeCloseTo(32459.81, 2);
   expect(result.unmatched).toHaveProperty('count');
-  expect(result.unmatched.count).toBeGreaterThanOrEqual(0);
+  // Unmatched count is a concrete value for this fixture (same orders file used for both
+  // current and prev, so deduplication is maximal but unmatched income rows remain).
+  expect(result.unmatched.count).toBe(33);
   expect(Buffer.isBuffer(result.workbook)).toBe(true);
   expect(result.workbook.length).toBeGreaterThan(1000); // sane size for a 3-sheet xlsx
 });

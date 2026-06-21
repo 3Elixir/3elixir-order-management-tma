@@ -159,6 +159,11 @@ test('buildIncomeCompiled matches Output_Updated.xlsx[Income Compiled] row-by-ro
     expect(a.totalOrderAmount).toBeCloseTo(e.totalOrderAmount, 2);
   }
 
+  // Confirm VR rows are produced for every merged row (one VR row per order, even when
+  // vouchersAndRebates is 0 — the fixture has no non-zero VR values but the rows are emitted).
+  const vrRows = buildIncomeCompiled(merged).filter((r) => r.sku === 'VR');
+  expect(vrRows.length).toBeGreaterThan(0);
+
   // Confirm SC rows are produced when serviceFee is non-zero (new row type validation).
   // Use one merged row with a real serviceFee value.
   const withServiceFee: MergedRow[] = [{ ...merged[0], serviceFee: -10 }];
