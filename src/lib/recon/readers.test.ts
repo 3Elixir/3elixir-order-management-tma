@@ -1,7 +1,12 @@
 import { test, expect } from 'vitest';
 import ExcelJS from 'exceljs';
-import { readOrders, readIncome } from './readers';
+import { readOrders, readIncome, readIncomeSummary } from './readers';
 import { fixtureBuffer } from './__tests__/fixtures';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const incomeBuf = (name: string) =>
+  readFileSync(join(__dirname, '__tests__/fixtures/income', name));
 
 test('readOrders parses raw Orders export with all required columns', async () => {
   const buf = fixtureBuffer('inputs/Orders.xlsx');
@@ -49,6 +54,17 @@ test('readIncome skips two prelude rows and parses the Income sheet', async () =
   // Raw row preserves original Shopee column names as keys for downstream transform
   expect(first).toHaveProperty('Shipping Fee Paid by Buyer');
   expect(first).toHaveProperty('Lost Compensation');
+});
+
+test('readIncomeSummary parses Shopee Summary tab section totals', async () => {
+  const s = await readIncomeSummary(incomeBuf('2026-02.xlsx'));
+  expect(s.totalRevenue).toBeCloseTo(43202.03, 2);
+  expect(s.commission).toBeCloseTo(-3296.34, 2);
+  expect(s.serviceFee).toBeCloseTo(-1428.44, 2);
+  expect(s.transactionFee).toBeCloseTo(-1416.87, 2);
+  expect(s.shippingSubtotal).toBeCloseTo(-1055.20, 2);
+  expect(s.totalExpenses).toBeCloseTo(-7196.85, 2);
+  expect(s.totalReleased).toBeCloseTo(36005.18, 2);
 });
 
 test('readIncome throws SchemaError when a required Income column is missing', async () => {

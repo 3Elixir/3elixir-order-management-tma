@@ -87,3 +87,18 @@ export type ProductBreakdownRow = {
   totalFees: number;
   netRevenue: number;
 };
+
+export type IncomeSummaryTab = {
+  totalRevenue: number;
+  shippingSubtotal: number;
+  amsCommission: number;
+  commission: number;
+  serviceFee: number;
+  saverProgramFee: number;
+  transactionFee: number;
+  productGst: number;
+  shippingGst: number;
+  adsEscrow: number;
+  totalExpenses: number;
+  totalReleased: number;
+};
