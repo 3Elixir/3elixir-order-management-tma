@@ -43,7 +43,7 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
   const income = computeIncomeAggregates(filterSkuView(incomeRaw));
   const merged = leftJoin(income, orders);
   const unmatchedRows = unmatched(merged);
-  const compiled = buildIncomeCompiled(merged);
+  const compiled = buildIncomeCompiled(merged, adjustment);
   // Build breakdown from income × current-month orders only (mirrors Python Merged_DF).
   // Using combined orders here would include previous-month carryover orders that appear
   // in the income file, doubling the totals.

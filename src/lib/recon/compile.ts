@@ -1,4 +1,4 @@
-import type { MergedRow, CompiledRow } from './schema';
+import type { MergedRow, CompiledRow, AdjustmentData } from './schema';
 import { SYNTHETIC_SKUS } from './schema';
 import { PipelineError } from './errors';
 
@@ -85,7 +85,20 @@ export function vouchersAndRebatesRows(merged: MergedRow[]): CompiledRow[] {
   return aggregateByOrder(merged, 'vouchersAndRebates', 'VR', 'Vouchers & Rebates');
 }
 
-export function buildIncomeCompiled(merged: MergedRow[]): CompiledRow[] {
+export function serviceFeeRows(merged: MergedRow[]): CompiledRow[] {
+  return aggregateByOrder(merged, 'serviceFee', 'SC', 'Service Fee');
+}
+
+export function adjustmentRows(adjustment: AdjustmentData): CompiledRow[] {
+  return adjustment.items
+    .filter((i) => i.amount !== 0)
+    .map((i) => ({
+      sku: 'AJ', orderId: i.orderId, productName: 'Adjustment',
+      quantity: null, totalOrderAmount: round2(i.amount),
+    }));
+}
+
+export function buildIncomeCompiled(merged: MergedRow[], adjustment: AdjustmentData = { total: 0, items: [] }): CompiledRow[] {
   const all = [
     ...productRows(merged),
     ...refundRows(merged),
@@ -94,6 +107,8 @@ export function buildIncomeCompiled(merged: MergedRow[]): CompiledRow[] {
     ...commissionRows(merged),
     ...shippingRows(merged),
     ...vouchersAndRebatesRows(merged),
+    ...serviceFeeRows(merged),
+    ...adjustmentRows(adjustment),
   ];
   // Stable sort by orderId. Array.prototype.sort is stable in ES2019+.
   return all.sort((a, b) => (a.orderId < b.orderId ? -1 : a.orderId > b.orderId ? 1 : 0));

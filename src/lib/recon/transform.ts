@@ -55,6 +55,7 @@ export function computeIncomeAggregates(rows: RawIncomeRow[]): IncomeRow[] {
       transactionFee: num(r['Transaction Fee (Incl. Gst)']),
       vouchersAndRebates,
       lostCompensation,
+      serviceFee: num(r['ps_finance_pdf_income_service_fee_for_SG']),
     };
   });
 }

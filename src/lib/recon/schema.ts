@@ -28,7 +28,7 @@ export const INCOME_REQUIRED = [
   'Lost Compensation',
 ] as const;
 
-export const SYNTHETIC_SKUS = ['RF', 'LC', 'TF', 'CF', 'SF', 'VR'] as const;
+export const SYNTHETIC_SKUS = ['RF', 'LC', 'TF', 'CF', 'SF', 'VR', 'SC', 'AJ'] as const;
 export type SyntheticSku = (typeof SYNTHETIC_SKUS)[number];
 
 export type OrderRow = {
@@ -51,6 +51,7 @@ export type IncomeRow = {
   transactionFee: number;
   vouchersAndRebates: number;
   lostCompensation: number;
+  serviceFee: number;
 };
 
 export type MergedRow = IncomeRow &
