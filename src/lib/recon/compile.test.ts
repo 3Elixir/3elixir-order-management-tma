@@ -111,8 +111,12 @@ function asNullableNum(v: unknown): number | null {
   return Number(v);
 }
 
-// re-baselined in Task 7
-test.skip('buildIncomeCompiled matches Output_Updated.xlsx[Income Compiled] row-by-row', async () => {
+// Approach (a): Filter actual rows to exclude VR/SC/AJ row types before comparing to the
+// pre-Task-5/6 expected fixture (Output_Updated.xlsx predates these new row types).
+// This validates the unchanged core logic stays correct. A separate assertion below
+// confirms SC/AJ rows ARE produced when the merged data contains service fees/adjustments,
+// so the new row types are not entirely untested in this file.
+test('buildIncomeCompiled matches Output_Updated.xlsx[Income Compiled] row-by-row (core rows only)', async () => {
   const mergedRaw = await readFixtureSheet('Merged_DF_Export.xlsx', 'Sheet1');
   const merged: MergedRow[] = mergedRaw.map((r) => ({
     orderId: asStr(r['Order ID']),
@@ -125,6 +129,8 @@ test.skip('buildIncomeCompiled matches Output_Updated.xlsx[Income Compiled] row-
     transactionFee: asNum(r['Transaction Fee (Incl. Gst)']),
     vouchersAndRebates: asNum(r['Vouchers & Rebates']),
     lostCompensation: r['Lost Compensation'] === '-' ? 0 : asNum(r['Lost Compensation']),
+    // serviceFee not in old fixture — defaults to 0 (no SC rows with non-zero values)
+    serviceFee: 0,
     sku: r['SKU Reference No.'] != null ? String(r['SKU Reference No.']) : undefined,
     quantity: r['Quantity'] != null ? Number(r['Quantity']) : undefined,
     totalOrderAmount: r['Total Order Amount'] != null ? Number(r['Total Order Amount']) : undefined,
@@ -138,9 +144,10 @@ test.skip('buildIncomeCompiled matches Output_Updated.xlsx[Income Compiled] row-
     totalOrderAmount: asNum(r['Total Order Amount']),
   }));
 
-  const actual = buildIncomeCompiled(merged);
+  const NEW_ROW_TYPES = new Set(['VR', 'SC', 'AJ']);
+  // Approach (a): strip VR/SC/AJ rows from actual before comparing to the old expected fixture.
+  const actual = buildIncomeCompiled(merged).filter((r) => !NEW_ROW_TYPES.has(r.sku));
 
-  // Diagnostic: dump counts first
   expect(actual.length).toBe(expected.length);
 
   // Compare row-by-row with float tolerance for totalOrderAmount
@@ -151,4 +158,18 @@ test.skip('buildIncomeCompiled matches Output_Updated.xlsx[Income Compiled] row-
     );
     expect(a.totalOrderAmount).toBeCloseTo(e.totalOrderAmount, 2);
   }
+
+  // Confirm SC rows are produced when serviceFee is non-zero (new row type validation).
+  // Use one merged row with a real serviceFee value.
+  const withServiceFee: MergedRow[] = [{ ...merged[0], serviceFee: -10 }];
+  const scRows = buildIncomeCompiled(withServiceFee).filter((r) => r.sku === 'SC');
+  expect(scRows.length).toBeGreaterThan(0);
+  expect(scRows[0].totalOrderAmount).toBeCloseTo(-10, 2);
+
+  // Confirm AJ rows are produced from adjustment data.
+  const ajRows = buildIncomeCompiled([], { total: 5, items: [{ orderId: 'TEST123', amount: 5 }] })
+    .filter((r) => r.sku === 'AJ');
+  expect(ajRows.length).toBe(1);
+  expect(ajRows[0].orderId).toBe('TEST123');
+  expect(ajRows[0].totalOrderAmount).toBeCloseTo(5, 2);
 });

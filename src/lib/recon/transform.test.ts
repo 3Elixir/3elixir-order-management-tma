@@ -121,5 +121,6 @@ test('computeIncomeAggregates produces canonical IncomeRow shape', () => {
     transactionFee: -1,
     vouchersAndRebates: 0,         // 0+0+0
     lostCompensation: 0,
+    serviceFee: 0,                 // added in Task 5/6 for SC rows
   });
 });
