@@ -18,6 +18,9 @@ type SummaryStats = {
   skuCount: number;
   compiledRows: number;
   unmatchedCount: number;
+  actualReleased: number;
+  releasedGap: number;
+  reconciliationFlagged: boolean;
 };
 
 type Result = {
@@ -163,7 +166,14 @@ export default function Home() {
 
           {/* Summary cards */}
           <div className="mt-4">
-            <SummaryCards summary={result.previews.summary} />
+            <SummaryCards
+              summary={result.previews.summary}
+              reconciliation={{
+                actualReleased: result.summaryStats.actualReleased,
+                releasedGap: result.summaryStats.releasedGap,
+                reconciliationFlagged: result.summaryStats.reconciliationFlagged,
+              }}
+            />
           </div>
 
           {/* Unmatched banner */}

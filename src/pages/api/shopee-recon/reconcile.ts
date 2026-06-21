@@ -106,6 +106,9 @@ export default async function handler(
       skuCount: breakdown.length,
       compiledRows: compiled.length,
       unmatchedCount: result.unmatched.count,
+      actualReleased: result.reconciliation.actualReleased,
+      releasedGap: result.reconciliation.releasedGap,
+      reconciliationFlagged: result.reconciliation.flagged,
     };
     return res.status(200).json({
       reconId,
