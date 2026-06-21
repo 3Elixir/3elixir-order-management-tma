@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest';
 import ExcelJS from 'exceljs';
-import { readOrders, readIncome, readIncomeSummary } from './readers';
+import { readOrders, readIncome, readIncomeSummary, readAdjustments } from './readers';
 import { fixtureBuffer } from './__tests__/fixtures';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -89,4 +89,21 @@ test('readIncome throws SchemaError when a required Income column is missing', a
     sheet: 'Income',
     missing: ['Lost Compensation'],
   });
+});
+
+test('readAdjustments sums the Adjustment tab and lists line items', async () => {
+  const feb = await readAdjustments(incomeBuf('2026-02.xlsx'));
+  expect(feb.total).toBeCloseTo(41.20, 2);
+  expect(feb.items.some((i) => i.orderId === '260118C5TTYEX3')).toBe(true);
+
+  const dec = await readAdjustments(incomeBuf('2025-12.xlsx'));
+  expect(dec.total).toBeCloseTo(753.46, 2);
+});
+
+test('readAdjustments returns zero when the Adjustment sheet is absent', async () => {
+  // Orders workbook has no Adjustment sheet
+  const orders = readFileSync(join(__dirname, '__tests__/fixtures/inputs/Orders.xlsx'));
+  const adj = await readAdjustments(orders);
+  expect(adj.total).toBe(0);
+  expect(adj.items).toEqual([]);
 });

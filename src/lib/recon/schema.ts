@@ -102,3 +102,8 @@ export type IncomeSummaryTab = {
   totalExpenses: number;
   totalReleased: number;
 };
+
+export type AdjustmentData = {
+  total: number;
+  items: { orderId: string; amount: number }[];
+};

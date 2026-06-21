@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
 import { ORDERS_REQUIRED, INCOME_REQUIRED } from './schema';
-import type { IncomeSummaryTab } from './schema';
+import type { IncomeSummaryTab, AdjustmentData } from './schema';
 import { SchemaError, ParseError } from './errors';
 
 export type RawOrderRow = {
@@ -153,4 +153,46 @@ export async function readIncomeSummary(buffer: Buffer): Promise<IncomeSummaryTa
     }
   });
   return out;
+}
+
+export async function readAdjustments(buffer: Buffer): Promise<AdjustmentData> {
+  const wb = await loadWorkbook(buffer);
+  const ws = wb.getWorksheet('Adjustment');
+  if (!ws) return { total: 0, items: [] };
+
+  let total = 0;
+  let inDetails = false;
+  let amountCol = 5;
+  let orderCol = 6;
+  const items: { orderId: string; amount: number }[] = [];
+
+  ws.eachRow({ includeEmpty: false }, (row) => {
+    const c1 = String(row.getCell(1).value ?? '').trim();
+    if (c1 === 'Total Amount') {
+      total = cellNumber(row.getCell(amountCol).value) || total;
+      inDetails = false;
+      return;
+    }
+    if (c1 === 'Sequence No.') {
+      // header row of the detail list — locate columns by name
+      row.eachCell({ includeEmpty: false }, (cell, col) => {
+        const h = String(cell.value ?? '').trim();
+        if (h === 'Adjustment Amount') amountCol = col;
+        if (h === 'Linked Order No.') orderCol = col;
+      });
+      inDetails = true;
+      return;
+    }
+    if (inDetails && /^\d+$/.test(c1)) {
+      const amount = cellNumber(row.getCell(amountCol).value);
+      const orderId = String(row.getCell(orderCol).value ?? '').trim();
+      if (!Number.isNaN(amount) && amount !== 0) items.push({ orderId, amount });
+    }
+  });
+
+  // Fall back to summing line items if no "Total Amount" row was found.
+  if (total === 0 && items.length > 0) {
+    total = items.reduce((s, i) => s + i.amount, 0);
+  }
+  return { total, items };
 }
