@@ -1,4 +1,4 @@
-import { readOrders, readIncome } from './readers';
+import { readOrders, readIncome, readIncomeSummary, readAdjustments } from './readers';
 import {
   filterCompletedOrders, computeOrderTotals,
   filterSkuView, computeIncomeAggregates,
@@ -8,19 +8,22 @@ import { buildIncomeCompiled } from './compile';
 import { buildProductBreakdown } from './product-breakdown';
 import { buildIncomeSummary } from './summary';
 import { writeWorkbook } from './writer';
-import type { CompiledRow, SummaryRow, ProductBreakdownRow, MergedRow } from './schema';
+import type { CompiledRow, SummaryRow, ProductBreakdownRow, MergedRow, Reconciliation } from './schema';
 
 export type PipelineResult = {
   previews: { compiled: CompiledRow[]; breakdown: ProductBreakdownRow[]; summary: SummaryRow };
+  reconciliation: Reconciliation;
   unmatched: { count: number; sample: MergedRow[] };
   workbook: Buffer;
 };
 
 export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, incomeBuf: Buffer): Promise<PipelineResult> {
-  const [ordersRaw, ordersPrevRaw, incomeRaw] = await Promise.all([
+  const [ordersRaw, ordersPrevRaw, incomeRaw, summaryTab, adjustment] = await Promise.all([
     readOrders(ordersBuf),
     readOrders(ordersPrevBuf),
     readIncome(incomeBuf),
+    readIncomeSummary(incomeBuf),
+    readAdjustments(incomeBuf),
   ]);
 
   // Combine current + previous month orders, deduplicate on orderId + sku
@@ -53,9 +56,22 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
   const breakdown = buildProductBreakdown(pivotInput, unmatchedIncomeRows);
   const totalOrderAmount = compiled.reduce((sum, r) => sum + r.totalOrderAmount, 0);
   const summary = { ...buildIncomeSummary(income), totalOrderAmount };
+
+  const actualReleased = summaryTab.totalReleased + adjustment.total;
+  const releasedGap = totalOrderAmount - actualReleased;
+  const reconciliation: Reconciliation = {
+    actualReleased,
+    attributedReleased: totalOrderAmount,
+    releasedGap,
+    actualFees: Math.abs(summaryTab.totalExpenses),
+    adjustments: adjustment.total,
+    flagged: Math.abs(releasedGap) > 0.5,
+  };
+
   const workbook = await writeWorkbook({ compiled, breakdown, summary });
   return {
     previews: { compiled, breakdown, summary },
+    reconciliation,
     unmatched: { count: unmatchedRows.length, sample: unmatchedRows.slice(0, 5) },
     workbook,
   };

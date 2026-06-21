@@ -107,3 +107,12 @@ export type AdjustmentData = {
   total: number;
   items: { orderId: string; amount: number }[];
 };
+
+export type Reconciliation = {
+  actualReleased: number;
+  attributedReleased: number;
+  releasedGap: number;
+  actualFees: number;
+  adjustments: number;
+  flagged: boolean;
+};
