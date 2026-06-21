@@ -57,7 +57,7 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
   const totalOrderAmount = compiled.reduce((sum, r) => sum + r.totalOrderAmount, 0);
   const summary = { ...buildIncomeSummary(income, summaryTab, adjustment), totalOrderAmount };
 
-  const actualReleased = summaryTab.totalReleased + adjustment.total;
+  const actualReleased = summary.actualReleased;
   const releasedGap = totalOrderAmount - actualReleased;
   const reconciliation: Reconciliation = {
     actualReleased,
