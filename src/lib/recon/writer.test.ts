@@ -29,6 +29,19 @@ test('writeWorkbook Income Summary includes Service Fee, Adjustments, Actual Rel
   expect(headers).toContain('Total Expenses');
 });
 
+test('writeWorkbook Income Summary has an Unattributed column = Total Order Amount - Actual Released', async () => {
+  const buf = await writeWorkbook({ compiled, breakdown, summary });
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer);
+  const ws = wb.getWorksheet('Income Summary')!;
+  const headers = ws.getRow(1).values as (string | undefined)[];
+  expect(headers).toContain('Unattributed');
+  const col = headers.indexOf('Unattributed');
+  const value = ws.getRow(2).getCell(col).value;
+  // 100 (attributed) - 90.5 (actual released) = 9.5
+  expect(value).toBeCloseTo(9.5, 2);
+});
+
 test('writeWorkbook produces all three worksheets', async () => {
   const buf = await writeWorkbook({ compiled, breakdown, summary });
   const wb = new ExcelJS.Workbook();

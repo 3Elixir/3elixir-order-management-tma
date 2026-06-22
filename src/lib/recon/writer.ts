@@ -74,6 +74,7 @@ export async function writeWorkbook(input: {
       'Adjustments',
       'Actual Released Amount',
       'Total Expenses',
+      'Unattributed',
     ],
     rows: [[
       input.summary.totalOrderAmount,
@@ -86,6 +87,8 @@ export async function writeWorkbook(input: {
       input.summary.adjustments,
       input.summary.actualReleased,
       input.summary.totalExpenses,
+      // Unattributed = attributed (per-product compiled sum) − Shopee's actual released
+      input.summary.totalOrderAmount - input.summary.actualReleased,
     ]],
   });
   const arr = await wb.xlsx.writeBuffer();
