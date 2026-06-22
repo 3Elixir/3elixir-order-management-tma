@@ -1,7 +1,7 @@
 import type { OrderRow, IncomeRow, MergedRow, ProductBreakdownRow } from './schema';
 
 type BreakdownInput = Pick<OrderRow, 'orderId' | 'sku' | 'quantity' | 'totalOrderAmount'> &
-  Pick<IncomeRow, 'productName' | 'commissionFee' | 'transactionFee' | 'totalShippingFee'>;
+  Pick<IncomeRow, 'productName' | 'commissionFee' | 'transactionFee' | 'totalShippingFee' | 'serviceFee'>;
 
 export function buildProductBreakdown(rows: BreakdownInput[], unmatchedRows: MergedRow[] = []): ProductBreakdownRow[] {
   // Dedupe by (orderId, sku) — mirrors pivot table dedup logic
@@ -32,7 +32,7 @@ export function buildProductBreakdown(rows: BreakdownInput[], unmatchedRows: Mer
     const gk = `${r.orderId}\u0000${r.productName}`;
     const gt = groupTotal.get(gk) ?? 0;
     const proportion = gt > 0 ? r.totalOrderAmount / gt : 1 / (groupCount.get(gk) ?? 1);
-    const proratedFees = (r.commissionFee + r.transactionFee + r.totalShippingFee) * proportion;
+    const proratedFees = (r.commissionFee + r.transactionFee + r.totalShippingFee + r.serviceFee) * proportion;
 
     const cur = acc.get(r.sku) ?? { totalQuantity: 0, totalOrderAmount: 0, totalFees: 0 };
     cur.totalQuantity += r.quantity;
@@ -41,7 +41,8 @@ export function buildProductBreakdown(rows: BreakdownInput[], unmatchedRows: Mer
     acc.set(r.sku, cur);
   }
 
-  // Build result: (sku quantity * revenue per unit) - total fees
+  // Build result. Fees are stored as negative values (Shopee deducts them), so net
+  // revenue = order amount + fees (adding the negatives subtracts them from revenue).
   const result: ProductBreakdownRow[] = [...acc.entries()]
     .map(([sku, v]) => ({
       sku,
@@ -49,13 +50,13 @@ export function buildProductBreakdown(rows: BreakdownInput[], unmatchedRows: Mer
       revenuePerUnit: v.totalQuantity > 0 ? v.totalOrderAmount / v.totalQuantity : 0,
       totalOrderAmount: v.totalOrderAmount,
       totalFees: v.totalFees,
-      netRevenue: v.totalOrderAmount - v.totalFees,
+      netRevenue: v.totalOrderAmount + v.totalFees,
     }))
     .sort((a, b) => (a.sku < b.sku ? -1 : a.sku > b.sku ? 1 : 0));
 
   // Append fees from income rows that had no matching order (preserves parity with Income Summary)
   const unmatchedFees = unmatchedRows.reduce(
-    (sum, r) => sum + r.commissionFee + r.transactionFee + r.totalShippingFee,
+    (sum, r) => sum + r.commissionFee + r.transactionFee + r.totalShippingFee + r.serviceFee,
     0,
   );
   if (unmatchedFees !== 0) {
@@ -65,7 +66,7 @@ export function buildProductBreakdown(rows: BreakdownInput[], unmatchedRows: Mer
       revenuePerUnit: 0,
       totalOrderAmount: 0,
       totalFees: unmatchedFees,
-      netRevenue: -unmatchedFees,
+      netRevenue: unmatchedFees,
     });
   }
 
