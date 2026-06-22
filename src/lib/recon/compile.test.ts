@@ -2,7 +2,7 @@ import { test, expect } from 'vitest';
 import {
   productRows, refundRows, lostCompRows,
   txnFeeRows, commissionRows, shippingRows,
-  buildIncomeCompiled, serviceFeeRows, adjustmentRows,
+  buildIncomeCompiled, serviceFeeRows, adjustmentRows, refundTimingRows,
 } from './compile';
 import type { MergedRow, CompiledRow } from './schema';
 import { PipelineError } from './errors';
@@ -144,7 +144,7 @@ test('buildIncomeCompiled matches Output_Updated.xlsx[Income Compiled] row-by-ro
     totalOrderAmount: asNum(r['Total Order Amount']),
   }));
 
-  const NEW_ROW_TYPES = new Set(['VR', 'SC', 'AJ']);
+  const NEW_ROW_TYPES = new Set(['VR', 'SC', 'AJ', 'RT']);
   // Approach (a): strip VR/SC/AJ rows from actual before comparing to the old expected fixture.
   const actual = buildIncomeCompiled(merged).filter((r) => !NEW_ROW_TYPES.has(r.sku));
 
@@ -177,4 +177,64 @@ test('buildIncomeCompiled matches Output_Updated.xlsx[Income Compiled] row-by-ro
   expect(ajRows.length).toBe(1);
   expect(ajRows[0].orderId).toBe('TEST123');
   expect(ajRows[0].totalOrderAmount).toBeCloseTo(5, 2);
+});
+
+// --- Refund Timing (RT) rows ---------------------------------------------
+// A refund of a sale released in a PRIOR month shows the gross refund this month
+// but Total Released = 0 (or partial). We keep the gross RF row and add an RT row
+// carrying the prior-period offset so each refunded order ties to Total Released.
+
+test('refundTimingRows: balances a fully-prior-period refund to Total Released', () => {
+  // Order fully refunded this month but original sale released earlier:
+  // Refund -67.19, every other component 0, Total Released 0.
+  const rows = [m({
+    orderId: 'OX', productPrice: 0, refundAmount: -67.19, totalReleased: 0,
+    totalShippingFee: 0, commissionFee: 0, transactionFee: 0,
+    vouchersAndRebates: 0, lostCompensation: 0, serviceFee: 0,
+  })];
+  const out = refundTimingRows(rows);
+  expect(out).toContainEqual({
+    sku: 'RT', orderId: 'OX', productName: 'Refund Timing',
+    quantity: null, totalOrderAmount: 67.19,
+  });
+});
+
+test('refundTimingRows: partial-impact refund — RF + RT + other rows = Total Released', () => {
+  // Refund -20, net shipping -1.87, Total Released -7.85.
+  // components = -21.87; residual = released - components = -7.85 - (-21.87) = 14.02.
+  const rows = [m({
+    orderId: 'OY', productPrice: 0, refundAmount: -20, totalReleased: -7.85,
+    totalShippingFee: -1.87, commissionFee: 0, transactionFee: 0,
+    vouchersAndRebates: 0, lostCompensation: 0, serviceFee: 0,
+  })];
+  const rt = refundTimingRows(rows).find((r) => r.orderId === 'OY');
+  expect(rt?.totalOrderAmount).toBeCloseTo(14.02, 2);
+});
+
+test('refundTimingRows: no RT row for orders without a refund (residual stays unattributed)', () => {
+  // m() default has refund 0 and a -1 residual (released 95 vs components 96) — must NOT emit RT.
+  const out = refundTimingRows([m()]);
+  expect(out).toHaveLength(0);
+});
+
+test('refundTimingRows: omits RT when a refunded order already ties (residual rounds to 0)', () => {
+  // Refund -10 exactly offset so released == components.
+  const rows = [m({
+    orderId: 'OZ', productPrice: 100, refundAmount: -10, totalReleased: 90,
+    totalShippingFee: 0, commissionFee: 0, transactionFee: 0,
+    vouchersAndRebates: 0, lostCompensation: 0, serviceFee: 0,
+  })];
+  expect(refundTimingRows(rows)).toHaveLength(0);
+});
+
+test('buildIncomeCompiled: a refunded order ties exactly to its Total Released', () => {
+  const rows = [m({
+    orderId: 'OX', productPrice: 0, refundAmount: -67.19, totalReleased: 0,
+    totalShippingFee: 0, commissionFee: 0, transactionFee: 0,
+    vouchersAndRebates: 0, lostCompensation: 0, serviceFee: 0,
+  })];
+  const compiled = buildIncomeCompiled(rows).filter((r) => r.orderId === 'OX');
+  const sum = compiled.reduce((s, r) => s + r.totalOrderAmount, 0);
+  expect(sum).toBeCloseTo(0, 2); // RF -67.19 + RT +67.19 = 0 = Total Released
+  expect(compiled.some((r) => r.sku === 'RT')).toBe(true);
 });

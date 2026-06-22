@@ -36,5 +36,5 @@ test('INCOME_REQUIRED contains all columns referenced by main.py', () => {
 });
 
 test('SYNTHETIC_SKUS are reserved row-type codes', () => {
-  expect(SYNTHETIC_SKUS).toEqual(['RF', 'LC', 'TF', 'CF', 'SF', 'VR', 'SC', 'AJ']);
+  expect(SYNTHETIC_SKUS).toEqual(['RF', 'LC', 'TF', 'CF', 'SF', 'VR', 'SC', 'AJ', 'RT']);
 });
