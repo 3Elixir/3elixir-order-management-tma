@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shopee Recon — UAT Results</title>
+<style>
+  body{max-width:880px;margin:0 auto;padding:40px 24px 80px;
+    font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:#1f2328;background:#fff}
+  h1{font-size:30px;border-bottom:2px solid #d0d7de;padding-bottom:10px;margin-bottom:4px}
+  h2{font-size:21px;margin-top:34px;border-bottom:1px solid #d8dee4;padding-bottom:5px}
+  code{background:#f0f1f3;padding:1px 6px;border-radius:5px;font-size:.88em;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px}
+  th,td{border:1px solid #d0d7de;padding:7px 11px;text-align:left}
+  th{background:#f6f8fa;font-weight:600}
+  td:nth-child(n+2){font-variant-numeric:tabular-nums}
+  .meta{color:#59636e;font-size:14px;margin:6px 0 0}
+  .warn{background:#fff8c5;border:1px solid #d4a72c66;border-radius:8px;padding:14px 18px;margin:16px 0}
+  .ok{background:#dafbe1;border:1px solid #2da44e44;border-radius:8px;padding:14px 18px;margin:16px 0}
+  ul{padding-left:22px}
+  li{margin:5px 0}
+  strong{font-weight:650}
+</style>
+</head>
+<body>
+
+<h1>Shopee Recon — UAT Results</h1>
+<p class="meta"><strong>Build:</strong> branch <code>staging</code>, commit <code>2bb7608</code> · <strong>Page:</strong> <code>/shopee-recon</code> · <strong>Run date:</strong> 2026-07-08</p>
+<p class="meta">Run by the automated pipeline harness against the live recon code (<code>src/lib/recon</code>).</p>
+
+<div class="ok"><strong>Verdict:</strong> all 8 months pass. Every month's per-product rebuild ties to Shopee's actual payout within <strong>0.08%</strong> (a few dollars of cent-level rounding). The three months with an independent manual figure (Jul–Sep 2025, from the client's own sheets) tie to the cent for Jul and Aug; Sep is $0.20 off because the manual sheet under-applied that month's adjustment.</div>
+
+<h2>What each column means</h2>
+<ul>
+  <li><strong>Actual Released</strong> — Shopee's real payout. Read straight from the income file's <strong>Summary</strong> tab plus the <strong>Adjustment</strong> tab. This is the number to trust.</li>
+  <li><strong>Service Fee</strong> — Shopee's per-order service charge, summed. Read from the Summary tab.</li>
+  <li><strong>Adjustments</strong> — signed payout corrections from the Adjustment tab.</li>
+  <li><strong>Unattributed</strong> — how far the tool's line-by-line rebuild lands from Actual Released. Target ≈ 0; shown for transparency. Small = the rebuild accounts for everything.</li>
+  <li><strong>Cross-check</strong> — the client's manual "(Sarah)" monthly figure, where available, with the delta vs the tool.</li>
+</ul>
+
+<h2>Results</h2>
+<table>
+  <tr><th>Month</th><th>Actual Released (S$)</th><th>Service Fee (S$)</th><th>Adjustments (S$)</th><th>Unattributed (S$)</th><th>% of released</th><th>Cross-check (manual)</th><th>Verdict</th></tr>
+  <tr><td>Jul 2025</td><td>27,330.01</td><td>0.00</td><td>0.00</td><td>4.35</td><td>0.016%</td><td>27,330.01 (Δ 0.00)</td><td>✅ pass</td></tr>
+  <tr><td>Aug 2025</td><td>69,125.36</td><td>−852.42</td><td>0.00</td><td>54.51</td><td>0.079%</td><td>69,125.36 (Δ 0.00)</td><td>✅ pass</td></tr>
+  <tr><td>Sep 2025</td><td>79,403.26</td><td>−1,023.73</td><td>39.61</td><td>56.59</td><td>0.071%</td><td>79,403.06 (Δ 0.20)</td><td>✅ pass*</td></tr>
+  <tr><td>Nov 2025</td><td>118,956.28</td><td>−1,525.94</td><td>0.00</td><td>32.62</td><td>0.027%</td><td>—</td><td>✅ pass</td></tr>
+  <tr><td>Dec 2025</td><td>95,654.92</td><td>−1,227.19</td><td>753.46</td><td>10.55</td><td>0.011%</td><td>—</td><td>✅ pass</td></tr>
+  <tr><td>Jan 2026</td><td>36,690.44</td><td>−1,038.07</td><td>61.61</td><td>4.09</td><td>0.011%</td><td>—</td><td>✅ pass</td></tr>
+  <tr><td>Feb 2026</td><td>36,046.38</td><td>−1,428.44</td><td>41.20</td><td>4.14</td><td>0.011%</td><td>—</td><td>✅ pass</td></tr>
+  <tr><td>Mar 2026</td><td>31,368.47</td><td>−1,254.96</td><td>0.00</td><td>3.57</td><td>0.011%</td><td>—</td><td>✅ pass</td></tr>
+</table>
+<p class="meta">* Sep: tool figure is correct (Summary + Adjustment tab). The $0.20 is in the manual sheet, which under-applied the 39.61 adjustment.</p>
+
+<h2>The fix this run validated</h2>
+<p>Jul–Sep 2025 first exposed a bug. Shopee uses <strong>two different column names</strong> for the per-order Service Fee across exports:</p>
+<ul>
+  <li>Jul–Sep 2025 files: <code>Service Fee (incl. GST)</code> (human label)</li>
+  <li>Nov 2025+ files: <code>ps_finance_pdf_income_service_fee_for_SG</code> (raw key)</li>
+</ul>
+<p>The tool matched only the raw key, so it <strong>missed the older-format files</strong> and read their per-order service fee as 0. That inflated Unattributed by the whole month's service fee.</p>
+<table>
+  <tr><th>Month</th><th>Unattributed before fix</th><th>Unattributed after fix</th></tr>
+  <tr><td>Aug 2025</td><td>909.22 (1.32%)</td><td>54.51 (0.08%)</td></tr>
+  <tr><td>Sep 2025</td><td>1,080.46 (1.36%)</td><td>56.59 (0.07%)</td></tr>
+</table>
+<div class="warn">The headline <strong>Actual Released was never affected</strong> — it comes from the Summary tab, not the per-order rebuild — so the payout always tied to the client's manual figures. The bug only touched the internal cross-check. Fix: match both column names (commit <code>d2a0891</code>).</div>
+
+<h2>How to reproduce</h2>
+<p>Run each month on <code>/shopee-recon</code> with the three input files (current-month orders, previous-month orders, income) listed in the file-mapping table of the UAT handover. After each run, check the <strong>Income Summary</strong> sheet: Actual Released must equal Shopee's payout to the cent, and Unattributed must stay small (well under 0.1%).</p>
+
+<h2>Related</h2>
+<ul>
+  <li><code>docs/recon-UAT-handover.md</code> — how to run the UAT, file mapping, acceptance reference, by-design non-bugs.</li>
+</ul>
+
+</body>
+</html>
