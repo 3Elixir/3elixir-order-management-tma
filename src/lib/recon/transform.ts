@@ -44,6 +44,11 @@ export function computeIncomeAggregates(rows: RawIncomeRow[]): IncomeRow[] {
       num(r['Coin Cashback Sponsored by Seller']);
     const lostRaw = r['Lost Compensation'];
     const lostCompensation = lostRaw === '-' ? 0 : num(lostRaw);
+    // Shopee changed the per-row Service Fee column header between exports:
+    // Nov 2025+ files use the raw i18n key, Jul-Sep 2025 files use the human
+    // label. Only one is present per file — coalesce so both parse correctly.
+    const serviceFeeRaw =
+      r['Service Fee (incl. GST)'] ?? r['ps_finance_pdf_income_service_fee_for_SG'];
     return {
       orderId: r.orderId,
       productName: r.productName,
@@ -55,7 +60,7 @@ export function computeIncomeAggregates(rows: RawIncomeRow[]): IncomeRow[] {
       transactionFee: num(r['Transaction Fee (Incl. Gst)']),
       vouchersAndRebates,
       lostCompensation,
-      serviceFee: num(r['ps_finance_pdf_income_service_fee_for_SG']),
+      serviceFee: num(serviceFeeRaw),
     };
   });
 }
