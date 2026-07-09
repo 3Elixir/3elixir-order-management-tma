@@ -57,6 +57,14 @@ export type IncomeRow = {
 export type MergedRow = IncomeRow &
   Partial<Pick<OrderRow, 'sku' | 'quantity' | 'totalOrderAmount'>>;
 
+// A trimmed view of an income row that matched no order, surfaced to the UI so
+// the user can see exactly which income lines are unmatched.
+export type UnmatchedRow = {
+  orderId: string;
+  productName: string;
+  totalReleased: number;
+};
+
 export type CompiledRow = {
   sku: string;
   orderId: string;

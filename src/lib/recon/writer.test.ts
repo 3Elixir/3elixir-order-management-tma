@@ -42,7 +42,7 @@ test('writeWorkbook Income Summary has an Unattributed column = Total Order Amou
   expect(value).toBeCloseTo(9.5, 2);
 });
 
-test('writeWorkbook produces all three worksheets', async () => {
+test('writeWorkbook produces all four worksheets', async () => {
   const buf = await writeWorkbook({ compiled, breakdown, summary });
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer);
@@ -50,6 +50,26 @@ test('writeWorkbook produces all three worksheets', async () => {
   expect(sheetNames).toContain('Income Compiled');
   expect(sheetNames).toContain('Product Breakdown');
   expect(sheetNames).toContain('Income Summary');
+  expect(sheetNames).toContain('Unmatched');
+});
+
+test('writeWorkbook Unmatched sheet lists the provided unmatched income rows', async () => {
+  const unmatched = [
+    { orderId: 'ORD-U1', productName: 'Mystery Item', totalReleased: 12.34 },
+    { orderId: 'ORD-U2', productName: 'Another Item', totalReleased: 56.78 },
+  ];
+  const buf = await writeWorkbook({ compiled, breakdown, summary, unmatched });
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer);
+  const ws = wb.getWorksheet('Unmatched')!;
+  const headers = ws.getRow(1).values as (string | undefined)[];
+  expect(headers).toContain('Order ID');
+  expect(headers).toContain('Product Name');
+  // Header row + 2 data rows
+  expect(ws.rowCount).toBe(3);
+  const firstData = ws.getRow(2).values as (string | number | null | undefined)[];
+  expect(firstData).toContain('ORD-U1');
+  expect(firstData).toContain('Mystery Item');
 });
 
 test('writeWorkbook Income Compiled has at least one data row', async () => {

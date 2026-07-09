@@ -7,7 +7,7 @@ import { ErrorDisplay, type ApiError } from '~/components/shopee-recon/error-dis
 import { DownloadButton } from '~/components/shopee-recon/download-button';
 import { SummaryCards } from '~/components/shopee-recon/summary-cards';
 import { Button } from '~/components/ui/button';
-import type { CompiledRow, SummaryRow, ProductBreakdownRow } from '~/lib/recon/schema';
+import type { CompiledRow, SummaryRow, ProductBreakdownRow, UnmatchedRow } from '~/lib/recon/schema';
 
 type SummaryStats = {
   totalReleased: number;
@@ -26,7 +26,7 @@ type SummaryStats = {
 type Result = {
   reconId: string;
   previews: { compiled: CompiledRow[]; breakdown: ProductBreakdownRow[]; summary: SummaryRow };
-  unmatched: { count: number };
+  unmatched: { count: number; rows: UnmatchedRow[] };
   workbookB64: string;
   summaryStats: SummaryStats;
   download: { id: string; url: string; filename: string };
@@ -178,7 +178,7 @@ export default function Home() {
 
           {/* Unmatched banner */}
           {result.unmatched.count > 0 && (
-            <UnmatchedBanner count={result.unmatched.count} />
+            <UnmatchedBanner count={result.unmatched.count} rows={result.unmatched.rows} />
           )}
 
           {/* Tabs */}

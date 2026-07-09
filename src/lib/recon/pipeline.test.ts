@@ -24,10 +24,15 @@ test('runPipeline produces previews + xlsx buffer for real inputs', async () => 
   expect(result.workbook.length).toBeGreaterThan(1000); // sane size for a 3-sheet xlsx
 });
 
-test('runPipeline unmatched.sample is capped at 5', async () => {
+test('runPipeline unmatched.rows lists every unmatched income row with id/name/released', async () => {
   const orders = fixtureBuffer('inputs/Orders.xlsx');
   const ordersPrev = fixtureBuffer('inputs/Orders.xlsx');
   const income = fixtureBuffer('inputs/Income.xlsx');
   const result = await runPipeline(orders, ordersPrev, income);
-  expect(result.unmatched.sample.length).toBeLessThanOrEqual(5);
+  // Full list, not a sample — one row per unmatched income line.
+  expect(result.unmatched.rows.length).toBe(result.unmatched.count);
+  const [first] = result.unmatched.rows;
+  expect(first).toHaveProperty('orderId');
+  expect(first).toHaveProperty('productName');
+  expect(first).toHaveProperty('totalReleased');
 });

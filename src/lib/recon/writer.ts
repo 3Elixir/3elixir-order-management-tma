@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import type { CompiledRow, SummaryRow, ProductBreakdownRow } from './schema';
+import type { CompiledRow, SummaryRow, ProductBreakdownRow, UnmatchedRow } from './schema';
 
 type SheetSpec = {
   name: string;
@@ -35,6 +35,7 @@ export async function writeWorkbook(input: {
   compiled: CompiledRow[];
   breakdown: ProductBreakdownRow[];
   summary: SummaryRow;
+  unmatched?: UnmatchedRow[];
 }): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   addSheet(wb, {
@@ -90,6 +91,14 @@ export async function writeWorkbook(input: {
       // Unattributed = attributed (per-product compiled sum) − Shopee's actual released
       input.summary.totalOrderAmount - input.summary.actualReleased,
     ]],
+  });
+  // Unmatched income rows — income lines that matched no order on (Order ID,
+  // Product Name). Their dollars are still folded into the other sheets; this
+  // sheet lists them explicitly so they can be chased. Empty = none unmatched.
+  addSheet(wb, {
+    name: 'Unmatched',
+    headers: ['Order ID', 'Product Name', 'Total Released Amount (S$)'],
+    rows: (input.unmatched ?? []).map((r) => [r.orderId, r.productName, r.totalReleased]),
   });
   const arr = await wb.xlsx.writeBuffer();
   return Buffer.from(arr);

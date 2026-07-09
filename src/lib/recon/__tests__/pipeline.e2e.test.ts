@@ -54,7 +54,7 @@ test('e2e: full pipeline produces correct structural output for Feb 2026', async
 
   // ---- Unmatched ----
   expect(result.unmatched).toHaveProperty('count');
-  expect(result.unmatched.sample.length).toBeLessThanOrEqual(5);
+  expect(result.unmatched.rows.length).toBe(result.unmatched.count);
 
   // ---- Workbook ----
   expect(Buffer.isBuffer(result.workbook)).toBe(true);

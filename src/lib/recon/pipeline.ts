@@ -8,12 +8,12 @@ import { buildIncomeCompiled } from './compile';
 import { buildProductBreakdown } from './product-breakdown';
 import { buildIncomeSummary } from './summary';
 import { writeWorkbook } from './writer';
-import type { CompiledRow, SummaryRow, ProductBreakdownRow, MergedRow, Reconciliation } from './schema';
+import type { CompiledRow, SummaryRow, ProductBreakdownRow, Reconciliation, UnmatchedRow } from './schema';
 
 export type PipelineResult = {
   previews: { compiled: CompiledRow[]; breakdown: ProductBreakdownRow[]; summary: SummaryRow };
   reconciliation: Reconciliation;
-  unmatched: { count: number; sample: MergedRow[] };
+  unmatched: { count: number; rows: UnmatchedRow[] };
   workbook: Buffer;
 };
 
@@ -68,11 +68,16 @@ export async function runPipeline(ordersBuf: Buffer, ordersPrevBuf: Buffer, inco
     flagged: Math.abs(releasedGap) > 0.5,
   };
 
-  const workbook = await writeWorkbook({ compiled, breakdown, summary });
+  const unmatchedOut = unmatchedRows.map((r) => ({
+    orderId: r.orderId,
+    productName: r.productName,
+    totalReleased: r.totalReleased,
+  }));
+  const workbook = await writeWorkbook({ compiled, breakdown, summary, unmatched: unmatchedOut });
   return {
     previews: { compiled, breakdown, summary },
     reconciliation,
-    unmatched: { count: unmatchedRows.length, sample: unmatchedRows.slice(0, 5) },
+    unmatched: { count: unmatchedRows.length, rows: unmatchedOut },
     workbook,
   };
 }
