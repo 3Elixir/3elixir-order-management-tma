@@ -1,7 +1,12 @@
 import { test, expect } from 'vitest';
 import ExcelJS from 'exceljs';
-import { readOrders, readIncome } from './readers';
+import { readOrders, readIncome, readIncomeSummary, readAdjustments } from './readers';
 import { fixtureBuffer } from './__tests__/fixtures';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const incomeBuf = (name: string) =>
+  readFileSync(join(__dirname, '__tests__/fixtures/income', name));
 
 test('readOrders parses raw Orders export with all required columns', async () => {
   const buf = fixtureBuffer('inputs/Orders.xlsx');
@@ -51,6 +56,17 @@ test('readIncome skips two prelude rows and parses the Income sheet', async () =
   expect(first).toHaveProperty('Lost Compensation');
 });
 
+test('readIncomeSummary parses Shopee Summary tab section totals', async () => {
+  const s = await readIncomeSummary(incomeBuf('2026-02.xlsx'));
+  expect(s.totalRevenue).toBeCloseTo(43202.03, 2);
+  expect(s.commission).toBeCloseTo(-3296.34, 2);
+  expect(s.serviceFee).toBeCloseTo(-1428.44, 2);
+  expect(s.transactionFee).toBeCloseTo(-1416.87, 2);
+  expect(s.shippingSubtotal).toBeCloseTo(-1055.20, 2);
+  expect(s.totalExpenses).toBeCloseTo(-7196.85, 2);
+  expect(s.totalReleased).toBeCloseTo(36005.18, 2);
+});
+
 test('readIncome throws SchemaError when a required Income column is missing', async () => {
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Income');
@@ -73,4 +89,21 @@ test('readIncome throws SchemaError when a required Income column is missing', a
     sheet: 'Income',
     missing: ['Lost Compensation'],
   });
+});
+
+test('readAdjustments sums the Adjustment tab and lists line items', async () => {
+  const feb = await readAdjustments(incomeBuf('2026-02.xlsx'));
+  expect(feb.total).toBeCloseTo(41.20, 2);
+  expect(feb.items.some((i) => i.orderId === '260118C5TTYEX3')).toBe(true);
+
+  const dec = await readAdjustments(incomeBuf('2025-12.xlsx'));
+  expect(dec.total).toBeCloseTo(753.46, 2);
+});
+
+test('readAdjustments returns zero when the Adjustment sheet is absent', async () => {
+  // Orders workbook has no Adjustment sheet
+  const orders = readFileSync(join(__dirname, '__tests__/fixtures/inputs/Orders.xlsx'));
+  const adj = await readAdjustments(orders);
+  expect(adj.total).toBe(0);
+  expect(adj.items).toEqual([]);
 });

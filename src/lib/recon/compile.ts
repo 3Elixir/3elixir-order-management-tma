@@ -1,4 +1,4 @@
-import type { MergedRow, CompiledRow } from './schema';
+import type { MergedRow, CompiledRow, AdjustmentData } from './schema';
 import { SYNTHETIC_SKUS } from './schema';
 import { PipelineError } from './errors';
 
@@ -81,7 +81,52 @@ export function shippingRows(merged: MergedRow[]): CompiledRow[] {
   return aggregateByOrder(merged, 'totalShippingFee', 'SF', 'Shipping Fee');
 }
 
-export function buildIncomeCompiled(merged: MergedRow[]): CompiledRow[] {
+export function vouchersAndRebatesRows(merged: MergedRow[]): CompiledRow[] {
+  return aggregateByOrder(merged, 'vouchersAndRebates', 'VR', 'Vouchers & Rebates');
+}
+
+export function serviceFeeRows(merged: MergedRow[]): CompiledRow[] {
+  return aggregateByOrder(merged, 'serviceFee', 'SC', 'Service Fee');
+}
+
+// Refund Timing (RT): when a refund this month is for a sale released in a PRIOR
+// month, the income file shows the gross refund but Total Released = 0 (or partial).
+// The gross RF row over-subtracts, so per-refunded-order we add an RT row carrying
+// the prior-period offset = Total Released − sum(all other income components). This
+// ties each refunded order to its actual Total Released. Only refunded orders get an
+// RT row; non-refunded orders' sub-cent rounding stays in the unattributed remainder.
+export function refundTimingRows(merged: MergedRow[]): CompiledRow[] {
+  const refundedOrders = new Set<string>();
+  for (const r of merged) {
+    if (r.refundAmount !== 0) refundedOrders.add(r.orderId);
+  }
+  const residual = new Map<string, number>();
+  for (const r of merged) {
+    if (!refundedOrders.has(r.orderId)) continue;
+    const components =
+      r.productPrice + r.refundAmount + r.totalShippingFee + r.commissionFee +
+      r.transactionFee + r.vouchersAndRebates + r.lostCompensation + r.serviceFee;
+    residual.set(r.orderId, (residual.get(r.orderId) ?? 0) + (r.totalReleased - components));
+  }
+  const out: CompiledRow[] = [];
+  for (const [orderId, total] of residual) {
+    const amount = round2(total);
+    if (amount === 0) continue;
+    out.push({ sku: 'RT', orderId, productName: 'Refund Timing', quantity: null, totalOrderAmount: amount });
+  }
+  return out;
+}
+
+export function adjustmentRows(adjustment: AdjustmentData): CompiledRow[] {
+  return adjustment.items
+    .filter((i) => i.amount !== 0)
+    .map((i) => ({
+      sku: 'AJ', orderId: i.orderId, productName: 'Adjustment',
+      quantity: null, totalOrderAmount: round2(i.amount),
+    }));
+}
+
+export function buildIncomeCompiled(merged: MergedRow[], adjustment: AdjustmentData = { total: 0, items: [] }): CompiledRow[] {
   const all = [
     ...productRows(merged),
     ...refundRows(merged),
@@ -89,6 +134,10 @@ export function buildIncomeCompiled(merged: MergedRow[]): CompiledRow[] {
     ...txnFeeRows(merged),
     ...commissionRows(merged),
     ...shippingRows(merged),
+    ...vouchersAndRebatesRows(merged),
+    ...serviceFeeRows(merged),
+    ...refundTimingRows(merged),
+    ...adjustmentRows(adjustment),
   ];
   // Stable sort by orderId. Array.prototype.sort is stable in ES2019+.
   return all.sort((a, b) => (a.orderId < b.orderId ? -1 : a.orderId > b.orderId ? 1 : 0));

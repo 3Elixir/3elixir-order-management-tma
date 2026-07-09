@@ -108,6 +108,20 @@ test('computeIncomeAggregates rounds negative halves away from zero', () => {
   expect(out.totalShippingFee).toBe(-1.01);
 });
 
+test('computeIncomeAggregates reads service fee under the raw i18n header (Nov 2025+ exports)', () => {
+  const [out] = computeIncomeAggregates([
+    makeIncomeRow({ ps_finance_pdf_income_service_fee_for_SG: -36.16 } as Partial<RawIncomeRow>),
+  ]);
+  expect(out.serviceFee).toBeCloseTo(-36.16, 5);
+});
+
+test('computeIncomeAggregates reads service fee under the human header (Jul-Sep 2025 exports)', () => {
+  const [out] = computeIncomeAggregates([
+    makeIncomeRow({ 'Service Fee (incl. GST)': -36.16 } as Partial<RawIncomeRow>),
+  ]);
+  expect(out.serviceFee).toBeCloseTo(-36.16, 5);
+});
+
 test('computeIncomeAggregates produces canonical IncomeRow shape', () => {
   const [out] = computeIncomeAggregates([makeIncomeRow()]);
   expect(out).toEqual({
@@ -121,5 +135,6 @@ test('computeIncomeAggregates produces canonical IncomeRow shape', () => {
     transactionFee: -1,
     vouchersAndRebates: 0,         // 0+0+0
     lostCompensation: 0,
+    serviceFee: 0,                 // added in Task 5/6 for SC rows
   });
 });

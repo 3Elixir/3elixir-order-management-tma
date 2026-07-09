@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs';
-import type { CompiledRow, PivotRow, SummaryRow } from './schema';
+import type { CompiledRow, SummaryRow, ProductBreakdownRow, UnmatchedRow } from './schema';
 
 type SheetSpec = {
   name: string;
@@ -33,8 +33,9 @@ function addSheet(wb: ExcelJS.Workbook, spec: SheetSpec): void {
 
 export async function writeWorkbook(input: {
   compiled: CompiledRow[];
-  pivot: PivotRow[];
+  breakdown: ProductBreakdownRow[];
   summary: SummaryRow;
+  unmatched?: UnmatchedRow[];
 }): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   addSheet(wb, {
@@ -43,24 +44,61 @@ export async function writeWorkbook(input: {
     rows: input.compiled.map((r) => [r.sku, r.orderId, r.productName, r.quantity, r.totalOrderAmount]),
   });
   addSheet(wb, {
-    name: 'Pivot Table',
-    headers: ['SKU Reference No.', 'Total Quantity', 'Total Order Amount'],
-    rows: input.pivot.map((r) => [r.sku, r.totalQuantity, r.totalOrderAmount]),
+    name: 'Product Breakdown',
+    headers: [
+      'SKU Reference No.',
+      'Total Quantity',
+      'Revenue per Unit',
+      'Net Revenue',
+      'Total Fees',
+      'Total Order Amount',
+    ],
+    rows: input.breakdown.map((r) => [
+      r.sku,
+      r.totalQuantity,
+      r.revenuePerUnit,
+      r.netRevenue,
+      r.totalFees,
+      r.totalOrderAmount,
+    ]),
   });
   addSheet(wb, {
     name: 'Income Summary',
     headers: [
+      'Total Order Amount',
       'Total Released Amount (S$)',
       'Commission fee (Incl. GST)',
       'Transaction Fee (Incl. Gst)',
       'Total Shipping Fee',
+      'Vouchers & Rebates',
+      'Service Fee',
+      'Adjustments',
+      'Actual Released Amount',
+      'Total Expenses',
+      'Unattributed',
     ],
     rows: [[
+      input.summary.totalOrderAmount,
       input.summary.totalReleased,
       input.summary.commissionFee,
       input.summary.transactionFee,
       input.summary.totalShippingFee,
+      input.summary.vouchersAndRebates,
+      input.summary.serviceFee,
+      input.summary.adjustments,
+      input.summary.actualReleased,
+      input.summary.totalExpenses,
+      // Unattributed = attributed (per-product compiled sum) − Shopee's actual released
+      input.summary.totalOrderAmount - input.summary.actualReleased,
     ]],
+  });
+  // Unmatched income rows — income lines that matched no order on (Order ID,
+  // Product Name). Their dollars are still folded into the other sheets; this
+  // sheet lists them explicitly so they can be chased. Empty = none unmatched.
+  addSheet(wb, {
+    name: 'Unmatched',
+    headers: ['Order ID', 'Product Name', 'Total Released Amount (S$)'],
+    rows: (input.unmatched ?? []).map((r) => [r.orderId, r.productName, r.totalReleased]),
   });
   const arr = await wb.xlsx.writeBuffer();
   return Buffer.from(arr);

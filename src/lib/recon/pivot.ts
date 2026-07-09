@@ -1,9 +1,11 @@
 import type { OrderRow, PivotRow } from './schema';
 
-export function buildPivotTable(orders: OrderRow[]): PivotRow[] {
+type PivotInput = Pick<OrderRow, 'orderId' | 'sku' | 'quantity' | 'totalOrderAmount'>;
+
+export function buildPivotTable(orders: PivotInput[]): PivotRow[] {
   // 1. Dedupe by (orderId, sku), keeping first occurrence — matches Polars unique() default
   const seen = new Set<string>();
-  const deduped: OrderRow[] = [];
+  const deduped: PivotInput[] = [];
   for (const o of orders) {
     const k = `${o.orderId}\u0000${o.sku}`;
     if (!seen.has(k)) {

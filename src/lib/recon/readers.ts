@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import { ORDERS_REQUIRED, INCOME_REQUIRED } from './schema';
+import type { IncomeSummaryTab, AdjustmentData } from './schema';
 import { SchemaError, ParseError } from './errors';
 
 export type RawOrderRow = {
@@ -105,4 +106,93 @@ export async function readOrders(buffer: Buffer): Promise<RawOrderRow[]> {
     });
   });
   return out;
+}
+
+export async function readIncomeSummary(buffer: Buffer): Promise<IncomeSummaryTab> {
+  const wb = await loadWorkbook(buffer);
+  const ws = wb.getWorksheet('Summary');
+  if (!ws) throw new ParseError('Income file is missing the "Summary" sheet.');
+
+  const out: Record<keyof IncomeSummaryTab, number> = {
+    totalRevenue: 0, shippingSubtotal: 0, amsCommission: 0, commission: 0,
+    serviceFee: 0, saverProgramFee: 0, transactionFee: 0, productGst: 0,
+    shippingGst: 0, adsEscrow: 0, totalExpenses: 0, totalReleased: 0,
+  };
+
+  // Section totals: label in col A (col 1), value in col D (col 4).
+  const COL1_LABELS: [string, keyof IncomeSummaryTab][] = [
+    ['1. Total Revenue', 'totalRevenue'],
+    ['Shipping Subtotal', 'shippingSubtotal'],
+    ['2. Total Expenses', 'totalExpenses'],
+    ['3. Total Released Amount', 'totalReleased'],
+  ];
+  // Sub-item line items: label in col B (col 2), value in col C (col 3).
+  const COL2_LABELS: [string, keyof IncomeSummaryTab][] = [
+    ['AMS Commission Fee', 'amsCommission'],
+    ['Commission fee (Incl. GST)', 'commission'],
+    ['Service Fee (incl. GST)', 'serviceFee'],
+    ['Shipping Fee Saver Program Fee', 'saverProgramFee'],
+    ['Transaction Fee (Incl. Gst)', 'transactionFee'],
+    ['Product Goods & Services Tax', 'productGst'],
+    ['Shipping Goods & Services Tax', 'shippingGst'],
+    ['Ads Escrow Top Up Fee', 'adsEscrow'],
+  ];
+
+  ws.eachRow({ includeEmpty: false }, (row) => {
+    const col1 = String(row.getCell(1).value ?? '').trim();
+    if (col1) {
+      for (const [needle, key] of COL1_LABELS) {
+        if (col1.startsWith(needle)) out[key] = cellNumber(row.getCell(4).value);
+      }
+    }
+    const col2 = String(row.getCell(2).value ?? '').trim();
+    if (col2) {
+      for (const [needle, key] of COL2_LABELS) {
+        if (col2.startsWith(needle)) out[key] = cellNumber(row.getCell(3).value);
+      }
+    }
+  });
+  return out;
+}
+
+export async function readAdjustments(buffer: Buffer): Promise<AdjustmentData> {
+  const wb = await loadWorkbook(buffer);
+  const ws = wb.getWorksheet('Adjustment');
+  if (!ws) return { total: 0, items: [] };
+
+  let total = 0;
+  let inDetails = false;
+  let amountCol = 5;
+  let orderCol = 6;
+  const items: { orderId: string; amount: number }[] = [];
+
+  ws.eachRow({ includeEmpty: false }, (row) => {
+    const c1 = String(row.getCell(1).value ?? '').trim();
+    if (c1 === 'Total Amount') {
+      total = cellNumber(row.getCell(amountCol).value) || total;
+      inDetails = false;
+      return;
+    }
+    if (c1 === 'Sequence No.') {
+      // header row of the detail list — locate columns by name
+      row.eachCell({ includeEmpty: false }, (cell, col) => {
+        const h = String(cell.value ?? '').trim();
+        if (h === 'Adjustment Amount') amountCol = col;
+        if (h === 'Linked Order No.') orderCol = col;
+      });
+      inDetails = true;
+      return;
+    }
+    if (inDetails && /^\d+$/.test(c1)) {
+      const amount = cellNumber(row.getCell(amountCol).value);
+      const orderId = String(row.getCell(orderCol).value ?? '').trim();
+      if (!Number.isNaN(amount) && amount !== 0) items.push({ orderId, amount });
+    }
+  });
+
+  // Fall back to summing line items if no "Total Amount" row was found.
+  if (total === 0 && items.length > 0) {
+    total = items.reduce((s, i) => s + i.amount, 0);
+  }
+  return { total, items };
 }

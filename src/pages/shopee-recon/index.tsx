@@ -7,12 +7,28 @@ import { ErrorDisplay, type ApiError } from '~/components/shopee-recon/error-dis
 import { DownloadButton } from '~/components/shopee-recon/download-button';
 import { SummaryCards } from '~/components/shopee-recon/summary-cards';
 import { Button } from '~/components/ui/button';
-import type { CompiledRow, PivotRow, SummaryRow } from '~/lib/recon/schema';
+import type { CompiledRow, SummaryRow, ProductBreakdownRow, UnmatchedRow } from '~/lib/recon/schema';
+
+type SummaryStats = {
+  totalReleased: number;
+  commissionFee: number;
+  transactionFee: number;
+  totalShippingFee: number;
+  uniqueOrders: number;
+  skuCount: number;
+  compiledRows: number;
+  unmatchedCount: number;
+  actualReleased: number;
+  releasedGap: number;
+  reconciliationFlagged: boolean;
+};
 
 type Result = {
   reconId: string;
-  previews: { compiled: CompiledRow[]; pivot: PivotRow[]; summary: SummaryRow };
-  unmatched: { count: number };
+  previews: { compiled: CompiledRow[]; breakdown: ProductBreakdownRow[]; summary: SummaryRow };
+  unmatched: { count: number; rows: UnmatchedRow[] };
+  workbookB64: string;
+  summaryStats: SummaryStats;
   download: { id: string; url: string; filename: string };
 };
 
@@ -150,24 +166,38 @@ export default function Home() {
 
           {/* Summary cards */}
           <div className="mt-4">
-            <SummaryCards summary={result.previews.summary} />
+            <SummaryCards
+              summary={result.previews.summary}
+              reconciliation={{
+                actualReleased: result.summaryStats.actualReleased,
+                releasedGap: result.summaryStats.releasedGap,
+                reconciliationFlagged: result.summaryStats.reconciliationFlagged,
+              }}
+            />
           </div>
 
           {/* Unmatched banner */}
           {result.unmatched.count > 0 && (
-            <UnmatchedBanner count={result.unmatched.count} />
+            <UnmatchedBanner count={result.unmatched.count} rows={result.unmatched.rows} />
           )}
 
           {/* Tabs */}
           <ResultTabs
             compiled={result.previews.compiled}
-            pivot={result.previews.pivot}
+            breakdown={result.previews.breakdown}
             summary={result.previews.summary}
           />
 
+
           {/* Download — sticky on mobile, inline on md+ */}
           <div className="fixed inset-x-4 bottom-4 z-30 md:static md:mt-4 md:inset-auto md:flex md:justify-start [&_button]:w-full md:[&_button]:w-auto [&_button]:shadow-xl md:[&_button]:shadow-none [&_button]:ring-1 [&_button]:ring-white/10 md:[&_button]:ring-0">
-            <DownloadButton downloadId={result.download.id} chatId={chatId} />
+            <DownloadButton
+              downloadId={result.download.id}
+              filename={result.download.filename}
+              chatId={chatId}
+              workbookB64={result.workbookB64}
+              summaryStats={result.summaryStats}
+            />
           </div>
         </main>
       </div>

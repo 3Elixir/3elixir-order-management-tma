@@ -28,7 +28,7 @@ export const INCOME_REQUIRED = [
   'Lost Compensation',
 ] as const;
 
-export const SYNTHETIC_SKUS = ['RF', 'LC', 'TF', 'CF', 'SF'] as const;
+export const SYNTHETIC_SKUS = ['RF', 'LC', 'TF', 'CF', 'SF', 'VR', 'SC', 'AJ', 'RT'] as const;
 export type SyntheticSku = (typeof SYNTHETIC_SKUS)[number];
 
 export type OrderRow = {
@@ -51,10 +51,19 @@ export type IncomeRow = {
   transactionFee: number;
   vouchersAndRebates: number;
   lostCompensation: number;
+  serviceFee: number;
 };
 
 export type MergedRow = IncomeRow &
   Partial<Pick<OrderRow, 'sku' | 'quantity' | 'totalOrderAmount'>>;
+
+// A trimmed view of an income row that matched no order, surfaced to the UI so
+// the user can see exactly which income lines are unmatched.
+export type UnmatchedRow = {
+  orderId: string;
+  productName: string;
+  totalReleased: number;
+};
 
 export type CompiledRow = {
   sku: string;
@@ -71,8 +80,52 @@ export type PivotRow = {
 };
 
 export type SummaryRow = {
+  totalOrderAmount: number;
   totalReleased: number;
   commissionFee: number;
   transactionFee: number;
   totalShippingFee: number;
+  vouchersAndRebates: number;
+  serviceFee: number;
+  adjustments: number;
+  actualReleased: number;
+  totalExpenses: number;
+};
+
+export type ProductBreakdownRow = {
+  sku: string;
+  totalQuantity: number;
+  revenuePerUnit: number;
+  totalOrderAmount: number;
+  totalFees: number;
+  netRevenue: number;
+};
+
+export type IncomeSummaryTab = {
+  totalRevenue: number;
+  shippingSubtotal: number;
+  amsCommission: number;
+  commission: number;
+  serviceFee: number;
+  saverProgramFee: number;
+  transactionFee: number;
+  productGst: number;
+  shippingGst: number;
+  adsEscrow: number;
+  totalExpenses: number;
+  totalReleased: number;
+};
+
+export type AdjustmentData = {
+  total: number;
+  items: { orderId: string; amount: number }[];
+};
+
+export type Reconciliation = {
+  actualReleased: number;
+  attributedReleased: number;
+  releasedGap: number;
+  actualFees: number;
+  adjustments: number;
+  flagged: boolean;
 };

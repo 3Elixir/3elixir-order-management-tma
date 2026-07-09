@@ -96,10 +96,26 @@ export default async function handler(
       previews: result.previews,
       unmatched: result.unmatched,
     });
+    const { compiled, breakdown, summary } = result.previews;
+    const summaryStats = {
+      totalReleased: summary.totalReleased,
+      commissionFee: summary.commissionFee,
+      transactionFee: summary.transactionFee,
+      totalShippingFee: summary.totalShippingFee,
+      uniqueOrders: new Set(compiled.map((r) => r.orderId).filter(Boolean)).size,
+      skuCount: breakdown.length,
+      compiledRows: compiled.length,
+      unmatchedCount: result.unmatched.count,
+      actualReleased: result.reconciliation.actualReleased,
+      releasedGap: result.reconciliation.releasedGap,
+      reconciliationFlagged: result.reconciliation.flagged,
+    };
     return res.status(200).json({
       reconId,
       previews: result.previews,
       unmatched: result.unmatched,
+      workbookB64: result.workbook.toString('base64'),
+      summaryStats,
       download: {
         id: reconId,
         url: `/api/shopee-recon/download/${reconId}`,

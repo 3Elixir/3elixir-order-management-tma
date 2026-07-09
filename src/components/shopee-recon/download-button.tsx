@@ -2,12 +2,29 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Button } from '~/components/ui/button';
 
+type SummaryStats = {
+  totalReleased: number;
+  commissionFee: number;
+  transactionFee: number;
+  totalShippingFee: number;
+  uniqueOrders: number;
+  skuCount: number;
+  compiledRows: number;
+  unmatchedCount: number;
+};
+
 export function DownloadButton({
   downloadId,
+  filename: _filename,
   chatId,
+  workbookB64,
+  summaryStats,
 }: {
   downloadId: string;
+  filename: string;
   chatId: number | undefined;
+  workbookB64: string;
+  summaryStats: SummaryStats;
 }) {
   const [sending, setSending] = useState(false);
 
@@ -21,7 +38,7 @@ export function DownloadButton({
       const res = await fetch('/api/shopee-recon/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: downloadId, chatId }),
+        body: JSON.stringify({ id: downloadId, chatId, workbookB64, summaryStats }),
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
