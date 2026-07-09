@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import type { SummaryRow } from '~/lib/recon/schema';
 import { Card } from '~/components/ui/card';
 
@@ -19,118 +21,133 @@ type Props = {
   reconciliation?: ReconciliationStats;
 };
 
-// Source of each figure: 'shopee' = taken straight from Shopee's authoritative
-// Summary/Adjustment tabs; 'computed' = derived by this tool (per-row sum, join,
-// attribution). Keeping this visible is the whole point of the reconciliation.
-type Source = 'shopee' | 'computed';
-
-function SourceTag({ source }: { source: Source }) {
-  const isShopee = source === 'shopee';
-  return (
-    <span
-      className={`inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
-        isShopee
-          ? 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300'
-          : 'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
-      }`}
-    >
-      {isShopee ? 'From Shopee' : 'Computed'}
-    </span>
-  );
-}
-
-function FigureCard({
+// One figure line: label (with a light source hint) on the left, value on the
+// right. Replaces the old per-card layout + coloured source pill on every item.
+function StatRow({
   label,
   value,
   source,
-  note,
+  strong,
 }: {
   label: string;
   value: number;
-  source: Source;
-  note?: string;
+  source?: 'shopee' | 'computed';
+  strong?: boolean;
 }) {
   return (
-    <Card className="p-4">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
-        <SourceTag source={source} />
-      </div>
-      <p className="mt-2 text-xl font-semibold tabular-nums sm:text-2xl">{fmtSGD(value)}</p>
-      {note && <p className="mt-1 text-xs text-muted-foreground">{note}</p>}
-    </Card>
+    <div className="flex items-baseline justify-between gap-3 py-1.5">
+      <span className="text-sm text-muted-foreground">
+        {label}
+        {source && (
+          <span className="ml-1 text-[10px] uppercase tracking-wide text-muted-foreground/60">
+            {source === 'shopee' ? 'Shopee' : 'computed'}
+          </span>
+        )}
+      </span>
+      <span
+        className={`tabular-nums ${strong ? 'text-base font-semibold' : 'text-sm font-medium'}`}
+      >
+        {fmtSGD(value)}
+      </span>
+    </div>
   );
 }
 
-// Fee / figure cards, each tagged by where the number comes from.
-const FIGURES: { key: keyof SummaryRow; label: string; source: Source }[] = [
-  { key: 'totalReleased', label: 'Total Released (row sum)', source: 'computed' },
-  { key: 'commissionFee', label: 'Commission Fee', source: 'shopee' },
-  { key: 'transactionFee', label: 'Transaction Fee', source: 'shopee' },
-  { key: 'totalShippingFee', label: 'Shipping Fee', source: 'shopee' },
-  { key: 'serviceFee', label: 'Service Fee', source: 'shopee' },
-  { key: 'vouchersAndRebates', label: 'Vouchers & Rebates', source: 'computed' },
-  { key: 'adjustments', label: 'Adjustments', source: 'shopee' },
-  { key: 'totalExpenses', label: 'Total Expenses', source: 'shopee' },
+// Fee / figure lines grouped by source, so the source is stated once per group
+// instead of on every card.
+const SHOPEE_FIGURES: { key: keyof SummaryRow; label: string }[] = [
+  { key: 'commissionFee', label: 'Commission Fee' },
+  { key: 'transactionFee', label: 'Transaction Fee' },
+  { key: 'totalShippingFee', label: 'Shipping Fee' },
+  { key: 'serviceFee', label: 'Service Fee' },
+  { key: 'adjustments', label: 'Adjustments' },
+  { key: 'totalExpenses', label: 'Total Expenses' },
+];
+const COMPUTED_FIGURES: { key: keyof SummaryRow; label: string }[] = [
+  { key: 'totalReleased', label: 'Total Released (row sum)' },
+  { key: 'vouchersAndRebates', label: 'Vouchers & Rebates' },
 ];
 
+const FEE_COUNT = SHOPEE_FIGURES.length + COMPUTED_FIGURES.length;
+
 export function SummaryCards({ summary, reconciliation }: Props) {
+  const [showFees, setShowFees] = useState(false);
+
   // Attributed (per-product compiled sum) vs Shopee's actual payout.
   const attributed = summary.totalOrderAmount;
   const actualReleased = reconciliation?.actualReleased ?? 0;
   const unattributed = attributed - actualReleased;
+  const flagged = reconciliation?.reconciliationFlagged ?? false;
   const pct =
-    actualReleased === 0 ? null : `${(Math.abs(unattributed / actualReleased) * 100).toFixed(2)}% of released`;
+    actualReleased === 0
+      ? null
+      : `${(Math.abs(unattributed / actualReleased) * 100).toFixed(2)}%`;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {reconciliation && (
-        <div>
-          <div className="mb-2 flex items-center justify-between">
+        <Card className="p-4">
+          <div className="mb-1 flex items-center justify-between">
             <p className="text-sm font-semibold">Reconciliation</p>
-            <p className="text-xs text-muted-foreground">
-              Does the per-product breakdown add up to Shopee&apos;s payout?
-            </p>
+            <span
+              className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium ${
+                flagged
+                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                  : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+              }`}
+            >
+              {flagged ? 'Gap — review' : 'Ties ✓'}
+            </span>
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-            <FigureCard
-              label="Attributed (per-product)"
-              value={attributed}
-              source="computed"
-              note="sum of the Income Compiled rows"
-            />
-            <FigureCard
-              label="Actual Released (Shopee)"
-              value={actualReleased}
-              source="shopee"
-              note="Summary tab payout + adjustments"
-            />
-            <FigureCard
-              label="Unattributed"
+          <StatRow label="Attributed" value={attributed} source="computed" />
+          <StatRow label="Actual Released" value={actualReleased} source="shopee" strong />
+          <div className="mt-1 border-t pt-1">
+            <StatRow
+              label={`Unattributed${pct ? ` · ${pct}` : ''}`}
               value={unattributed}
               source="computed"
-              note={pct ? `${pct} · target ≈ 0` : 'target ≈ 0'}
             />
           </div>
-        </div>
+        </Card>
       )}
 
-      <div>
-        <div className="mb-2 flex items-center gap-3">
-          <p className="text-sm font-semibold">Fees &amp; figures</p>
-          <span className="flex items-center gap-2 text-[10px] text-muted-foreground">
-            <SourceTag source="shopee" /> authoritative
-            <SourceTag source="computed" /> derived by tool
+      <Card className="overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowFees((v) => !v)}
+          className="flex w-full items-center justify-between p-4 text-left"
+          aria-expanded={showFees}
+        >
+          <span className="text-sm font-semibold">Fee breakdown</span>
+          <span className="flex items-center gap-2 text-xs text-muted-foreground">
+            {FEE_COUNT} items
+            <ChevronDown
+              className={`h-4 w-4 transition-transform ${showFees ? 'rotate-180' : ''}`}
+            />
           </span>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-          {FIGURES.map((f) => (
-            <FigureCard key={f.key} label={f.label} value={summary[f.key]} source={f.source} />
-          ))}
-        </div>
-      </div>
+        </button>
+
+        {showFees && (
+          <div className="space-y-3 border-t px-4 pb-4 pt-3">
+            <div>
+              <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                From Shopee
+              </p>
+              {SHOPEE_FIGURES.map((f) => (
+                <StatRow key={f.key} label={f.label} value={summary[f.key]} />
+              ))}
+            </div>
+            <div>
+              <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Computed by tool
+              </p>
+              {COMPUTED_FIGURES.map((f) => (
+                <StatRow key={f.key} label={f.label} value={summary[f.key]} />
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
